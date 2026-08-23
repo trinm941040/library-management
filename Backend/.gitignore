@@ -1,0 +1,18 @@
+## .NET build output
+**/bin/
+**/obj/
+**/TestResults/
+
+## IDE
+.vs/
+.vscode/settings.json
+*.user
+*.suo
+
+## Local environment and secrets
+.env
+appsettings.Development.local.json
+
+## Docker and tooling
+docker-compose.override.yml
+.DS_Store
