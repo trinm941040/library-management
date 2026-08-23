@@ -2,6 +2,14 @@
 
 Dự án React + TypeScript + Vite cho hệ thống quản lý thư viện.
 
+## Tài liệu làm việc
+
+- [Quy tắc đặt tên](docs/naming-conventions.md)
+- [Chiến lược Git branching](docs/git-branching-strategy.md)
+- [Workflow phát triển frontend](docs/development-workflow.md)
+- [Cách sử dụng UI kit](docs/ui-kit-guide.md)
+- [Cách tùy chỉnh nội dung Dialog](docs/dialog-customization.md)
+
 ## Cấu trúc source code
 
 ```text
