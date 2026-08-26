@@ -162,20 +162,12 @@ public sealed class RolePermissionManagementService(
             return OperationFailure(RolePermissionManagementFailure.Validation, "One or more roles do not exist.");
 
         var currentRoles = await userManager.GetRolesAsync(user);
+        if (currentRoles.Contains(RoleNames.Administrator, StringComparer.OrdinalIgnoreCase))
+            return OperationFailure(
+                RolePermissionManagementFailure.ProtectedResource,
+                "Administrator accounts cannot have their roles changed.");
+
         var requestedNames = requestedRoles.Select(role => role.Name!).ToArray();
-        if (currentRoles.Contains(RoleNames.Administrator, StringComparer.OrdinalIgnoreCase) &&
-            !requestedNames.Contains(RoleNames.Administrator, StringComparer.OrdinalIgnoreCase))
-        {
-            var administratorRole = await roleManager.FindByNameAsync(RoleNames.Administrator);
-            var otherActiveAdministrators = administratorRole is null
-                ? 0
-                : await db.UserRoles
-                    .Where(value => value.RoleId == administratorRole.Id && value.UserId != userId)
-                    .Join(db.Users.Where(value => value.IsActive), value => value.UserId, value => value.Id, (_, _) => 1)
-                    .CountAsync(cancellationToken);
-            if (otherActiveAdministrators == 0)
-                return OperationFailure(RolePermissionManagementFailure.ProtectedResource, "The last active administrator cannot lose the Administrator role.");
-        }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var rolesToRemove = currentRoles.Except(requestedNames, StringComparer.OrdinalIgnoreCase).ToArray();

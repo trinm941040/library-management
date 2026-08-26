@@ -83,9 +83,12 @@ public sealed class UsersController(IUserManagementService userManagementService
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.DisplayName))
             return InvalidWhitespace();
+        if (!TryGetCurrentUserId(out var currentUserId))
+            return Unauthorized(CreateProblem("The authenticated user identifier is invalid."));
 
         var result = await userManagementService.UpdateAsync(
             id,
+            currentUserId,
             new UpdateManagedUserCommand(request.Email, request.DisplayName),
             cancellationToken);
 
@@ -111,7 +114,9 @@ public sealed class UsersController(IUserManagementService userManagementService
     private ActionResult MapFailure(UserManagementResult result) => result.Failure switch
     {
         UserManagementFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "User was not found.")),
-        UserManagementFailure.Conflict or UserManagementFailure.SelfDeactivation =>
+        UserManagementFailure.Conflict or
+        UserManagementFailure.SelfDeactivation or
+        UserManagementFailure.ProtectedResource =>
             Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "User validation failed."))
     };
@@ -138,5 +143,6 @@ public sealed class UsersController(IUserManagementService userManagementService
             user.EmailConfirmed,
             user.CreatedAtUtc,
             user.LastLoginAtUtc,
-            user.Roles);
+            user.Roles,
+            user.IsProtected);
 }
