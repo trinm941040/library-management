@@ -1,48 +1,45 @@
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using UTH.Library.Application.Abstractions.Identity;
 
 namespace UTH.Library.Infrastructure.Identity;
 
-public sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider timeProvider) : IJwtTokenService
+public sealed class JwtTokenService(
+    IOptions<JwtOptions> options,
+    TimeProvider timeProvider,
+    RsaJwtKeyProvider keyProvider) : IJwtTokenService
 {
     private readonly JwtOptions settings = options.Value;
+    private readonly SigningCredentials signingCredentials =
+        new(keyProvider.SigningKey, SecurityAlgorithms.RsaSha256);
 
     public (string Token, DateTimeOffset ExpiresAtUtc) CreateAccessToken(Guid userId, string email, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
-        try
+        var now = timeProvider.GetUtcNow();
+        var expires = now.AddMinutes(settings.AccessTokenMinutes);
+        var claims = new List<Claim>
         {
-            // if (string.IsNullOrWhiteSpace(settings.PrivateKeyPem))
-            //     throw new InvalidOperationException("JWT signing key is not configured.");
-            //
-            // using var rsa = RSA.Create();
-            // rsa.ImportFromPem(settings.PrivateKeyPem);
-            var now = timeProvider.GetUtcNow();
-            var expires = now.AddMinutes(settings.AccessTokenMinutes);
-            var claims = new List<Claim>
-            {
-                new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(JwtRegisteredClaimNames.Email, email)
-            };
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-            claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
-            var credentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Key)),
-                SecurityAlgorithms.HmacSha256Signature);
-            var token = new JwtSecurityToken(settings.Issuer, settings.Audience, claims, now.UtcDateTime,
-                expires.UtcDateTime, credentials);
-            var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(
+                JwtRegisteredClaimNames.Iat,
+                EpochTime.GetIntDate(now.UtcDateTime).ToString(),
+                ClaimValueTypes.Integer64)
+        };
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
 
-            return (accessToken, expires);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        var token = new JwtSecurityToken(
+            settings.Issuer,
+            settings.Audience,
+            claims,
+            now.UtcDateTime,
+            expires.UtcDateTime,
+            signingCredentials);
+
+        return (new JwtSecurityTokenHandler().WriteToken(token), expires);
     }
 }

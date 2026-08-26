@@ -126,7 +126,6 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
                 ["Database:Provider"] = "Sqlite",
                 ["Database:EnsureCreated"] = "true",
                 ["ConnectionStrings:LibraryDatabase"] = $"Data Source={databasePath}",
-                ["Jwt:Key"] = "integration-test-signing-key-at-least-32-bytes",
                 ["Jwt:Issuer"] = "UTH.Library.Tests",
                 ["Jwt:Audience"] = "UTH.Library.Tests"
             });

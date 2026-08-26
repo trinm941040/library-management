@@ -25,7 +25,10 @@ public static class DependencyInjection
             else
                 options.UseNpgsql(connectionString);
         });
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Validate(JwtOptions.IsValid, "Invalid JWT configuration.")
+            .ValidateOnStart();
         services.AddIdentityCore<ApplicationUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
@@ -44,7 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<RsaJwtKeyProvider>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<ITodoRepository, TodoRepository>();
         return services;
