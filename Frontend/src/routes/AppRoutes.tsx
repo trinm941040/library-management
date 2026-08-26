@@ -4,6 +4,7 @@ import { AppLayout } from '../layouts/AppLayout'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { LoginPage } from '../pages/login/LoginPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
+import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -31,6 +32,14 @@ export function AppRoutes() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UserPage />} />
+        <Route
+          path="/roles"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <RolePermissionPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

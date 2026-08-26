@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddSingleton<RsaJwtKeyProvider>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
