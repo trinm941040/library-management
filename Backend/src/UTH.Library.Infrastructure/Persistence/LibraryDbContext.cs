@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Identity;
+using UTH.Library.Infrastructure.Persistence.Configurations;
 
 namespace UTH.Library.Infrastructure.Persistence;
 
@@ -60,5 +61,11 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasOne(token => token.User).WithMany().HasForeignKey(token => token.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.Property(token => token.RowVersion).IsConcurrencyToken();
         });
+
+        modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());
+        modelBuilder.ApplyConfiguration(new AdministratorRoleSeedConfiguration());
+        modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());
+        modelBuilder.ApplyConfiguration(new AdministratorPermissionSeedConfiguration());
+        modelBuilder.ApplyConfiguration(new AdministratorUserRoleSeedConfiguration());
     }
 }

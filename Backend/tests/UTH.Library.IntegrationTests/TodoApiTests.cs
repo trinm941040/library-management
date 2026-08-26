@@ -2,9 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Domain.Entities;
+using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.IntegrationTests;
 
@@ -36,8 +39,22 @@ public sealed class TodoApiFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((_, configuration) =>
+        {
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:LibraryDatabase"] = "Host=unused-for-todo-tests"
+            });
+        });
         builder.ConfigureServices(services =>
         {
+            var identitySeeder = services.SingleOrDefault(descriptor =>
+                descriptor.ServiceType == typeof(IHostedService) &&
+                descriptor.ImplementationType == typeof(IdentitySeeder));
+            if (identitySeeder is not null)
+                services.Remove(identitySeeder);
+
             foreach (var descriptor in services.Where(descriptor => descriptor.ServiceType == typeof(ITodoRepository)).ToList())
             {
                 services.Remove(descriptor);

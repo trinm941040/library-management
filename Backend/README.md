@@ -1,6 +1,6 @@
 # LibraryManegement
 
-Clean Architecture REST API for the UTH library domain, targeting .NET 10. Local development uses SQLite; PostgreSQL remains available for container and production-like workflows.
+Clean Architecture REST API for the UTH library domain, targeting .NET 10 and PostgreSQL.
 
 ## Structure
 
@@ -14,9 +14,7 @@ The initial vertical slice is `Todos`. Domain rules stay in `TodoItem`; applicat
 ## Requirements
 
 - .NET SDK 10.0+
-- Docker Desktop for the container workflow
-- SQLite is used automatically in the Development environment and stores data in `library-development.db`.
-- Docker Desktop for the PostgreSQL container workflow
+- PostgreSQL 17+ or Docker Desktop
 
 ## Commands
 
@@ -27,7 +25,7 @@ dotnet test LibraryManegement.sln
 dotnet run --project src/UTH.Library.Api
 ```
 
-The Development configuration uses SQLite and creates the schema automatically. Override `Database__Provider` with `Postgres` and set `ConnectionStrings__LibraryDatabase` when running against PostgreSQL; do not commit credentials.
+Development connects to PostgreSQL at `localhost:5432` and automatically applies EF Core migrations. Override `ConnectionStrings__LibraryDatabase` for another environment; do not commit production credentials.
 
 ## Migrations
 
@@ -48,6 +46,8 @@ docker compose up --build
 curl http://localhost:8080/health
 ```
 
-Run migration commands for PostgreSQL with the connection string pointed at `localhost`, or run them from a one-off SDK container before using the API. SQLite development uses `EnsureCreated` and does not use the PostgreSQL migration set.
+Development applies migrations on startup. For production, keep `Database__MigrateOnStartup=false` and run `dotnet ef database update` as a controlled deployment step.
+
+Integration tests use an isolated PostgreSQL Testcontainer and therefore require a running Docker daemon.
 
 OpenAPI is available at `/openapi/v1.json`; health is available at `/health`.

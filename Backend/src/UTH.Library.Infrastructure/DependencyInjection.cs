@@ -19,11 +19,7 @@ public static class DependencyInjection
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
-
-            if (string.Equals(configuration["Database:Provider"], "Sqlite", StringComparison.OrdinalIgnoreCase))
-                options.UseSqlite(connectionString);
-            else
-                options.UseNpgsql(connectionString);
+            options.UseNpgsql(connectionString);
         });
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

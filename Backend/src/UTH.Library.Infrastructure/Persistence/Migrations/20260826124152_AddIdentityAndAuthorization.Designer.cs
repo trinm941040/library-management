@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UTH.Library.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using UTH.Library.Infrastructure.Persistence;
 namespace UTH.Library.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LibraryDbContext))]
-    partial class LibraryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826124152_AddIdentityAndAuthorization")]
+    partial class AddIdentityAndAuthorization
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,13 +120,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            UserId = new Guid("10000000-0000-0000-0000-000000000001"),
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001")
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -202,18 +198,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("RoleNameIndex");
 
                     b.ToTable("roles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("20000000-0000-0000-0000-000000000001"),
-                            ConcurrencyStamp = "20000000-0000-0000-0000-000000000002",
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Full system access.",
-                            IsSystemRole = true,
-                            Name = "Administrator",
-                            NormalizedName = "ADMINISTRATOR"
-                        });
                 });
 
             modelBuilder.Entity("UTH.Library.Infrastructure.Identity.ApplicationUser", b =>
@@ -292,27 +276,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("users", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "10000000-0000-0000-0000-000000000003",
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "System Administrator",
-                            Email = "admin@example.com",
-                            EmailConfirmed = true,
-                            IsActive = true,
-                            LockoutEnabled = true,
-                            NormalizedEmail = "ADMIN@EXAMPLE.COM",
-                            NormalizedUserName = "ADMIN@EXAMPLE.COM",
-                            PasswordHash = "$argon2id$v=19$m=65536,t=3,p=2$gbASegqg+aS71bLWtCPomQ==$3AHGi//TyjMTP6Rj34P/L5yNoeZWZoEHMs2qZ+zMHd0=",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "10000000-0000-0000-0000-000000000002",
-                            TwoFactorEnabled = false,
-                            UserName = "admin@example.com"
-                        });
                 });
 
             modelBuilder.Entity("UTH.Library.Infrastructure.Identity.Permission", b =>
@@ -343,112 +306,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("permissions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000001"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read users.",
-                            Module = "users",
-                            Name = "users.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000002"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create users.",
-                            Module = "users",
-                            Name = "users.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000003"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Update users.",
-                            Module = "users",
-                            Name = "users.update"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000004"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Deactivate users.",
-                            Module = "users",
-                            Name = "users.deactivate"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000005"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read roles.",
-                            Module = "roles",
-                            Name = "roles.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000006"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create roles.",
-                            Module = "roles",
-                            Name = "roles.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000007"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Update roles.",
-                            Module = "roles",
-                            Name = "roles.update"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000008"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Assign roles and permissions.",
-                            Module = "roles",
-                            Name = "roles.assign"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000009"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read permissions.",
-                            Module = "permissions",
-                            Name = "permissions.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000010"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read todos.",
-                            Module = "todos",
-                            Name = "todos.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000011"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create todos.",
-                            Module = "todos",
-                            Name = "todos.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000012"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Update todos.",
-                            Module = "todos",
-                            Name = "todos.update"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000013"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Delete todos.",
-                            Module = "todos",
-                            Name = "todos.delete"
-                        });
                 });
 
             modelBuilder.Entity("UTH.Library.Infrastructure.Identity.RefreshTokenSession", b =>
@@ -528,73 +385,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("role_permissions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000001")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000002")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000003")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000004")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000005")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000006")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000007")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000008")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000009")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000010")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000011")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000012")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000013")
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

@@ -5,13 +5,17 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Testcontainers.PostgreSql;
 using UTH.Library.Api.Contracts.Users;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Persistence;
+using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.IntegrationTests;
 
@@ -45,6 +49,27 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
         var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
         var passwordHash = db.Users.Single(value => value.Id == user.Id).PasswordHash;
         Assert.StartsWith("$argon2id$v=19$", passwordHash, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModelSeed_Administrator_HasValidPasswordRoleAndAllPermissions()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var administrator = await userManager.FindByEmailAsync("admin@example.com");
+
+        Assert.NotNull(administrator);
+        Assert.True(administrator.IsActive);
+        Assert.True(administrator.EmailConfirmed);
+        Assert.True(await userManager.CheckPasswordAsync(administrator, "Admin@123"));
+        Assert.Contains(RoleNames.Administrator, await userManager.GetRolesAsync(administrator));
+
+        var administratorPermissions = await db.RolePermissions
+            .Where(assignment => assignment.Role.NormalizedName == "ADMINISTRATOR")
+            .Select(assignment => assignment.Permission.Name)
+            .ToListAsync();
+        Assert.All(Permissions.All, permission => Assert.Contains(permission, administratorPermissions));
     }
 
     [Fact]
@@ -124,9 +149,16 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
 
 public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
 {
-    private readonly string databasePath = Path.Combine(
-        Path.GetTempPath(),
-        $"uth-library-user-management-{Guid.NewGuid():N}.db");
+    private readonly PostgreSqlContainer database = new PostgreSqlBuilder("postgres:17-alpine")
+        .WithDatabase("uth_library_tests")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
+    public UserManagementApiFactory()
+    {
+        database.StartAsync().GetAwaiter().GetResult();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -135,9 +167,8 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:Provider"] = "Sqlite",
-                ["Database:EnsureCreated"] = "true",
-                ["ConnectionStrings:LibraryDatabase"] = $"Data Source={databasePath}",
+                ["Database:MigrateOnStartup"] = "true",
+                ["ConnectionStrings:LibraryDatabase"] = database.GetConnectionString(),
                 ["Jwt:Issuer"] = "UTH.Library.Tests",
                 ["Jwt:Audience"] = "UTH.Library.Tests"
             });
@@ -161,8 +192,8 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing && File.Exists(databasePath))
-            File.Delete(databasePath);
+        if (disposing)
+            database.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }
 
