@@ -36,9 +36,7 @@
   align-items: center;
   gap: 11px;
   padding: 0 13px 31px;
-  font:
-    600 14px/1.1 'Space Grotesk',
-    sans-serif;
+  font: 600 14px/1.1 var(--app-font-sans);
   letter-spacing: -0.3px;
   color: #18243b;
 }
@@ -154,7 +152,7 @@
   border-radius: 7px;
   color: #3158d7;
   background: #e8edff;
-  font: 700 13px 'Space Grotesk';
+  font: 700 13px var(--app-font-sans);
 }
 .help-card > svg {
   width: 13px;
@@ -331,9 +329,7 @@
 .welcome-row h1 {
   margin: 0;
   color: #26334e;
-  font:
-    700 29px/1.15 'Space Grotesk',
-    sans-serif;
+  font: 700 29px/1.15 var(--app-font-sans);
   letter-spacing: -0.9px;
 }
 .welcome-row h1 span {
@@ -419,7 +415,7 @@
   display: block;
   margin-bottom: 5px;
   color: #2c3953;
-  font: 700 22px/1 'Space Grotesk';
+  font: 700 22px/1 var(--app-font-sans);
 }
 .metric-copy span {
   font-size: 9px;
@@ -446,7 +442,7 @@
 .section-heading h2 {
   margin: 0;
   color: #33405a;
-  font: 700 17px 'Space Grotesk';
+  font: 700 17px var(--app-font-sans);
   letter-spacing: -0.3px;
 }
 .text-button {
@@ -508,7 +504,7 @@
   z-index: 1;
   max-width: 210px;
   margin: 26px 0 8px;
-  font: 600 25px/1.12 'Space Grotesk';
+  font: 600 25px/1.12 var(--app-font-sans);
   letter-spacing: -0.7px;
 }
 .focus-card p {
@@ -574,7 +570,7 @@
 .queue-card h3 {
   margin: 0;
   color: #33405a;
-  font: 700 15px 'Space Grotesk';
+  font: 700 15px var(--app-font-sans);
 }
 .queue-card p {
   margin: 5px 0 0;
