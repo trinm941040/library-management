@@ -16,8 +16,6 @@ public sealed class IdentitySeeder(IServiceProvider services, IConfiguration con
         var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
         if (configuration.GetValue<bool>("Database:MigrateOnStartup"))
             await db.Database.MigrateAsync(cancellationToken);
-        else if (configuration.GetValue<bool>("Database:EnsureCreated"))
-            await db.Database.EnsureCreatedAsync(cancellationToken);
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         var now = DateTime.UtcNow;

@@ -25,7 +25,7 @@ dotnet test LibraryManegement.sln
 dotnet run --project src/UTH.Library.Api
 ```
 
-Development connects to PostgreSQL at `localhost:5432` and automatically applies EF Core migrations. Override `ConnectionStrings__LibraryDatabase` for another environment; do not commit production credentials. Existing SQLite files are not imported automatically.
+Development connects to PostgreSQL at `localhost:5432` and automatically applies EF Core migrations. Override `ConnectionStrings__LibraryDatabase` for another environment; do not commit production credentials.
 
 ## Migrations
 
@@ -48,6 +48,6 @@ curl http://localhost:8080/health
 
 Development applies migrations on startup. For production, keep `Database__MigrateOnStartup=false` and run `dotnet ef database update` as a controlled deployment step.
 
-Integration tests use an isolated SQLite database as a test fixture only; the application runtime references and configures PostgreSQL exclusively.
+Integration tests use an isolated PostgreSQL Testcontainer and therefore require a running Docker daemon.
 
 OpenAPI is available at `/openapi/v1.json`; health is available at `/health`.

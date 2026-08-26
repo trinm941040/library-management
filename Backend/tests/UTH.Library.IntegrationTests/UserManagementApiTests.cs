@@ -7,12 +7,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Testcontainers.PostgreSql;
 using UTH.Library.Api.Contracts.Users;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Persistence;
@@ -150,9 +149,16 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
 
 public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
 {
-    private readonly string databasePath = Path.Combine(
-        Path.GetTempPath(),
-        $"uth-library-user-management-{Guid.NewGuid():N}.db");
+    private readonly PostgreSqlContainer database = new PostgreSqlBuilder("postgres:17-alpine")
+        .WithDatabase("uth_library_tests")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
+    public UserManagementApiFactory()
+    {
+        database.StartAsync().GetAwaiter().GetResult();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -161,8 +167,8 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:EnsureCreated"] = "true",
-                ["ConnectionStrings:LibraryDatabase"] = "Host=unused-for-integration-tests",
+                ["Database:MigrateOnStartup"] = "true",
+                ["ConnectionStrings:LibraryDatabase"] = database.GetConnectionString(),
                 ["Jwt:Issuer"] = "UTH.Library.Tests",
                 ["Jwt:Audience"] = "UTH.Library.Tests"
             });
@@ -170,11 +176,6 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            services.RemoveAll<DbContextOptions<LibraryDbContext>>();
-            services.RemoveAll<IDbContextOptionsConfiguration<LibraryDbContext>>();
-            services.RemoveAll<LibraryDbContext>();
-            services.AddDbContext<LibraryDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
-
             services
                 .AddAuthentication(options =>
                 {
@@ -191,8 +192,8 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing && File.Exists(databasePath))
-            File.Delete(databasePath);
+        if (disposing)
+            database.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }
 

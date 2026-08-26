@@ -8,11 +8,11 @@ using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.IntegrationTests;
 
-public sealed class JwtKeyPairTests : IClassFixture<UserManagementApiFactory>
+public sealed class JwtKeyPairTests : IClassFixture<TodoApiFactory>
 {
-    private readonly UserManagementApiFactory factory;
+    private readonly TodoApiFactory factory;
 
-    public JwtKeyPairTests(UserManagementApiFactory factory) => this.factory = factory;
+    public JwtKeyPairTests(TodoApiFactory factory) => this.factory = factory;
 
     [Fact]
     public void CreateAccessToken_RsaPemPair_ProducesTokenAcceptedByBearerValidation()
