@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,7 @@ using Microsoft.Extensions.Options;
 using UTH.Library.Api.Contracts.Users;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Persistence;
+using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.IntegrationTests;
 
@@ -48,6 +50,27 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
         var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
         var passwordHash = db.Users.Single(value => value.Id == user.Id).PasswordHash;
         Assert.StartsWith("$argon2id$v=19$", passwordHash, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModelSeed_Administrator_HasValidPasswordRoleAndAllPermissions()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var administrator = await userManager.FindByEmailAsync("admin@example.com");
+
+        Assert.NotNull(administrator);
+        Assert.True(administrator.IsActive);
+        Assert.True(administrator.EmailConfirmed);
+        Assert.True(await userManager.CheckPasswordAsync(administrator, "Admin@123"));
+        Assert.Contains(RoleNames.Administrator, await userManager.GetRolesAsync(administrator));
+
+        var administratorPermissions = await db.RolePermissions
+            .Where(assignment => assignment.Role.NormalizedName == "ADMINISTRATOR")
+            .Select(assignment => assignment.Permission.Name)
+            .ToListAsync();
+        Assert.All(Permissions.All, permission => Assert.Contains(permission, administratorPermissions));
     }
 
     [Fact]
