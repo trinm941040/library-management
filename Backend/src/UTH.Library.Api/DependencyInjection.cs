@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.Api;
@@ -39,7 +40,11 @@ public static class DependencyInjection
             };
         });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            foreach (var permission in Permissions.All)
+                options.AddPolicy(permission, policy => policy.RequireClaim("permission", permission));
+        });
 
         //Build swagger documentation with versioning
         services.AddSwaggerGen(config =>
