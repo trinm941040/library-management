@@ -5,8 +5,11 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UTH.Library.Api.Contracts.Users;
@@ -135,9 +138,8 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:Provider"] = "Sqlite",
                 ["Database:EnsureCreated"] = "true",
-                ["ConnectionStrings:LibraryDatabase"] = $"Data Source={databasePath}",
+                ["ConnectionStrings:LibraryDatabase"] = "Host=unused-for-integration-tests",
                 ["Jwt:Issuer"] = "UTH.Library.Tests",
                 ["Jwt:Audience"] = "UTH.Library.Tests"
             });
@@ -145,6 +147,11 @@ public sealed class UserManagementApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            services.RemoveAll<DbContextOptions<LibraryDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<LibraryDbContext>>();
+            services.RemoveAll<LibraryDbContext>();
+            services.AddDbContext<LibraryDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
+
             services
                 .AddAuthentication(options =>
                 {
