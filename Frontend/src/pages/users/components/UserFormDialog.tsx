@@ -10,74 +10,83 @@ import {
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/common/components/ui/select'
-import type { SystemUser, UserRole } from '../user-store'
+import type { SystemUser } from '../user-api'
 
 export type UserFormData = {
-  name: string
+  displayName: string
   email: string
-  role: UserRole
+  password: string
 }
 
 type UserFormDialogProps = {
   open: boolean
   user: SystemUser | null
   onOpenChange: (open: boolean) => void
-  onSave: (data: UserFormData) => string | null
+  onSave: (data: UserFormData) => Promise<string | null>
 }
 
 const emptyForm: UserFormData = {
-  name: '',
+  displayName: '',
   email: '',
-  role: 'Member',
+  password: '',
 }
 
 export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDialogProps) {
   const [form, setForm] = useState<UserFormData>(emptyForm)
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setForm(user ? { name: user.name, email: user.email, role: user.role } : emptyForm)
+    setForm(
+      user
+        ? { displayName: user.displayName, email: user.email, password: '' }
+        : emptyForm,
+    )
     setError('')
   }, [open, user])
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const saveError = onSave(form)
-    if (saveError) {
-      setError(saveError)
-      return
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      const saveError = await onSave(form)
+      if (saveError) {
+        setError(saveError)
+        return
+      }
+      onOpenChange(false)
+    } finally {
+      setIsSubmitting(false)
     }
-    onOpenChange(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !isSubmitting && onOpenChange(nextOpen)}>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{user ? 'Chỉnh sửa user' : 'Thêm user mới'}</DialogTitle>
             <DialogDescription>
               {user
-                ? 'Cập nhật thông tin và vai trò của user.'
-                : 'Tạo một tài khoản mới cho hệ thống.'}
+                ? 'Cập nhật tên hiển thị và email của tài khoản.'
+                : 'Tạo tài khoản mới. Hệ thống sẽ tự gán vai trò User.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5 py-6">
             <div className="grid gap-2">
-              <Label htmlFor="user-name">Họ và tên</Label>
+              <Label htmlFor="user-display-name">Họ và tên</Label>
               <Input
-                id="user-name"
-                value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                id="user-display-name"
+                value={form.displayName}
+                onChange={(event) => setForm({ ...form, displayName: event.target.value })}
                 placeholder="Nguyễn Văn A"
+                minLength={2}
+                maxLength={100}
+                autoComplete="name"
+                disabled={isSubmitting}
                 required
               />
             </div>
@@ -90,50 +99,55 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
                 placeholder="user@example.com"
+                maxLength={256}
+                autoComplete="email"
+                disabled={isSubmitting}
                 required
               />
+              {user && form.email.trim().toLowerCase() !== user.email.toLowerCase() ? (
+                <p className="text-xs text-muted-foreground">
+                  Đổi email sẽ hủy trạng thái xác nhận email và thu hồi các phiên đăng nhập hiện tại.
+                </p>
+              ) : null}
             </div>
 
             {!user ? (
               <div className="grid gap-2">
                 <Label htmlFor="user-password">Mật khẩu tạm thời</Label>
-                <Input id="user-password" type="password" minLength={8} required />
+                <Input
+                  id="user-password"
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => setForm({ ...form, password: event.target.value })}
+                  minLength={8}
+                  maxLength={256}
+                  autoComplete="new-password"
+                  disabled={isSubmitting}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Mật khẩu phải có ít nhất 8 ký tự.</p>
               </div>
             ) : null}
 
-            <div className="grid gap-2">
-              <Label htmlFor="user-role">Bắt buộc đổi mật khẩu</Label>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="user-role">Vai trò</Label>
-              <Select
-                value={form.role}
-                onValueChange={(role) => setForm({ ...form, role: role as UserRole })}
-              >
-                <SelectTrigger id="user-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Administrator">Quản trị viên</SelectItem>
-                  <SelectItem value="Librarian">Thủ thư</SelectItem>
-                  <SelectItem value="Member">Độc giả</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {error ? (
-              <p className="text-sm text-destructive" role="alert">
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSubmitting}
+              onClick={() => onOpenChange(false)}
+            >
               Hủy
             </Button>
-            <Button type="submit">{user ? 'Lưu thay đổi' : 'Thêm user'}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm user'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

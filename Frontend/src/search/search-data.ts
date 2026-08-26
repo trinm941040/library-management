@@ -1,5 +1,3 @@
-import { loadUsers } from '@/pages/users/user-store'
-
 export type SearchItem = {
   id: string
   title: string
@@ -53,7 +51,7 @@ const pageItems: SearchItem[] = [
   {
     id: 'add-user',
     title: 'Thêm user mới',
-    description: 'Tạo tài khoản mới và chọn vai trò cho người dùng.',
+    description: 'Tạo tài khoản mới với vai trò User mặc định.',
     category: 'Người dùng',
     path: '/users',
     keywords: 'tạo thêm user tài khoản đăng ký',
@@ -61,26 +59,18 @@ const pageItems: SearchItem[] = [
   {
     id: 'edit-user',
     title: 'Chỉnh sửa thông tin user',
-    description: 'Thay đổi họ tên, email hoặc vai trò của tài khoản.',
+    description: 'Thay đổi họ tên hoặc email của tài khoản.',
     category: 'Người dùng',
     path: '/users',
     keywords: 'sửa cập nhật edit email role vai trò',
   },
   {
-    id: 'lock-user',
-    title: 'Khóa hoặc mở khóa user',
-    description: 'Ngăn hoặc cho phép một tài khoản tiếp tục hoạt động.',
+    id: 'deactivate-user',
+    title: 'Vô hiệu hóa user',
+    description: 'Ngăn tài khoản đăng nhập và thu hồi các phiên hiện tại.',
     category: 'Người dùng',
     path: '/users',
-    keywords: 'lock unlock chặn vô hiệu hóa kích hoạt',
-  },
-  {
-    id: 'delete-user',
-    title: 'Xóa user',
-    description: 'Xóa một tài khoản khỏi danh sách người dùng.',
-    category: 'Người dùng',
-    path: '/users',
-    keywords: 'delete remove xoá tài khoản',
+    keywords: 'lock chặn vô hiệu hóa deactivate tài khoản',
   },
   {
     id: 'settings',
@@ -96,16 +86,7 @@ export function searchLocalContent(query: string): SearchItem[] {
   const normalizedQuery = normalize(query.trim())
   if (!normalizedQuery) return []
 
-  const userItems: SearchItem[] = loadUsers().map((user) => ({
-    id: `user-${user.id}`,
-    title: user.name,
-    description: `${user.email} · ${user.role} · ${user.status === 'active' ? 'Đang hoạt động' : 'Đã khóa'}`,
-    category: 'Tài khoản',
-    path: '/users',
-    keywords: `${user.email} ${user.role} ${user.status}`,
-  }))
-
-  return [...pageItems, ...userItems]
+  return pageItems
     .map((item) => ({ item, score: getSearchScore(item, normalizedQuery) }))
     .filter((result) => result.score > 0)
     .sort((first, second) => second.score - first.score)
