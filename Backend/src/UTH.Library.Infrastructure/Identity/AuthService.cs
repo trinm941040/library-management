@@ -28,7 +28,7 @@ public sealed class AuthService(
         var created = await userManager.CreateAsync(user, password);
         if (!created.Succeeded)
             return (false, "Registration could not be completed.", null);
-        await userManager.AddToRoleAsync(user, "User");
+        await userManager.AddToRoleAsync(user, RoleNames.User);
         return await IssueAsync(user, ipAddress, userAgent, cancellationToken);
     }
 

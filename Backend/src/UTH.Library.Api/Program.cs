@@ -1,4 +1,4 @@
-using UTH.Library.Api;
+﻿using UTH.Library.Api;
 using UTH.Library.Application;
 using UTH.Library.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,11 +9,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
- var jwtSettings = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
-// if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(jwtSettings.PrivateKeyPem))
-//     throw new InvalidOperationException("Jwt:PrivateKeyPem must be configured in Production.");
-
-builder.Services.AddApi(jwtSettings);
+builder.Services.AddApi();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOpenApi();

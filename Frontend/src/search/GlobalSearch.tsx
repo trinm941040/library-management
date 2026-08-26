@@ -32,7 +32,7 @@ export function GlobalSearch() {
       <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={query}
-        placeholder="Tìm page, chức năng hoặc user..."
+        placeholder="Tìm page hoặc chức năng..."
         className="bg-background pr-3 pl-9"
         role="combobox"
         aria-label="Tìm kiếm toàn hệ thống"

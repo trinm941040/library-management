@@ -12,6 +12,8 @@
 ## Local environment and secrets
 .env
 appsettings.Development.local.json
+**/pem/*private*.pem
+**/pem/*.key
 
 ## Docker and tooling
 docker-compose.override.yml

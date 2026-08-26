@@ -13,6 +13,7 @@ export type User = {
 }
 
 let accessToken: string | null = null
+let refreshPromise: Promise<void> | null = null
 
 async function readResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
@@ -29,6 +30,42 @@ async function readResponse<T>(response: Response): Promise<T> {
 async function saveToken(response: Response) {
   const data = await readResponse<TokenResponse>(response)
   accessToken = data.accessToken
+}
+
+async function refreshAccessToken() {
+  const response = await fetch(`${AUTH_URL}/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  await saveToken(response)
+}
+
+export async function authenticatedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const send = () => {
+    const headers = new Headers(init?.headers)
+    if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+
+    return fetch(input, {
+      ...init,
+      headers,
+      credentials: 'include',
+    })
+  }
+
+  let response = await send()
+  if (response.status !== 401) return response
+
+  refreshPromise ??= refreshAccessToken().finally(() => {
+    refreshPromise = null
+  })
+
+  await refreshPromise
+  response = await send()
+  return response
 }
 
 async function getProfile(): Promise<User> {
@@ -52,12 +89,7 @@ export async function login(email: string, password: string): Promise<User> {
 }
 
 export async function restoreSession(): Promise<User> {
-  const response = await fetch(`${AUTH_URL}/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-
-  await saveToken(response)
+  await refreshAccessToken()
   return getProfile()
 }
 

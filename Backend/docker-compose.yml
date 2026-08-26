@@ -8,6 +8,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__LibraryDatabase: Host=postgres;Port=5432;Database=library;Username=library;Password=library
+      Jwt__PrivateKeyPemPath: /run/secrets/jwt-private.pem
+      Jwt__PublicKeyPemPath: /run/secrets/jwt-public.pem
+    volumes:
+      - ./src/pem/jwt-private.pem:/run/secrets/jwt-private.pem:ro
+      - ./src/pem/jwt-public.pem:/run/secrets/jwt-public.pem:ro
     depends_on:
       postgres:
         condition: service_healthy

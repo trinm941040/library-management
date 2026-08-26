@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using UTH.Library.Application.Abstractions.Identity;
@@ -25,7 +25,10 @@ public static class DependencyInjection
             else
                 options.UseNpgsql(connectionString);
         });
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Validate(JwtOptions.IsValid, "Invalid JWT configuration.")
+            .ValidateOnStart();
         services.AddIdentityCore<ApplicationUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
@@ -37,8 +40,16 @@ public static class DependencyInjection
             .AddSignInManager()
             .AddEntityFrameworkStores<LibraryDbContext>()
             .AddDefaultTokenProviders();
+        services.AddOptions<Argon2PasswordHasherOptions>()
+            .Bind(configuration.GetSection(Argon2PasswordHasherOptions.SectionName))
+            .Validate(Argon2PasswordHasherOptions.IsValid, "Invalid Argon2 password hasher configuration.")
+            .ValidateOnStart();
+        services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddSingleton<RsaJwtKeyProvider>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<ITodoRepository, TodoRepository>();
         return services;
