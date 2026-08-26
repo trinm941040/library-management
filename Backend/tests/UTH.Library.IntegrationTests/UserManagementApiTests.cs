@@ -107,6 +107,18 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetUsers_AdministratorWithoutPermission_BypassesPermissionCheck()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
+        request.Headers.Add(TestAuthenticationHandler.PermissionsHeader, "none");
+        request.Headers.Add(TestAuthenticationHandler.RolesHeader, RoleNames.Administrator);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     private static string UniqueEmail() => $"user-{Guid.NewGuid():N}@example.com";
 }
 
@@ -162,6 +174,7 @@ public sealed class TestAuthenticationHandler(
 {
     public const string SchemeName = "UserManagementTest";
     public const string PermissionsHeader = "X-Test-Permissions";
+    public const string RolesHeader = "X-Test-Roles";
     private static readonly Guid TestAdministratorId = new("11111111-1111-1111-1111-111111111111");
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -173,6 +186,9 @@ public sealed class TestAuthenticationHandler(
             "" => Permissions.All.ToArray(),
             _ => permissionsHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         };
+        var roles = Request.Headers[RolesHeader]
+            .ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var claims = new List<Claim>
         {
@@ -180,6 +196,7 @@ public sealed class TestAuthenticationHandler(
             new(ClaimTypes.Name, "Integration Test Administrator")
         };
         claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);

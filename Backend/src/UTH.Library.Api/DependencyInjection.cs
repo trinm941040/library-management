@@ -53,7 +53,15 @@ public static class DependencyInjection
         services.AddAuthorization(options =>
         {
             foreach (var permission in Permissions.All)
-                options.AddPolicy(permission, policy => policy.RequireClaim("permission", permission));
+            {
+                options.AddPolicy(permission, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.RequireAssertion(context =>
+                        context.User.IsInRole(RoleNames.Administrator) ||
+                        context.User.HasClaim("permission", permission));
+                });
+            }
         });
 
         //Build swagger documentation with versioning

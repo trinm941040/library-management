@@ -1,5 +1,11 @@
 namespace UTH.Library.Application.Abstractions.Identity;
 
+public static class RoleNames
+{
+    public const string Administrator = "Administrator";
+    public const string User = "User";
+}
+
 public static class Permissions
 {
     public const string UsersRead = "users.read";

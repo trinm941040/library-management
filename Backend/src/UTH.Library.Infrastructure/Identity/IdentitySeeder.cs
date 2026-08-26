@@ -25,8 +25,8 @@ public sealed class IdentitySeeder(IServiceProvider services, IConfiguration con
                 db.Permissions.Add(new Permission { Id = Guid.NewGuid(), Name = permissionName, Module = permissionName[..permissionName.IndexOf('.')], CreatedAtUtc = now });
         }
         await db.SaveChangesAsync(cancellationToken);
-        await EnsureRoleAsync(roleManager, db, "Administrator", true, Permissions.All, cancellationToken);
-        await EnsureRoleAsync(roleManager, db, "User", true, [Permissions.TodosRead, Permissions.TodosCreate, Permissions.TodosUpdate, Permissions.TodosDelete], cancellationToken);
+        await EnsureRoleAsync(roleManager, db, RoleNames.Administrator, true, Permissions.All, cancellationToken);
+        await EnsureRoleAsync(roleManager, db, RoleNames.User, true, [Permissions.TodosRead, Permissions.TodosCreate, Permissions.TodosUpdate, Permissions.TodosDelete], cancellationToken);
     }
 
     private static async Task EnsureRoleAsync(RoleManager<ApplicationRole> roleManager, LibraryDbContext db, string name, bool systemRole, IEnumerable<string> permissionNames, CancellationToken cancellationToken)
