@@ -230,6 +230,49 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("borrowings", (string)null);
                 });
 
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FulfilledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReservedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReserverEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("ReserverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReserverName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("BookId", "ReserverId", "FulfilledAtUtc", "CancelledAtUtc");
+
+                    b.ToTable("reservations", (string)null);
+                });
+
             modelBuilder.Entity("UTH.Library.Domain.Entities.TodoItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -589,6 +632,38 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                             Description = "Return borrowings.",
                             Module = "borrowings",
                             Name = "borrowings.return"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000021"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read reservations.",
+                            Module = "reservations",
+                            Name = "reservations.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000022"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create reservations.",
+                            Module = "reservations",
+                            Name = "reservations.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000023"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Cancel reservations.",
+                            Module = "reservations",
+                            Name = "reservations.cancel"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000024"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Fulfill reservations.",
+                            Module = "reservations",
+                            Name = "reservations.fulfill"
                         });
                 });
 
@@ -770,6 +845,26 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         {
                             RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
                             PermissionId = new Guid("30000000-0000-0000-0000-000000000020")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000021")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000022")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000023")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000024")
                         });
                 });
 
