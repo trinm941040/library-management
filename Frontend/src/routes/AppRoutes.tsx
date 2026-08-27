@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppLayout } from '../layouts/AppLayout'
+import { BooksPage } from '../pages/books/BooksPage'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { LoginPage } from '../pages/login/LoginPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
@@ -31,6 +32,7 @@ export function AppRoutes() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UserPage />} />
+        <Route path="/books" element={<BooksPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

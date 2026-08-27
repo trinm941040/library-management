@@ -73,6 +73,22 @@ const pageItems: SearchItem[] = [
     keywords: 'lock chặn vô hiệu hóa deactivate tài khoản',
   },
   {
+    id: 'books',
+    title: 'Kho sách',
+    description: 'Xem, thêm, sửa và xóa đầu sách trong kho thư viện.',
+    category: 'Tác vụ',
+    path: '/books',
+    keywords: 'sách kho sách isbn tác giả thể loại books inventory',
+  },
+  {
+    id: 'add-book',
+    title: 'Thêm sách mới',
+    description: 'Nhập thông tin sách để thêm vào kho.',
+    category: 'Tác vụ',
+    path: '/books',
+    keywords: 'thêm sách create book isbn',
+  },
+  {
     id: 'settings',
     title: 'Cài đặt sidebar',
     description: 'Cố định sidebar để menu luôn hiển thị.',
