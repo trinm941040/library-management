@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UTH.Library.Application.Features.Books;
 using UTH.Library.Application.Features.Todos;
 
 namespace UTH.Library.Application;
@@ -9,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<TodoService>();
+        services.AddScoped<BookService>();
         return services;
     }
 }

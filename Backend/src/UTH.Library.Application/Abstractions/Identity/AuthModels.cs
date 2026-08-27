@@ -21,12 +21,17 @@ public static class Permissions
     public const string TodosCreate = "todos.create";
     public const string TodosUpdate = "todos.update";
     public const string TodosDelete = "todos.delete";
+    public const string BooksRead = "books.read";
+    public const string BooksCreate = "books.create";
+    public const string BooksUpdate = "books.update";
+    public const string BooksDelete = "books.delete";
 
     public static readonly IReadOnlyList<string> All =
     [
         UsersRead, UsersCreate, UsersUpdate, UsersDeactivate,
         RolesRead, RolesCreate, RolesUpdate, RolesAssign,
-        PermissionsRead, TodosRead, TodosCreate, TodosUpdate, TodosDelete
+        PermissionsRead, TodosRead, TodosCreate, TodosUpdate, TodosDelete,
+        BooksRead, BooksCreate, BooksUpdate, BooksDelete
     ];
 }
 

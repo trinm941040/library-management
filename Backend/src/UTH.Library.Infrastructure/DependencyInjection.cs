@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IBookRepository, BookRepository>();
         return services;
     }
 }
