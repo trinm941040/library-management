@@ -80,6 +80,21 @@ public sealed class Book
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    public void Checkout(DateTime updatedAtUtc)
+    {
+        if (Quantity <= 0)
+            throw new InvalidOperationException("Book is out of stock.");
+
+        Quantity--;
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void CheckIn(DateTime updatedAtUtc)
+    {
+        Quantity++;
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
     private static void Validate(string title, string author, string isbn, string category, int quantity)
     {
         if (string.IsNullOrWhiteSpace(title))
