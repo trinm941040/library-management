@@ -8,6 +8,7 @@ import { LoginPage } from '../pages/login/LoginPage'
 import { ReservationsPage } from '../pages/reservations/ReservationsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { UserPage } from '../pages/users/UserPage'
+import { ViolationsPage } from '../pages/violations/ViolationsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 function LoginRoute() {
@@ -37,6 +38,7 @@ export function AppRoutes() {
         <Route path="/books" element={<BooksPage />} />
         <Route path="/borrowings" element={<BorrowingsPage />} />
         <Route path="/reservations" element={<ReservationsPage />} />
+        <Route path="/violations" element={<ViolationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
