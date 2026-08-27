@@ -5,6 +5,7 @@ import { BooksPage } from '../pages/books/BooksPage'
 import { BorrowingsPage } from '../pages/borrowings/BorrowingsPage'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { LoginPage } from '../pages/login/LoginPage'
+import { ReservationsPage } from '../pages/reservations/ReservationsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { UserPage } from '../pages/users/UserPage'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -35,6 +36,7 @@ export function AppRoutes() {
         <Route path="/users" element={<UserPage />} />
         <Route path="/books" element={<BooksPage />} />
         <Route path="/borrowings" element={<BorrowingsPage />} />
+        <Route path="/reservations" element={<ReservationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
