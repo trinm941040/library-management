@@ -6,6 +6,10 @@ import { LoginPage } from '../pages/login/LoginPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
+import { ConfigPage } from '../pages/config/ConfigPage'
+import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
+import { InfoPage } from '../pages/info/InfoPage'
+import { OtherSettingsPage } from '../pages/other-settings/OtherSettingsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 function LoginRoute() {
@@ -41,6 +45,11 @@ export function AppRoutes() {
           }
         />
         <Route path="/settings" element={<SettingsPage />} />
+        {/* System Management Routes */}
+        <Route path="/system/config" element={<ConfigPage />} />
+        <Route path="/system/activity-log" element={<ActivityLogPage />} />
+        <Route path="/system/info" element={<InfoPage />} />
+        <Route path="/system/other-settings" element={<OtherSettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

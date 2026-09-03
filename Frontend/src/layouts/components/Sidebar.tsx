@@ -40,10 +40,10 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
   {
     groupName: 'Quản lý hệ thống',
     items: [
-      { label: 'Cấu hình', icon: Layers },
-      { label: 'Nhật ký hoạt động', icon: RefreshCw },
-      { label: 'Thông tin', icon: Clock },
-      { label: 'Thiết lập khác', icon: Settings },
+      { label: 'Cấu hình', icon: Layers, to: '/system/config' },
+      { label: 'Nhật ký hoạt động', icon: RefreshCw, to: '/system/activity-log' },
+      { label: 'Thông tin', icon: Clock, to: '/system/info' },
+      { label: 'Thiết lập khác', icon: Settings, to: '/system/other-settings' },
     ],
   },
 ]
