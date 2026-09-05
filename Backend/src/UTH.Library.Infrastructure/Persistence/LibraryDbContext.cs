@@ -12,6 +12,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<Book> Books => Set<Book>();
+    public DbSet<Borrowing> Borrowings => Set<Borrowing>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
@@ -47,6 +48,19 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(book => book.CreatedAtUtc).IsRequired();
             entity.HasIndex(book => book.Isbn).IsUnique();
             entity.HasIndex(book => book.Title);
+        });
+
+        modelBuilder.Entity<Borrowing>(entity =>
+        {
+            entity.ToTable("borrowings");
+            entity.HasKey(borrowing => borrowing.Id);
+            entity.Property(borrowing => borrowing.BorrowerName).HasMaxLength(200).IsRequired();
+            entity.Property(borrowing => borrowing.BorrowerEmail).HasMaxLength(256).IsRequired();
+            entity.Property(borrowing => borrowing.BorrowedAtUtc).IsRequired();
+            entity.Property(borrowing => borrowing.DueAtUtc).IsRequired();
+            entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
+            entity.HasIndex(borrowing => borrowing.DueAtUtc);
+            entity.Ignore(borrowing => borrowing.IsReturned);
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");

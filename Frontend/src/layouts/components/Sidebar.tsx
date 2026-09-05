@@ -33,7 +33,7 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
     groupName: 'Quản lý tác vụ',
     items: [
       { label: 'Kho sách', icon: Layers, to: '/books' },
-      { label: 'Mượn/trả', icon: RefreshCw },
+      { label: 'Mượn/trả', icon: RefreshCw, to: '/borrowings' },
       { label: 'Đặt trước', icon: Clock },
       { label: 'Vi phạm', icon: Settings },
     ],

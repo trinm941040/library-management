@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using UTH.Library.Application.Features.Books;
+using UTH.Library.Application.Features.Borrowings;
 using UTH.Library.Application.Features.Employees;
 using UTH.Library.Application.Features.Todos;
 
@@ -13,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<EmployeeService>();
         services.AddScoped<TodoService>();
         services.AddScoped<BookService>();
+        services.AddScoped<BorrowingService>();
         return services;
     }
 }

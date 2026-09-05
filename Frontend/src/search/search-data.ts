@@ -89,6 +89,14 @@ const pageItems: SearchItem[] = [
     keywords: 'thêm sách create book isbn',
   },
   {
+    id: 'borrowings',
+    title: 'Mượn/trả sách',
+    description: 'Tạo phiếu mượn, theo dõi hạn trả và ghi nhận trả sách.',
+    category: 'Tác vụ',
+    path: '/borrowings',
+    keywords: 'mượn trả checkout return phiếu mượn overdue',
+  },
+  {
     id: 'settings',
     title: 'Cài đặt sidebar',
     description: 'Cố định sidebar để menu luôn hiển thị.',

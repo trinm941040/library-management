@@ -36,7 +36,10 @@ internal static class IdentitySeedData
         new(new Guid("30000000-0000-0000-0000-000000000014"), "employees.read", "Read employees.", "employees"),
         new(new Guid("30000000-0000-0000-0000-000000000015"), "employees.create", "Create employees.", "employees"),
         new(new Guid("30000000-0000-0000-0000-000000000016"), "employees.update", "Update employees.", "employees"),
-        new(new Guid("30000000-0000-0000-0000-000000000017"), "employees.delete", "Delete employees.", "employees")
+        new(new Guid("30000000-0000-0000-0000-000000000017"), "employees.delete", "Delete employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000022"), "borrowings.read", "Read borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000023"), "borrowings.create", "Create borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000024"), "borrowings.return", "Return borrowings.", "borrowings")
     ];
 
     internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);

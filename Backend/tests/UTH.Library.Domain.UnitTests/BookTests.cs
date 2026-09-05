@@ -41,4 +41,23 @@ public sealed class BookTests
         Assert.Equal(5, book.Quantity);
         Assert.Equal(updatedAt, book.UpdatedAtUtc);
     }
+
+    [Fact]
+    public void Checkout_reduces_quantity()
+    {
+        var book = Book.Create("Refactoring", "Martin Fowler", "9780201485677", "Software", 2, DateTime.UtcNow);
+
+        book.Checkout(DateTime.UtcNow);
+
+        Assert.Equal(1, book.Quantity);
+    }
+
+    [Fact]
+    public void Checkout_throws_when_no_copies_are_available()
+    {
+        var book = Book.Create("Refactoring", "Martin Fowler", "9780201485677", "Software", 1, DateTime.UtcNow);
+        book.Checkout(DateTime.UtcNow);
+
+        Assert.Throws<InvalidOperationException>(() => book.Checkout(DateTime.UtcNow));
+    }
 }

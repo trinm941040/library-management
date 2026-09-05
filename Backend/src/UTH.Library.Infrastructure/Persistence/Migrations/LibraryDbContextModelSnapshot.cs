@@ -190,6 +190,46 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("books", (string)null);
                 });
 
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("BorrowedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BorrowerEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("BorrowerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BorrowerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DueAtUtc");
+
+                    b.HasIndex("BookId", "BorrowerId", "ReturnedAtUtc");
+
+                    b.ToTable("borrowings", (string)null);
+                });
+
             modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
                 {
                     b.Property<Guid>("Id")
@@ -599,6 +639,30 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            Id = new Guid("30000000-0000-0000-0000-000000000022"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000023"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000024"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Return borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.return"
+                        },
+                        new
+                        {
                             Id = new Guid("30000000-0000-0000-0000-000000000014"),
                             CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Read employees.",
@@ -814,6 +878,21 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         {
                             RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
                             PermissionId = new Guid("30000000-0000-0000-0000-000000000021")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000022")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000023")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000024")
                         });
                 });
 
