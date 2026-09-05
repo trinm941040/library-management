@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UTH.Library.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using UTH.Library.Infrastructure.Persistence;
 namespace UTH.Library.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LibraryDbContext))]
-    partial class LibraryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903075239_AddEmployeeManagement")]
+    partial class AddEmployeeManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -188,149 +191,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("Title");
 
                     b.ToTable("books", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("BorrowedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("BorrowerEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<Guid>("BorrowerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BorrowerName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("DueAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ReturnedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DueAtUtc");
-
-                    b.HasIndex("BookId", "BorrowerId", "ReturnedAtUtc");
-
-                    b.ToTable("borrowings", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Reservation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelledAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("FulfilledAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ReservedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ReserverEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<Guid>("ReserverId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReserverName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpiresAtUtc");
-
-                    b.HasIndex("BookId", "ReserverId", "FulfilledAtUtc", "CancelledAtUtc");
-
-                    b.ToTable("reservations", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Violation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BookTitle")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("BorrowerEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<Guid>("BorrowerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BorrowerName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("FineAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("RecordedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Resolution")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("ResolvedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecordedAtUtc");
-
-                    b.HasIndex("BorrowerId", "ResolvedAtUtc");
-
-                    b.ToTable("violations", (string)null);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
@@ -742,86 +602,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
-                            Id = new Guid("30000000-0000-0000-0000-000000000022"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read borrowings.",
-                            Module = "borrowings",
-                            Name = "borrowings.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000023"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create borrowings.",
-                            Module = "borrowings",
-                            Name = "borrowings.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000024"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Return borrowings.",
-                            Module = "borrowings",
-                            Name = "borrowings.return"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000025"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read reservations.",
-                            Module = "reservations",
-                            Name = "reservations.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000026"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create reservations.",
-                            Module = "reservations",
-                            Name = "reservations.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000027"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cancel reservations.",
-                            Module = "reservations",
-                            Name = "reservations.cancel"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000028"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Fulfill reservations.",
-                            Module = "reservations",
-                            Name = "reservations.fulfill"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000029"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Read violations.",
-                            Module = "violations",
-                            Name = "violations.read"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000030"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create violations.",
-                            Module = "violations",
-                            Name = "violations.create"
-                        },
-                        new
-                        {
-                            Id = new Guid("30000000-0000-0000-0000-000000000031"),
-                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Resolve violations.",
-                            Module = "violations",
-                            Name = "violations.resolve"
-                        },
-                        new
-                        {
                             Id = new Guid("30000000-0000-0000-0000-000000000014"),
                             CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Read employees.",
@@ -1037,56 +817,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         {
                             RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
                             PermissionId = new Guid("30000000-0000-0000-0000-000000000021")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000022")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000023")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000024")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000025")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000026")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000027")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000028")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000029")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000030")
-                        },
-                        new
-                        {
-                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
-                            PermissionId = new Guid("30000000-0000-0000-0000-000000000031")
                         });
                 });
 

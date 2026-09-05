@@ -47,9 +47,9 @@ public partial class AddViolations : Migration
         migrationBuilder.Sql("""
             INSERT INTO permissions ("Id", "CreatedAtUtc", "Description", "Module", "Name")
             VALUES
-                ('30000000-0000-0000-0000-000000000025', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read violations.', 'violations', 'violations.read'),
-                ('30000000-0000-0000-0000-000000000026', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create violations.', 'violations', 'violations.create'),
-                ('30000000-0000-0000-0000-000000000027', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Resolve violations.', 'violations', 'violations.resolve')
+                ('30000000-0000-0000-0000-000000000029', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read violations.', 'violations', 'violations.read'),
+                ('30000000-0000-0000-0000-000000000030', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create violations.', 'violations', 'violations.create'),
+                ('30000000-0000-0000-0000-000000000031', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Resolve violations.', 'violations', 'violations.resolve')
             ON CONFLICT ("Name") DO UPDATE
             SET "Description" = EXCLUDED."Description", "Module" = EXCLUDED."Module";
 
@@ -68,9 +68,9 @@ public partial class AddViolations : Migration
         migrationBuilder.Sql("""
             DELETE FROM role_permissions
             WHERE "PermissionId" IN (
-                '30000000-0000-0000-0000-000000000025',
-                '30000000-0000-0000-0000-000000000026',
-                '30000000-0000-0000-0000-000000000027');
+                '30000000-0000-0000-0000-000000000029',
+                '30000000-0000-0000-0000-000000000030',
+                '30000000-0000-0000-0000-000000000031');
 
             DELETE FROM permissions
             WHERE "Name" IN ('violations.read', 'violations.create', 'violations.resolve');

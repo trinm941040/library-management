@@ -15,6 +15,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Borrowing> Borrowings => Set<Borrowing>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<Violation> Violations => Set<Violation>();
+    public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshTokenSession> RefreshTokenSessions => Set<RefreshTokenSession>();
@@ -125,6 +126,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(token => token.RowVersion).IsConcurrencyToken();
         });
 
+        modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorRoleSeedConfiguration());
         modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());

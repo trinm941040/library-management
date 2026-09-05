@@ -11,6 +11,7 @@ export type SystemUser = {
   createdAtUtc: string
   lastLoginAtUtc: string | null
   roles: string[]
+  isProtected: boolean
 }
 
 export type UserPageResponse = {
