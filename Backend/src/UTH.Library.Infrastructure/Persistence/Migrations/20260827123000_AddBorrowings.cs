@@ -43,9 +43,9 @@ public partial class AddBorrowings : Migration
         migrationBuilder.Sql("""
             INSERT INTO permissions ("Id", "CreatedAtUtc", "Description", "Module", "Name")
             VALUES
-                ('30000000-0000-0000-0000-000000000018', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read borrowings.', 'borrowings', 'borrowings.read'),
-                ('30000000-0000-0000-0000-000000000019', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create borrowings.', 'borrowings', 'borrowings.create'),
-                ('30000000-0000-0000-0000-000000000020', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Return borrowings.', 'borrowings', 'borrowings.return')
+                ('30000000-0000-0000-0000-000000000022', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read borrowings.', 'borrowings', 'borrowings.read'),
+                ('30000000-0000-0000-0000-000000000023', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create borrowings.', 'borrowings', 'borrowings.create'),
+                ('30000000-0000-0000-0000-000000000024', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Return borrowings.', 'borrowings', 'borrowings.return')
             ON CONFLICT ("Name") DO UPDATE
             SET "Description" = EXCLUDED."Description", "Module" = EXCLUDED."Module";
 
@@ -64,9 +64,9 @@ public partial class AddBorrowings : Migration
         migrationBuilder.Sql("""
             DELETE FROM role_permissions
             WHERE "PermissionId" IN (
-                '30000000-0000-0000-0000-000000000018',
-                '30000000-0000-0000-0000-000000000019',
-                '30000000-0000-0000-0000-000000000020');
+                '30000000-0000-0000-0000-000000000022',
+                '30000000-0000-0000-0000-000000000023',
+                '30000000-0000-0000-0000-000000000024');
 
             DELETE FROM permissions
             WHERE "Name" IN ('borrowings.read', 'borrowings.create', 'borrowings.return');
