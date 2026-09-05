@@ -2,6 +2,9 @@
 
 Clean Architecture REST API for the UTH library domain, targeting .NET 10 and PostgreSQL.
 
+Repository changes follow the shared
+[Issue, branch and Pull Request guideline](../docs/issue-and-pull-request-guideline.md).
+
 ## Structure
 
 ```text

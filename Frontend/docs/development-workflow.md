@@ -16,10 +16,14 @@ host này theo `vite.config.ts`.
 
 ## 2. Bắt đầu một task
 
-1. Xác định kết quả và điều kiện hoàn thành của task.
-2. Kiểm tra code liên quan trước khi tạo file mới.
-3. Tạo branch theo [Git branching strategy](./git-branching-strategy.md).
-4. Chỉ sửa những phần thuộc phạm vi task.
+1. Tìm Issue tương ứng hoặc tạo Issue mới với phạm vi và acceptance criteria rõ ràng.
+2. Xác định kết quả và điều kiện hoàn thành của task.
+3. Kiểm tra code liên quan trước khi tạo file mới.
+4. Tạo branch từ `develop` theo [Git branching strategy](./git-branching-strategy.md).
+5. Chỉ sửa những phần thuộc phạm vi task.
+
+Xem quy trình chi tiết tại
+[Issue, branch và Pull Request guideline](../../docs/issue-and-pull-request-guideline.md).
 
 Ví dụ task “thêm trang quản lý sách” cần xác định tối thiểu:
 
@@ -117,9 +121,10 @@ Sau đó:
 1. Xem lại diff và loại bỏ code debug, import thừa, text mẫu không cần thiết.
 2. Kiểm tra không có secret hoặc file build trong commit.
 3. Commit với message rõ ràng.
-4. Push branch và tạo Pull Request.
+4. Push branch và tạo Pull Request với base branch là `develop`.
 5. Mô tả cách kiểm tra và giới hạn còn lại.
-6. Sửa review, chạy lại các lệnh kiểm tra, rồi squash merge vào `main`.
+6. Liên kết Issue bằng `Closes #<issue-number>` trong mô tả Pull Request.
+7. Sửa review, chạy lại các lệnh kiểm tra, rồi squash merge vào `develop`.
 
 ## Definition of Done
 
@@ -131,4 +136,5 @@ Một task chỉ được xem là hoàn thành khi:
 - UI dùng được trên desktop/mobile và sáng/tối.
 - Search index và README được cập nhật nếu có page/chức năng mới.
 - `npm run lint` và `npm run build` thành công.
-- Pull Request mô tả đủ cách kiểm tra và giới hạn còn lại.
+- Pull Request có base branch là `develop`, liên kết Issue và mô tả đủ cách kiểm tra,
+  giới hạn còn lại.
