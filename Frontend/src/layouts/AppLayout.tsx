@@ -35,7 +35,7 @@ export function AppLayout() {
         isVisible={sidebarVisible}
         displayName={displayName}
         initials={initials}
-        role={user?.roles[0] ?? 'User'}
+        roles={user?.roles ?? []}
         onClose={() => {
           if (!sidebarPinned) setSidebarVisible(false)
         }}

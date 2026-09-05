@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
+import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import {
@@ -67,6 +68,7 @@ type UserSummary = {
 }
 
 export function UserPage() {
+  const { user: currentUser } = useAuth()
   const [page, setPage] = useState<UserPageResponse | null>(null)
   const [summary, setSummary] = useState<UserSummary | null>(null)
   const [searchInput, setSearchInput] = useState('')
@@ -157,11 +159,16 @@ export function UserPage() {
   }
 
   const openEditForm = (user: SystemUser) => {
+    if (user.isProtected && user.id !== currentUser?.id) return
     setEditingUser(user)
     setFormOpen(true)
   }
 
   const handleSave = async (data: UserFormData) => {
+    if (editingUser?.isProtected && editingUser.id !== currentUser?.id) {
+      return 'Không thể thay đổi thông tin của tài khoản Administrator khác.'
+    }
+
     try {
       const input = {
         displayName: data.displayName.trim(),
@@ -185,6 +192,10 @@ export function UserPage() {
 
   const confirmDeactivate = async () => {
     if (!deactivatingUser) return
+    if (deactivatingUser.isProtected) {
+      setDeactivateError('Không thể vô hiệu hóa tài khoản Administrator.')
+      return
+    }
     setDeactivateError('')
     setIsDeactivating(true)
 
@@ -310,7 +321,10 @@ export function UserPage() {
           </CardHeader>
           <CardContent>
             {pageError ? (
-              <div className="mb-4 flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center" role="alert">
+              <div
+                className="mb-4 flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center"
+                role="alert"
+              >
                 <CircleAlert className="size-6 text-destructive" />
                 <div>
                   <p className="font-medium">Không thể tải danh sách user</p>
@@ -343,72 +357,92 @@ export function UserPage() {
                       </TableCell>
                     </TableRow>
                   ) : null}
-                  {page?.items.map((user) => (
-                    <TableRow key={user.id} className={isLoading ? 'opacity-60' : undefined}>
-                      <TableCell>
-                        <div className="flex min-w-60 items-center gap-3">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                            {getInitials(user.displayName)}
-                          </span>
-                          <span className="grid gap-0.5">
-                            <strong>{user.displayName}</strong>
-                            <small className="text-muted-foreground">{user.email}</small>
-                            <small className="text-muted-foreground">
-                              {user.emailConfirmed ? 'Email đã xác nhận' : 'Email chưa xác nhận'}
-                            </small>
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex max-w-52 flex-wrap gap-1.5">
-                          {user.roles.length > 0 ? (
-                            user.roles.map((userRole) => (
-                              <Badge key={userRole} variant="outline">
-                                {userRole === 'Administrator' ? <ShieldCheck /> : null}
-                                {roleLabels[userRole] ?? userRole}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-muted-foreground">Chưa có vai trò</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.isActive ? 'secondary' : 'destructive'}>
-                          {user.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDateTime(user.lastLoginAtUtc)}</TableCell>
-                      <TableCell>{formatDateTime(user.createdAtUtc)}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Chỉnh sửa ${user.displayName}`}
-                            title="Chỉnh sửa"
-                            onClick={() => openEditForm(user)}
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-destructive hover:text-destructive"
-                            aria-label={`Vô hiệu hóa ${user.displayName}`}
-                            title={user.isActive ? 'Vô hiệu hóa user' : 'User đã bị vô hiệu hóa'}
-                            disabled={!user.isActive}
-                            onClick={() => {
-                              setDeactivateError('')
-                              setDeactivatingUser(user)
-                            }}
-                          >
-                            <Ban />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {page?.items.map((user) => {
+                    const isCurrentUser = user.id === currentUser?.id
+                    const canEdit = !user.isProtected || isCurrentUser
+                    const canDeactivate = !user.isProtected && user.isActive
+                    const editTitle = canEdit
+                      ? isCurrentUser && user.isProtected
+                        ? 'Chỉnh sửa thông tin cá nhân'
+                        : 'Chỉnh sửa'
+                      : 'Không thể thay đổi Administrator khác'
+                    const deactivateTitle = user.isProtected
+                      ? 'Không thể vô hiệu hóa tài khoản Administrator'
+                      : user.isActive
+                        ? 'Vô hiệu hóa user'
+                        : 'User đã bị vô hiệu hóa'
+
+                    return (
+                      <TableRow key={user.id} className={isLoading ? 'opacity-60' : undefined}>
+                        <TableCell>
+                          <div className="flex min-w-60 items-center gap-3">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {getInitials(user.displayName)}
+                            </span>
+                            <span className="grid gap-0.5">
+                              <span className="flex items-center gap-2">
+                                <strong>{user.displayName}</strong>
+                                {isCurrentUser ? <Badge variant="secondary">Bạn</Badge> : null}
+                              </span>
+                              <small className="text-muted-foreground">{user.email}</small>
+                              <small className="text-muted-foreground">
+                                {user.emailConfirmed ? 'Email đã xác nhận' : 'Email chưa xác nhận'}
+                              </small>
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex max-w-52 flex-wrap gap-1.5">
+                            {user.roles.length > 0 ? (
+                              user.roles.map((userRole) => (
+                                <Badge key={userRole} variant="outline">
+                                  {userRole === 'Administrator' ? <ShieldCheck /> : null}
+                                  {roleLabels[userRole] ?? userRole}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Chưa có vai trò</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.isActive ? 'secondary' : 'destructive'}>
+                            {user.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDateTime(user.lastLoginAtUtc)}</TableCell>
+                        <TableCell>{formatDateTime(user.createdAtUtc)}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Chỉnh sửa ${user.displayName}`}
+                              title={editTitle}
+                              disabled={!canEdit}
+                              onClick={() => openEditForm(user)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-destructive hover:text-destructive"
+                              aria-label={`Vô hiệu hóa ${user.displayName}`}
+                              title={deactivateTitle}
+                              disabled={!canDeactivate}
+                              onClick={() => {
+                                setDeactivateError('')
+                                setDeactivatingUser(user)
+                              }}
+                            >
+                              <Ban />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -451,7 +485,10 @@ export function UserPage() {
             </DialogDescription>
           </DialogHeader>
           {deactivateError ? (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            <p
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
               {deactivateError}
             </p>
           ) : null}

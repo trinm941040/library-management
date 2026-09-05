@@ -1,9 +1,11 @@
 import {
+  AlertTriangle,
   BookOpen,
   ChevronDown,
   Clock,
   LayoutDashboard,
   Layers,
+  UserRoundCog,
   RefreshCw,
   Settings,
   Users,
@@ -12,7 +14,7 @@ import {
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/common/components/ui/button'
 
-type NavigationItem = { label: string; icon: LucideIcon; to?: string }
+type NavigationItem = { label: string; icon: LucideIcon; to?: string; requiredRole?: string }
 
 const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
   {
@@ -23,18 +25,18 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
     groupName: 'Quản lý người dùng',
     items: [
       { label: 'Tài khoản', icon: Users, to: '/users' },
-      { label: 'Phân quyền', icon: BookOpen },
-      { label: 'Nhân viên', icon: RefreshCw },
+      { label: 'Vai trò & Quyền hạn', icon: BookOpen, to: '/roles', requiredRole: 'Administrator' },
+      { label: 'Nhân viên', icon: UserRoundCog, to: '/member' },
       { label: 'Đọc giả', icon: Users },
     ],
   },
   {
     groupName: 'Quản lý tác vụ',
     items: [
-      { label: 'Kho sách', icon: Layers },
-      { label: 'Mượn/trả', icon: RefreshCw },
-      { label: 'Đặt trước', icon: Clock },
-      { label: 'Vi phạm', icon: Settings },
+      { label: 'Kho sách', icon: Layers, to: '/books' },
+      { label: 'Mượn/trả', icon: RefreshCw, to: '/borrowings' },
+      { label: 'Đặt trước', icon: Clock, to: '/reservations' },
+      { label: 'Vi phạm', icon: AlertTriangle, to: '/violations' },
     ],
   },
   {
@@ -52,11 +54,13 @@ type SidebarProps = {
   isVisible: boolean
   displayName: string
   initials: string
-  role: string
+  roles: string[]
   onClose: () => void
 }
 
-export function Sidebar({ isVisible, displayName, initials, role, onClose }: SidebarProps) {
+export function Sidebar({ isVisible, displayName, initials, roles, onClose }: SidebarProps) {
+  const displayRole = roles.includes('Administrator') ? 'Administrator' : (roles[0] ?? 'User')
+
   return (
     <>
       <aside className={`sidebar ${isVisible ? 'is-open' : 'is-hidden'}`}>
@@ -75,30 +79,32 @@ export function Sidebar({ isVisible, displayName, initials, role, onClose }: Sid
           {navigationAdmin.map((group) => (
             <div className="pb-2 pt-2" key={group.groupName}>
               <p className="nav-label pd-[10px]">{group.groupName}</p>
-              {group.items.map(({ label, icon: Icon, to }) =>
-                to ? (
-                  <NavLink
-                    to={to}
-                    key={label}
-                    className={({ isActive }) =>
-                      `nav-item justify-start ${isActive ? 'active' : ''}`
-                    }
-                  >
-                    <Icon aria-hidden="true" />
-                    <span>{label}</span>
-                  </NavLink>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="nav-item justify-start"
-                    key={label}
-                    type="button"
-                  >
-                    <Icon aria-hidden="true" />
-                    <span>{label}</span>
-                  </Button>
-                ),
-              )}
+              {group.items
+                .filter(({ requiredRole }) => !requiredRole || roles.includes(requiredRole))
+                .map(({ label, icon: Icon, to }) =>
+                  to ? (
+                    <NavLink
+                      to={to}
+                      key={label}
+                      className={({ isActive }) =>
+                        `nav-item justify-start ${isActive ? 'active' : ''}`
+                      }
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{label}</span>
+                    </NavLink>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="nav-item justify-start"
+                      key={label}
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{label}</span>
+                    </Button>
+                  ),
+                )}
             </div>
           ))}
         </nav>
@@ -115,7 +121,7 @@ export function Sidebar({ isVisible, displayName, initials, role, onClose }: Sid
             <span className="avatar avatar-indigo">{initials}</span>
             <span>
               <b>{displayName}</b>
-              <small>{role}</small>
+              <small>{displayRole}</small>
             </span>
             <ChevronDown aria-hidden="true" />
           </Button>

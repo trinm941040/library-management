@@ -28,7 +28,25 @@ internal static class IdentitySeedData
         new(new Guid("30000000-0000-0000-0000-000000000010"), "todos.read", "Read todos.", "todos"),
         new(new Guid("30000000-0000-0000-0000-000000000011"), "todos.create", "Create todos.", "todos"),
         new(new Guid("30000000-0000-0000-0000-000000000012"), "todos.update", "Update todos.", "todos"),
-        new(new Guid("30000000-0000-0000-0000-000000000013"), "todos.delete", "Delete todos.", "todos")
+        new(new Guid("30000000-0000-0000-0000-000000000013"), "todos.delete", "Delete todos.", "todos"),
+        new(new Guid("30000000-0000-0000-0000-000000000018"), "books.read", "Read books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000019"), "books.create", "Create books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000020"), "books.update", "Update books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000021"), "books.delete", "Delete books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000014"), "employees.read", "Read employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000015"), "employees.create", "Create employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000016"), "employees.update", "Update employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000017"), "employees.delete", "Delete employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000022"), "borrowings.read", "Read borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000023"), "borrowings.create", "Create borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000024"), "borrowings.return", "Return borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000025"), "reservations.read", "Read reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000026"), "reservations.create", "Create reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000027"), "reservations.cancel", "Cancel reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000028"), "reservations.fulfill", "Fulfill reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000029"), "violations.read", "Read violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000030"), "violations.create", "Create violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000031"), "violations.resolve", "Resolve violations.", "violations")
     ];
 
     internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);

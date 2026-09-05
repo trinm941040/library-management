@@ -15,7 +15,8 @@ public sealed record ManagedUser(
     bool EmailConfirmed,
     DateTime CreatedAtUtc,
     DateTime? LastLoginAtUtc,
-    IReadOnlyCollection<string> Roles);
+    IReadOnlyCollection<string> Roles,
+    bool IsProtected);
 
 public sealed record UserPage(
     IReadOnlyCollection<ManagedUser> Items,
@@ -33,7 +34,8 @@ public enum UserManagementFailure
     NotFound,
     Conflict,
     Validation,
-    SelfDeactivation
+    SelfDeactivation,
+    ProtectedResource
 }
 
 public sealed record UserManagementResult(
@@ -55,6 +57,6 @@ public interface IUserManagementService
     Task<UserPage> GetAsync(UserListQuery query, CancellationToken cancellationToken);
     Task<ManagedUser?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<UserManagementResult> CreateAsync(CreateManagedUserCommand command, CancellationToken cancellationToken);
-    Task<UserManagementResult> UpdateAsync(Guid id, UpdateManagedUserCommand command, CancellationToken cancellationToken);
+    Task<UserManagementResult> UpdateAsync(Guid id, Guid currentUserId, UpdateManagedUserCommand command, CancellationToken cancellationToken);
     Task<UserManagementResult> DeactivateAsync(Guid id, Guid currentUserId, CancellationToken cancellationToken);
 }
