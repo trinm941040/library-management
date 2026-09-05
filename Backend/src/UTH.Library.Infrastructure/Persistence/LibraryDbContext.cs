@@ -13,6 +13,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<Book> Books => Set<Book>();
     public DbSet<Borrowing> Borrowings => Set<Borrowing>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
@@ -61,6 +62,21 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
             entity.HasIndex(borrowing => borrowing.DueAtUtc);
             entity.Ignore(borrowing => borrowing.IsReturned);
+        });
+
+        modelBuilder.Entity<Reservation>(entity =>
+        {
+            entity.ToTable("reservations");
+            entity.HasKey(reservation => reservation.Id);
+            entity.Property(reservation => reservation.ReserverName).HasMaxLength(200).IsRequired();
+            entity.Property(reservation => reservation.ReserverEmail).HasMaxLength(256).IsRequired();
+            entity.Property(reservation => reservation.ReservedAtUtc).IsRequired();
+            entity.Property(reservation => reservation.ExpiresAtUtc).IsRequired();
+            entity.HasIndex(reservation => new { reservation.BookId, reservation.ReserverId, reservation.FulfilledAtUtc, reservation.CancelledAtUtc });
+            entity.HasIndex(reservation => reservation.ExpiresAtUtc);
+            entity.Ignore(reservation => reservation.IsFulfilled);
+            entity.Ignore(reservation => reservation.IsCancelled);
+            entity.Ignore(reservation => reservation.IsOpen);
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");

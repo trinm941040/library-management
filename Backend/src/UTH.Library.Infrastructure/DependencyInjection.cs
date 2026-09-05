@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoRepository, TodoRepository>();
         services.AddScoped<IBookRepository, BookRepository>();
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
         return services;
     }
 }

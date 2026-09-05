@@ -97,6 +97,14 @@ const pageItems: SearchItem[] = [
     keywords: 'mượn trả checkout return phiếu mượn overdue',
   },
   {
+    id: 'reservations',
+    title: 'Đặt trước sách',
+    description: 'Giữ chỗ sách và chuyển thành phiếu mượn khi sách có sẵn.',
+    category: 'Tác vụ',
+    path: '/reservations',
+    keywords: 'đặt trước reservation hold giữ chỗ nhận sách',
+  },
+  {
     id: 'settings',
     title: 'Cài đặt sidebar',
     description: 'Cố định sidebar để menu luôn hiển thị.',

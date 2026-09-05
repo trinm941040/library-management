@@ -36,6 +36,10 @@ public static class Permissions
     public const string BorrowingsRead = "borrowings.read";
     public const string BorrowingsCreate = "borrowings.create";
     public const string BorrowingsReturn = "borrowings.return";
+    public const string ReservationsRead = "reservations.read";
+    public const string ReservationsCreate = "reservations.create";
+    public const string ReservationsCancel = "reservations.cancel";
+    public const string ReservationsFulfill = "reservations.fulfill";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -45,7 +49,8 @@ public static class Permissions
         EmployeesRead, EmployeesCreate, EmployeesUpdate, EmployeesDelete,
         TodosRead, TodosCreate, TodosUpdate, TodosDelete,
         BooksRead, BooksCreate, BooksUpdate, BooksDelete,
-        BorrowingsRead, BorrowingsCreate, BorrowingsReturn
+        BorrowingsRead, BorrowingsCreate, BorrowingsReturn,
+        ReservationsRead, ReservationsCreate, ReservationsCancel, ReservationsFulfill
     ];
 }
 

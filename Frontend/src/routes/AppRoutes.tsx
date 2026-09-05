@@ -5,6 +5,7 @@ import { BooksPage } from '../pages/books/BooksPage'
 import { BorrowingsPage } from '../pages/borrowings/BorrowingsPage'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { LoginPage } from '../pages/login/LoginPage'
+import { ReservationsPage } from '../pages/reservations/ReservationsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
@@ -41,6 +42,7 @@ export function AppRoutes() {
         <Route path="/users" element={<UserPage />} />
         <Route path="/books" element={<BooksPage />} />
         <Route path="/borrowings" element={<BorrowingsPage />} />
+        <Route path="/reservations" element={<ReservationsPage />} />
         <Route path="/member" element={<MemberPage />} />
         <Route
           path="/roles"
