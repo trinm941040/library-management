@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IBookRepository, BookRepository>();
         return services;
     }
 }
