@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ITodoRepository, TodoRepository>();
         return services;
     }

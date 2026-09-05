@@ -21,6 +21,10 @@ public static class Permissions
     public const string PermissionsCreate = "permissions.create";
     public const string PermissionsUpdate = "permissions.update";
     public const string PermissionsDelete = "permissions.delete";
+    public const string EmployeesRead = "employees.read";
+    public const string EmployeesCreate = "employees.create";
+    public const string EmployeesUpdate = "employees.update";
+    public const string EmployeesDelete = "employees.delete";
     public const string TodosRead = "todos.read";
     public const string TodosCreate = "todos.create";
     public const string TodosUpdate = "todos.update";
@@ -31,6 +35,7 @@ public static class Permissions
         UsersRead, UsersCreate, UsersUpdate, UsersDeactivate,
         RolesRead, RolesCreate, RolesUpdate, RolesDelete, RolesAssign,
         PermissionsRead, PermissionsCreate, PermissionsUpdate, PermissionsDelete,
+        EmployeesRead, EmployeesCreate, EmployeesUpdate, EmployeesDelete,
         TodosRead, TodosCreate, TodosUpdate, TodosDelete
     ];
 }
