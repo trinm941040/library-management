@@ -44,10 +44,10 @@ public partial class AddBooks : Migration
         migrationBuilder.Sql("""
             INSERT INTO permissions ("Id", "CreatedAtUtc", "Description", "Module", "Name")
             VALUES
-                ('30000000-0000-0000-0000-000000000014', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read books.', 'books', 'books.read'),
-                ('30000000-0000-0000-0000-000000000015', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create books.', 'books', 'books.create'),
-                ('30000000-0000-0000-0000-000000000016', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Update books.', 'books', 'books.update'),
-                ('30000000-0000-0000-0000-000000000017', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Delete books.', 'books', 'books.delete')
+                ('30000000-0000-0000-0000-000000000018', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read books.', 'books', 'books.read'),
+                ('30000000-0000-0000-0000-000000000019', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create books.', 'books', 'books.create'),
+                ('30000000-0000-0000-0000-000000000020', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Update books.', 'books', 'books.update'),
+                ('30000000-0000-0000-0000-000000000021', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Delete books.', 'books', 'books.delete')
             ON CONFLICT ("Name") DO UPDATE
             SET "Description" = EXCLUDED."Description", "Module" = EXCLUDED."Module";
 
@@ -66,10 +66,10 @@ public partial class AddBooks : Migration
         migrationBuilder.Sql("""
             DELETE FROM role_permissions
             WHERE "PermissionId" IN (
-                '30000000-0000-0000-0000-000000000014',
-                '30000000-0000-0000-0000-000000000015',
-                '30000000-0000-0000-0000-000000000016',
-                '30000000-0000-0000-0000-000000000017');
+                '30000000-0000-0000-0000-000000000018',
+                '30000000-0000-0000-0000-000000000019',
+                '30000000-0000-0000-0000-000000000020',
+                '30000000-0000-0000-0000-000000000021');
 
             DELETE FROM permissions
             WHERE "Name" IN ('books.read', 'books.create', 'books.update', 'books.delete');

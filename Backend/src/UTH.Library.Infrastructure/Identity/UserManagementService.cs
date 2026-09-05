@@ -92,12 +92,15 @@ public sealed class UserManagementService(
 
     public async Task<UserManagementResult> UpdateAsync(
         Guid id,
+        Guid currentUserId,
         UpdateManagedUserCommand command,
         CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
             return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
+        if (id != currentUserId && await userManager.IsInRoleAsync(user, RoleNames.Administrator))
+            return AdministratorIsProtected();
 
         var email = command.Email.Trim();
         var existingUser = await userManager.FindByEmailAsync(email);
@@ -143,6 +146,8 @@ public sealed class UserManagementService(
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
             return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
+        if (await userManager.IsInRoleAsync(user, RoleNames.Administrator))
+            return AdministratorIsProtected();
 
         if (!user.IsActive)
             return UserManagementResult.Success();
@@ -206,6 +211,11 @@ public sealed class UserManagementService(
             errors);
     }
 
+    private static UserManagementResult AdministratorIsProtected() =>
+        UserManagementResult.Failed(
+            UserManagementFailure.ProtectedResource,
+            "Administrator accounts cannot be modified by other users.");
+
     private static ManagedUser Map(ApplicationUser user, IReadOnlyCollection<string> roles) =>
         new(
             user.Id,
@@ -215,5 +225,6 @@ public sealed class UserManagementService(
             user.EmailConfirmed,
             user.CreatedAtUtc,
             user.LastLoginAtUtc,
-            roles);
+            roles,
+            roles.Contains(RoleNames.Administrator, StringComparer.OrdinalIgnoreCase));
 }

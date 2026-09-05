@@ -29,10 +29,14 @@ internal static class IdentitySeedData
         new(new Guid("30000000-0000-0000-0000-000000000011"), "todos.create", "Create todos.", "todos"),
         new(new Guid("30000000-0000-0000-0000-000000000012"), "todos.update", "Update todos.", "todos"),
         new(new Guid("30000000-0000-0000-0000-000000000013"), "todos.delete", "Delete todos.", "todos"),
-        new(new Guid("30000000-0000-0000-0000-000000000014"), "books.read", "Read books.", "books"),
-        new(new Guid("30000000-0000-0000-0000-000000000015"), "books.create", "Create books.", "books"),
-        new(new Guid("30000000-0000-0000-0000-000000000016"), "books.update", "Update books.", "books"),
-        new(new Guid("30000000-0000-0000-0000-000000000017"), "books.delete", "Delete books.", "books")
+        new(new Guid("30000000-0000-0000-0000-000000000018"), "books.read", "Read books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000019"), "books.create", "Create books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000020"), "books.update", "Update books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000021"), "books.delete", "Delete books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000014"), "employees.read", "Read employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000015"), "employees.create", "Create employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000016"), "employees.update", "Update employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000017"), "employees.delete", "Delete employees.", "employees")
     ];
 
     internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);

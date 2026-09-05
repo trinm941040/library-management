@@ -12,6 +12,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<Book> Books => Set<Book>();
+    public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshTokenSession> RefreshTokenSessions => Set<RefreshTokenSession>();
@@ -77,6 +78,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(token => token.RowVersion).IsConcurrencyToken();
         });
 
+        modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorRoleSeedConfiguration());
         modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());

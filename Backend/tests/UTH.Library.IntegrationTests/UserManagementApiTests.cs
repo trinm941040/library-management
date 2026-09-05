@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
+using UTH.Library.Api.Contracts.Roles;
 using UTH.Library.Api.Contracts.Users;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Persistence;
@@ -70,6 +71,69 @@ public sealed class UserManagementApiTests : IClassFixture<UserManagementApiFact
             .Select(assignment => assignment.Permission.Name)
             .ToListAsync();
         Assert.All(Permissions.All, permission => Assert.Contains(permission, administratorPermissions));
+    }
+
+    [Fact]
+    public async Task AdministratorAccount_OtherUserCannotMutateButAdministratorCanUpdateSelf()
+    {
+        var page = await client.GetFromJsonAsync<UserPageResponse>(
+            "/api/v1/users?search=admin@example.com&pageNumber=1&pageSize=10");
+        Assert.NotNull(page);
+        var administrator = Assert.Single(page.Items);
+        Assert.True(administrator.IsProtected);
+        Assert.Contains(RoleNames.Administrator, administrator.Roles);
+
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/users/{administrator.Id}",
+            new UpdateUserRequest("changed-admin@example.com", "Changed Administrator"));
+        Assert.Equal(HttpStatusCode.Conflict, updateResponse.StatusCode);
+
+        var deactivateResponse = await client.DeleteAsync($"/api/v1/users/{administrator.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, deactivateResponse.StatusCode);
+
+        var roles = await client.GetFromJsonAsync<RoleResponse[]>("/api/v1/roles");
+        Assert.NotNull(roles);
+        var userRole = Assert.Single(roles, role => role.Name == RoleNames.User);
+        var replaceRolesResponse = await client.PutAsJsonAsync(
+            $"/api/v1/users/{administrator.Id}/roles",
+            new ReplaceUserRolesRequest([userRole.Id]));
+        Assert.Equal(HttpStatusCode.Conflict, replaceRolesResponse.StatusCode);
+
+        using var selfUpdateRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"/api/v1/users/{administrator.Id}")
+        {
+            Content = JsonContent.Create(new UpdateUserRequest(
+                administrator.Email,
+                "Self Updated Administrator"))
+        };
+        selfUpdateRequest.Headers.Add(TestAuthenticationHandler.UserIdHeader, administrator.Id.ToString());
+        selfUpdateRequest.Headers.Add(TestAuthenticationHandler.RolesHeader, RoleNames.Administrator);
+        var selfUpdateResponse = await client.SendAsync(selfUpdateRequest);
+        Assert.Equal(HttpStatusCode.OK, selfUpdateResponse.StatusCode);
+        var selfUpdated = await selfUpdateResponse.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.NotNull(selfUpdated);
+        Assert.Equal("Self Updated Administrator", selfUpdated.DisplayName);
+
+        using var restoreRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"/api/v1/users/{administrator.Id}")
+        {
+            Content = JsonContent.Create(new UpdateUserRequest(
+                administrator.Email,
+                administrator.DisplayName))
+        };
+        restoreRequest.Headers.Add(TestAuthenticationHandler.UserIdHeader, administrator.Id.ToString());
+        restoreRequest.Headers.Add(TestAuthenticationHandler.RolesHeader, RoleNames.Administrator);
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(restoreRequest)).StatusCode);
+
+        var preserved = await client.GetFromJsonAsync<UserResponse>($"/api/v1/users/{administrator.Id}");
+        Assert.NotNull(preserved);
+        Assert.Equal("admin@example.com", preserved.Email);
+        Assert.Equal("System Administrator", preserved.DisplayName);
+        Assert.True(preserved.IsActive);
+        Assert.True(preserved.IsProtected);
+        Assert.Contains(RoleNames.Administrator, preserved.Roles);
     }
 
     [Fact]
@@ -206,6 +270,7 @@ public sealed class TestAuthenticationHandler(
     public const string SchemeName = "UserManagementTest";
     public const string PermissionsHeader = "X-Test-Permissions";
     public const string RolesHeader = "X-Test-Roles";
+    public const string UserIdHeader = "X-Test-User-Id";
     private static readonly Guid TestAdministratorId = new("11111111-1111-1111-1111-111111111111");
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -221,9 +286,12 @@ public sealed class TestAuthenticationHandler(
             .ToString()
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        var userId = Guid.TryParse(Request.Headers[UserIdHeader].ToString(), out var requestedUserId)
+            ? requestedUserId
+            : TestAdministratorId;
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, TestAdministratorId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Name, "Integration Test Administrator")
         };
         claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
