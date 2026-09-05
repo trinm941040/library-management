@@ -23,7 +23,7 @@ host này theo `vite.config.ts`.
 5. Chỉ sửa những phần thuộc phạm vi task.
 
 Xem quy trình chi tiết tại
-[Issue, branch và Pull Request guideline](../../docs/issue-and-pull-request-guideline.md).
+[Issue, branch và Pull Request guideline](../../issue-and-pull-request-guideline.md).
 
 Ví dụ task “thêm trang quản lý sách” cần xác định tối thiểu:
 

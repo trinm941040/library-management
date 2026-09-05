@@ -2,7 +2,7 @@
 
 Project sử dụng `main` làm nhánh phát hành ổn định, `develop` làm nhánh tích hợp và
 các nhánh công việc ngắn hạn. Quy trình đầy đủ từ Issue đến Pull Request nằm tại
-[Issue, branch và Pull Request guideline](../../docs/issue-and-pull-request-guideline.md).
+[Issue, branch và Pull Request guideline](../../issue-and-pull-request-guideline.md).
 
 ## 1. Nhánh chính
 
