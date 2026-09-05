@@ -105,6 +105,14 @@ const pageItems: SearchItem[] = [
     keywords: 'đặt trước reservation hold giữ chỗ nhận sách',
   },
   {
+    id: 'violations',
+    title: 'Vi phạm',
+    description: 'Ghi nhận phạt trễ hạn, hư hỏng hoặc mất sách.',
+    category: 'Tác vụ',
+    path: '/violations',
+    keywords: 'vi phạm phạt trễ hạn hư hỏng mất sách fine overdue',
+  },
+  {
     id: 'settings',
     title: 'Cài đặt sidebar',
     description: 'Cố định sidebar để menu luôn hiển thị.',

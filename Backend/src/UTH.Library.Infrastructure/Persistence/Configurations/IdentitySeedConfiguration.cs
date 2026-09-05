@@ -43,7 +43,10 @@ internal static class IdentitySeedData
         new(new Guid("30000000-0000-0000-0000-000000000025"), "reservations.read", "Read reservations.", "reservations"),
         new(new Guid("30000000-0000-0000-0000-000000000026"), "reservations.create", "Create reservations.", "reservations"),
         new(new Guid("30000000-0000-0000-0000-000000000027"), "reservations.cancel", "Cancel reservations.", "reservations"),
-        new(new Guid("30000000-0000-0000-0000-000000000028"), "reservations.fulfill", "Fulfill reservations.", "reservations")
+        new(new Guid("30000000-0000-0000-0000-000000000028"), "reservations.fulfill", "Fulfill reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000029"), "violations.read", "Read violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000030"), "violations.create", "Create violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000031"), "violations.resolve", "Resolve violations.", "violations")
     ];
 
     internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);

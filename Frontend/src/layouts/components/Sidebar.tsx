@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   BookOpen,
   ChevronDown,
   Clock,
@@ -35,7 +36,7 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
       { label: 'Kho sách', icon: Layers, to: '/books' },
       { label: 'Mượn/trả', icon: RefreshCw, to: '/borrowings' },
       { label: 'Đặt trước', icon: Clock, to: '/reservations' },
-      { label: 'Vi phạm', icon: Settings },
+      { label: 'Vi phạm', icon: AlertTriangle, to: '/violations' },
     ],
   },
   {

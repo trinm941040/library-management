@@ -14,6 +14,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Book> Books => Set<Book>();
     public DbSet<Borrowing> Borrowings => Set<Borrowing>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<Violation> Violations => Set<Violation>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
@@ -77,6 +78,23 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Ignore(reservation => reservation.IsFulfilled);
             entity.Ignore(reservation => reservation.IsCancelled);
             entity.Ignore(reservation => reservation.IsOpen);
+        });
+
+        modelBuilder.Entity<Violation>(entity =>
+        {
+            entity.ToTable("violations");
+            entity.HasKey(violation => violation.Id);
+            entity.Property(violation => violation.BorrowerName).HasMaxLength(200).IsRequired();
+            entity.Property(violation => violation.BorrowerEmail).HasMaxLength(256).IsRequired();
+            entity.Property(violation => violation.BookTitle).HasMaxLength(200).IsRequired();
+            entity.Property(violation => violation.Type).HasMaxLength(20).IsRequired();
+            entity.Property(violation => violation.Note).HasMaxLength(500).IsRequired();
+            entity.Property(violation => violation.FineAmount).HasPrecision(18, 2).IsRequired();
+            entity.Property(violation => violation.RecordedAtUtc).IsRequired();
+            entity.Property(violation => violation.Resolution).HasMaxLength(20);
+            entity.HasIndex(violation => new { violation.BorrowerId, violation.ResolvedAtUtc });
+            entity.HasIndex(violation => violation.RecordedAtUtc);
+            entity.Ignore(violation => violation.IsOpen);
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");

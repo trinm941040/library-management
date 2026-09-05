@@ -9,6 +9,7 @@ import { ReservationsPage } from '../pages/reservations/ReservationsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
+import { ViolationsPage } from '../pages/violations/ViolationsPage'
 import { MemberPage } from '../pages/member/MemberPage'
 // import { ConfigPage } from '../pages/config/ConfigPage'
 // import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
@@ -43,6 +44,7 @@ export function AppRoutes() {
         <Route path="/books" element={<BooksPage />} />
         <Route path="/borrowings" element={<BorrowingsPage />} />
         <Route path="/reservations" element={<ReservationsPage />} />
+        <Route path="/violations" element={<ViolationsPage />} />
         <Route path="/member" element={<MemberPage />} />
         <Route
           path="/roles"
