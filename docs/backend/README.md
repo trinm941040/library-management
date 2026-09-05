@@ -2,6 +2,9 @@
 
 Clean Architecture REST API for the UTH library domain, targeting .NET 10 and PostgreSQL.
 
+Repository changes follow the shared
+[Issue, branch and Pull Request guideline](../issue-and-pull-request-guideline.md).
+
 ## Structure
 
 ```text
@@ -17,6 +20,8 @@ The initial vertical slice is `Todos`. Domain rules stay in `TodoItem`; applicat
 - PostgreSQL 17+ or Docker Desktop
 
 ## Commands
+
+Run these commands from the `Backend` directory:
 
 ```bash
 dotnet restore LibraryManegement.sln

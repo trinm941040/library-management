@@ -32,7 +32,8 @@ public sealed record UserResponse(
     bool EmailConfirmed,
     DateTime CreatedAtUtc,
     DateTime? LastLoginAtUtc,
-    IReadOnlyCollection<string> Roles);
+    IReadOnlyCollection<string> Roles,
+    bool IsProtected);
 
 public sealed record UserPageResponse(
     IReadOnlyCollection<UserResponse> Items,

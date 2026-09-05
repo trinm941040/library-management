@@ -44,10 +44,10 @@ public partial class AddReservations : Migration
         migrationBuilder.Sql("""
             INSERT INTO permissions ("Id", "CreatedAtUtc", "Description", "Module", "Name")
             VALUES
-                ('30000000-0000-0000-0000-000000000021', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read reservations.', 'reservations', 'reservations.read'),
-                ('30000000-0000-0000-0000-000000000022', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create reservations.', 'reservations', 'reservations.create'),
-                ('30000000-0000-0000-0000-000000000023', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Cancel reservations.', 'reservations', 'reservations.cancel'),
-                ('30000000-0000-0000-0000-000000000024', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Fulfill reservations.', 'reservations', 'reservations.fulfill')
+                ('30000000-0000-0000-0000-000000000025', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Read reservations.', 'reservations', 'reservations.read'),
+                ('30000000-0000-0000-0000-000000000026', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Create reservations.', 'reservations', 'reservations.create'),
+                ('30000000-0000-0000-0000-000000000027', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Cancel reservations.', 'reservations', 'reservations.cancel'),
+                ('30000000-0000-0000-0000-000000000028', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Fulfill reservations.', 'reservations', 'reservations.fulfill')
             ON CONFLICT ("Name") DO UPDATE
             SET "Description" = EXCLUDED."Description", "Module" = EXCLUDED."Module";
 
@@ -66,10 +66,10 @@ public partial class AddReservations : Migration
         migrationBuilder.Sql("""
             DELETE FROM role_permissions
             WHERE "PermissionId" IN (
-                '30000000-0000-0000-0000-000000000021',
-                '30000000-0000-0000-0000-000000000022',
-                '30000000-0000-0000-0000-000000000023',
-                '30000000-0000-0000-0000-000000000024');
+                '30000000-0000-0000-0000-000000000025',
+                '30000000-0000-0000-0000-000000000026',
+                '30000000-0000-0000-0000-000000000027',
+                '30000000-0000-0000-0000-000000000028');
 
             DELETE FROM permissions
             WHERE "Name" IN ('reservations.read', 'reservations.create', 'reservations.cancel', 'reservations.fulfill');
