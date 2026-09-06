@@ -21,17 +21,40 @@ public static class Permissions
     public const string PermissionsCreate = "permissions.create";
     public const string PermissionsUpdate = "permissions.update";
     public const string PermissionsDelete = "permissions.delete";
+    public const string EmployeesRead = "employees.read";
+    public const string EmployeesCreate = "employees.create";
+    public const string EmployeesUpdate = "employees.update";
+    public const string EmployeesDelete = "employees.delete";
     public const string TodosRead = "todos.read";
     public const string TodosCreate = "todos.create";
     public const string TodosUpdate = "todos.update";
     public const string TodosDelete = "todos.delete";
+    public const string BooksRead = "books.read";
+    public const string BooksCreate = "books.create";
+    public const string BooksUpdate = "books.update";
+    public const string BooksDelete = "books.delete";
+    public const string BorrowingsRead = "borrowings.read";
+    public const string BorrowingsCreate = "borrowings.create";
+    public const string BorrowingsReturn = "borrowings.return";
+    public const string ReservationsRead = "reservations.read";
+    public const string ReservationsCreate = "reservations.create";
+    public const string ReservationsCancel = "reservations.cancel";
+    public const string ReservationsFulfill = "reservations.fulfill";
+    public const string ViolationsRead = "violations.read";
+    public const string ViolationsCreate = "violations.create";
+    public const string ViolationsResolve = "violations.resolve";
 
     public static readonly IReadOnlyList<string> All =
     [
         UsersRead, UsersCreate, UsersUpdate, UsersDeactivate,
         RolesRead, RolesCreate, RolesUpdate, RolesDelete, RolesAssign,
         PermissionsRead, PermissionsCreate, PermissionsUpdate, PermissionsDelete,
-        TodosRead, TodosCreate, TodosUpdate, TodosDelete
+        EmployeesRead, EmployeesCreate, EmployeesUpdate, EmployeesDelete,
+        TodosRead, TodosCreate, TodosUpdate, TodosDelete,
+        BooksRead, BooksCreate, BooksUpdate, BooksDelete,
+        BorrowingsRead, BorrowingsCreate, BorrowingsReturn,
+        ReservationsRead, ReservationsCreate, ReservationsCancel, ReservationsFulfill,
+        ViolationsRead, ViolationsCreate, ViolationsResolve
     ];
 }
 

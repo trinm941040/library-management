@@ -145,6 +145,265 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Book", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Isbn")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Isbn")
+                        .IsUnique();
+
+                    b.HasIndex("Title");
+
+                    b.ToTable("books", (string)null);
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("BorrowedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BorrowerEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("BorrowerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BorrowerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DueAtUtc");
+
+                    b.HasIndex("BookId", "BorrowerId", "ReturnedAtUtc");
+
+                    b.ToTable("borrowings", (string)null);
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FulfilledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReservedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReserverEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("ReserverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReserverName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("BookId", "ReserverId", "FulfilledAtUtc", "CancelledAtUtc");
+
+                    b.ToTable("reservations", (string)null);
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Violation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BookId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BookTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("BorrowerEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("BorrowerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BorrowerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("FineAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("RecordedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedAtUtc");
+
+                    b.HasIndex("BorrowerId", "ResolvedAtUtc");
+
+                    b.ToTable("violations", (string)null);
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateOnly>("HireDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Department");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("EmployeeCode")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("employees", (string)null);
+                });
+
             modelBuilder.Entity("UTH.Library.Domain.Entities.TodoItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -448,6 +707,150 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                             Description = "Delete todos.",
                             Module = "todos",
                             Name = "todos.delete"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000018"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read books.",
+                            Module = "books",
+                            Name = "books.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000019"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create books.",
+                            Module = "books",
+                            Name = "books.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000020"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Update books.",
+                            Module = "books",
+                            Name = "books.update"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000021"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete books.",
+                            Module = "books",
+                            Name = "books.delete"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000022"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000023"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000024"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Return borrowings.",
+                            Module = "borrowings",
+                            Name = "borrowings.return"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000025"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read reservations.",
+                            Module = "reservations",
+                            Name = "reservations.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000026"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create reservations.",
+                            Module = "reservations",
+                            Name = "reservations.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000027"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Cancel reservations.",
+                            Module = "reservations",
+                            Name = "reservations.cancel"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000028"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Fulfill reservations.",
+                            Module = "reservations",
+                            Name = "reservations.fulfill"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000029"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read violations.",
+                            Module = "violations",
+                            Name = "violations.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000030"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create violations.",
+                            Module = "violations",
+                            Name = "violations.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000031"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Resolve violations.",
+                            Module = "violations",
+                            Name = "violations.resolve"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000014"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read employees.",
+                            Module = "employees",
+                            Name = "employees.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000015"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create employees.",
+                            Module = "employees",
+                            Name = "employees.create"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000016"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Update employees.",
+                            Module = "employees",
+                            Name = "employees.update"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000017"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete employees.",
+                            Module = "employees",
+                            Name = "employees.delete"
                         });
                 });
 
@@ -594,6 +997,96 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         {
                             RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
                             PermissionId = new Guid("30000000-0000-0000-0000-000000000013")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000014")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000015")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000016")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000017")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000018")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000019")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000020")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000021")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000022")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000023")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000024")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000025")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000026")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000027")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000028")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000029")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000030")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000031")
                         });
                 });
 

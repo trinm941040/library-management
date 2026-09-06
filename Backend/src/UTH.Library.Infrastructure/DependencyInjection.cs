@@ -48,7 +48,12 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IBookRepository, BookRepository>();
+        services.AddScoped<IBorrowingRepository, BorrowingRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
+        services.AddScoped<IViolationRepository, ViolationRepository>();
         return services;
     }
 }

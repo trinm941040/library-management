@@ -11,6 +11,11 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
+    public DbSet<Book> Books => Set<Book>();
+    public DbSet<Borrowing> Borrowings => Set<Borrowing>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<Violation> Violations => Set<Violation>();
+    public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshTokenSession> RefreshTokenSessions => Set<RefreshTokenSession>();
@@ -31,6 +36,65 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasKey(todo => todo.Id);
             entity.Property(todo => todo.Title).HasMaxLength(200).IsRequired();
             entity.Property(todo => todo.CreatedAtUtc).IsRequired();
+        });
+
+        modelBuilder.Entity<Book>(entity =>
+        {
+            entity.ToTable("books");
+            entity.HasKey(book => book.Id);
+            entity.Property(book => book.Title).HasMaxLength(200).IsRequired();
+            entity.Property(book => book.Author).HasMaxLength(200).IsRequired();
+            entity.Property(book => book.Isbn).HasMaxLength(32).IsRequired();
+            entity.Property(book => book.Category).HasMaxLength(100).IsRequired();
+            entity.Property(book => book.Quantity).IsRequired();
+            entity.Property(book => book.CreatedAtUtc).IsRequired();
+            entity.HasIndex(book => book.Isbn).IsUnique();
+            entity.HasIndex(book => book.Title);
+        });
+
+        modelBuilder.Entity<Borrowing>(entity =>
+        {
+            entity.ToTable("borrowings");
+            entity.HasKey(borrowing => borrowing.Id);
+            entity.Property(borrowing => borrowing.BorrowerName).HasMaxLength(200).IsRequired();
+            entity.Property(borrowing => borrowing.BorrowerEmail).HasMaxLength(256).IsRequired();
+            entity.Property(borrowing => borrowing.BorrowedAtUtc).IsRequired();
+            entity.Property(borrowing => borrowing.DueAtUtc).IsRequired();
+            entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
+            entity.HasIndex(borrowing => borrowing.DueAtUtc);
+            entity.Ignore(borrowing => borrowing.IsReturned);
+        });
+
+        modelBuilder.Entity<Reservation>(entity =>
+        {
+            entity.ToTable("reservations");
+            entity.HasKey(reservation => reservation.Id);
+            entity.Property(reservation => reservation.ReserverName).HasMaxLength(200).IsRequired();
+            entity.Property(reservation => reservation.ReserverEmail).HasMaxLength(256).IsRequired();
+            entity.Property(reservation => reservation.ReservedAtUtc).IsRequired();
+            entity.Property(reservation => reservation.ExpiresAtUtc).IsRequired();
+            entity.HasIndex(reservation => new { reservation.BookId, reservation.ReserverId, reservation.FulfilledAtUtc, reservation.CancelledAtUtc });
+            entity.HasIndex(reservation => reservation.ExpiresAtUtc);
+            entity.Ignore(reservation => reservation.IsFulfilled);
+            entity.Ignore(reservation => reservation.IsCancelled);
+            entity.Ignore(reservation => reservation.IsOpen);
+        });
+
+        modelBuilder.Entity<Violation>(entity =>
+        {
+            entity.ToTable("violations");
+            entity.HasKey(violation => violation.Id);
+            entity.Property(violation => violation.BorrowerName).HasMaxLength(200).IsRequired();
+            entity.Property(violation => violation.BorrowerEmail).HasMaxLength(256).IsRequired();
+            entity.Property(violation => violation.BookTitle).HasMaxLength(200).IsRequired();
+            entity.Property(violation => violation.Type).HasMaxLength(20).IsRequired();
+            entity.Property(violation => violation.Note).HasMaxLength(500).IsRequired();
+            entity.Property(violation => violation.FineAmount).HasPrecision(18, 2).IsRequired();
+            entity.Property(violation => violation.RecordedAtUtc).IsRequired();
+            entity.Property(violation => violation.Resolution).HasMaxLength(20);
+            entity.HasIndex(violation => new { violation.BorrowerId, violation.ResolvedAtUtc });
+            entity.HasIndex(violation => violation.RecordedAtUtc);
+            entity.Ignore(violation => violation.IsOpen);
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");
@@ -62,6 +126,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(token => token.RowVersion).IsConcurrencyToken();
         });
 
+        modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorRoleSeedConfiguration());
         modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());

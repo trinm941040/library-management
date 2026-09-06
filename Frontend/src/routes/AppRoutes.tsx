@@ -1,11 +1,16 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppLayout } from '../layouts/AppLayout'
+import { BooksPage } from '../pages/books/BooksPage'
+import { BorrowingsPage } from '../pages/borrowings/BorrowingsPage'
 import { DashboardPage } from '../pages/dashboard/DashboardPage'
 import { LoginPage } from '../pages/login/LoginPage'
+import { ReservationsPage } from '../pages/reservations/ReservationsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
+import { ViolationsPage } from '../pages/violations/ViolationsPage'
+import { MemberPage } from '../pages/member/MemberPage'
 import { ConfigPage } from '../pages/config/ConfigPage'
 import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
 import { InfoPage } from '../pages/info/InfoPage'
@@ -36,6 +41,11 @@ export function AppRoutes() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UserPage />} />
+        <Route path="/books" element={<BooksPage />} />
+        <Route path="/borrowings" element={<BorrowingsPage />} />
+        <Route path="/reservations" element={<ReservationsPage />} />
+        <Route path="/violations" element={<ViolationsPage />} />
+        <Route path="/member" element={<MemberPage />} />
         <Route
           path="/roles"
           element={

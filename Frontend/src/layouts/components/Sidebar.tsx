@@ -1,9 +1,11 @@
 import {
+  AlertTriangle,
   BookOpen,
   ChevronDown,
   Clock,
   LayoutDashboard,
   Layers,
+  UserRoundCog,
   RefreshCw,
   Settings,
   Users,
@@ -24,17 +26,17 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
     items: [
       { label: 'Tài khoản', icon: Users, to: '/users' },
       { label: 'Vai trò & Quyền hạn', icon: BookOpen, to: '/roles', requiredRole: 'Administrator' },
-      { label: 'Nhân viên', icon: RefreshCw },
+      { label: 'Nhân viên', icon: UserRoundCog, to: '/member' },
       { label: 'Đọc giả', icon: Users },
     ],
   },
   {
     groupName: 'Quản lý tác vụ',
     items: [
-      { label: 'Kho sách', icon: Layers },
-      { label: 'Mượn/trả', icon: RefreshCw },
-      { label: 'Đặt trước', icon: Clock },
-      { label: 'Vi phạm', icon: Settings },
+      { label: 'Kho sách', icon: Layers, to: '/books' },
+      { label: 'Mượn/trả', icon: RefreshCw, to: '/borrowings' },
+      { label: 'Đặt trước', icon: Clock, to: '/reservations' },
+      { label: 'Vi phạm', icon: AlertTriangle, to: '/violations' },
     ],
   },
   {
@@ -80,29 +82,29 @@ export function Sidebar({ isVisible, displayName, initials, roles, onClose }: Si
               {group.items
                 .filter(({ requiredRole }) => !requiredRole || roles.includes(requiredRole))
                 .map(({ label, icon: Icon, to }) =>
-                to ? (
-                  <NavLink
-                    to={to}
-                    key={label}
-                    className={({ isActive }) =>
-                      `nav-item justify-start ${isActive ? 'active' : ''}`
-                    }
-                  >
-                    <Icon aria-hidden="true" />
-                    <span>{label}</span>
-                  </NavLink>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="nav-item justify-start"
-                    key={label}
-                    type="button"
-                  >
-                    <Icon aria-hidden="true" />
-                    <span>{label}</span>
-                  </Button>
-                ),
-              )}
+                  to ? (
+                    <NavLink
+                      to={to}
+                      key={label}
+                      className={({ isActive }) =>
+                        `nav-item justify-start ${isActive ? 'active' : ''}`
+                      }
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{label}</span>
+                    </NavLink>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="nav-item justify-start"
+                      key={label}
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{label}</span>
+                    </Button>
+                  ),
+                )}
             </div>
           ))}
         </nav>
