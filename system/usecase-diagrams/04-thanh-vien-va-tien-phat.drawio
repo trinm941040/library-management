@@ -1,0 +1,112 @@
+<mxfile host="65bd71144e" pages="1">
+    <diagram id="usecase-4" name="QUẢN LÝ THÀNH VIÊN VÀ TIỀN PHẠT">
+        <mxGraphModel dx="372" dy="1683" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="LƯỢC ĐỒ USE CASE — QUẢN LÝ THÀNH VIÊN VÀ TIỀN PHẠT" style="text;html=1;align=center;fontSize=24;fontStyle=1;fontColor=#111827;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="-90" width="1100" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="system-boundary" value="HỆ THỐNG QUẢN LÝ THƯ VIỆN" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=center;spacingTop=12;fontSize=18;fontStyle=1;fillColor=none;strokeColor=#1f2937;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="-30" width="1237.22" height="905" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor-circulation" value="Nhân viên lưu thông" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="125" y="300" width="50" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor-manager" value="Quản lý thư viện" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1550" y="355" width="50" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor-member" value="Độc giả / Thành viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1550" y="690" width="40" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-member" value="Quản lý hồ sơ&lt;br&gt;thành viên" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="20" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-card" value="Cấp / gia hạn thẻ" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="820" y="260" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-status" value="Cập nhật trạng thái&lt;br&gt;thành viên" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="80" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-restriction" value="Quản lý hạn chế&lt;br&gt;tài khoản" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="260" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-limit" value="Thiết lập giới hạn&lt;br&gt;mượn" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1190" y="70" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-history" value="Xem lịch sử mượn&lt;br&gt;và đặt trước" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="570" y="760" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-fine" value="Quản lý tiền phạt" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="420" y="500" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-calculate" value="Tính tiền phạt" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="620" y="330" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-payment" value="Ghi nhận thanh toán" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="475" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc-waive" value="Miễn / điều chỉnh&lt;br&gt;tiền phạt" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="870" y="655" width="210" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-1" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-circulation" target="uc-member" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-2" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-circulation" target="uc-restriction" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-3" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-circulation" target="uc-history" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-4" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-circulation" target="uc-fine" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-5" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-circulation" target="uc-payment" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-6" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-manager" target="uc-status" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-7" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-manager" target="uc-limit" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-8" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-manager" target="uc-waive" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-9" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-member" target="uc-card" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-10" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-member" target="uc-history" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc-11" style="edgeStyle=none;rounded=0;html=1;endArrow=none;startArrow=none;strokeWidth=1.4;" parent="1" source="actor-member" target="uc-payment" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel-1" value="&amp;lt;extend&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-card" target="uc-member" edge="1">
+                    <mxGeometry x="0.4437" y="4" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="rel-2" value="&amp;lt;include&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-member" target="uc-status" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel-3" value="&amp;lt;include&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-restriction" target="uc-status" edge="1">
+                    <mxGeometry x="0.5317" y="2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="rel-4" value="&amp;lt;include&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-fine" target="uc-calculate" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel-5" value="&amp;lt;extend&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-payment" target="uc-fine" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="rel-6" value="&amp;lt;extend&amp;gt;" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;endFill=0;strokeWidth=1.3;labelBackgroundColor=#ffffff;fontSize=12;" parent="1" source="uc-waive" target="uc-fine" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
