@@ -18,7 +18,8 @@ public sealed class UserFilterRequest
 public sealed record CreateUserRequest(
     [Required, EmailAddress, StringLength(256)] string Email,
     [Required, StringLength(256, MinimumLength = 8)] string Password,
-    [Required, StringLength(100, MinimumLength = 2)] string DisplayName);
+    [Required, StringLength(100, MinimumLength = 2)] string DisplayName,
+    Guid? EmployeeId = null);
 
 public sealed record UpdateUserRequest(
     [Required, EmailAddress, StringLength(256)] string Email,

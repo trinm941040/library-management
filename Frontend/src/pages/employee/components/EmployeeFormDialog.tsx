@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@/common/components/ui/button'
 import {
   Dialog,
@@ -17,9 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/common/components/ui/select'
-import type { Employee, EmploymentStatus, SaveEmployeeInput } from '../employee-api'
+import {
+  employmentStatusLabels,
+  employmentStatuses,
+  getEmployeeBranches,
+  type Employee,
+  type EmployeeBranch,
+  type EmploymentStatus,
+  type SaveEmployeeInput,
+} from '../employee-api'
 
-export type EmployeeFormData = {
+type EmployeeFormData = {
   employeeCode: string
   fullName: string
   email: string
@@ -30,6 +38,7 @@ export type EmployeeFormData = {
   department: string
   hireDate: string
   status: EmploymentStatus
+  branchId: string
 }
 
 type EmployeeFormDialogProps = {
@@ -38,13 +47,6 @@ type EmployeeFormDialogProps = {
   onOpenChange: (open: boolean) => void
   onSave: (data: SaveEmployeeInput) => Promise<string | null>
 }
-
-const statusOptions: { value: EmploymentStatus; label: string }[] = [
-  { value: 'Active', label: 'Đang làm việc' },
-  { value: 'OnLeave', label: 'Đang nghỉ phép' },
-  { value: 'Inactive', label: 'Tạm ngưng' },
-  { value: 'Terminated', label: 'Đã nghỉ việc' },
-]
 
 function today() {
   const date = new Date()
@@ -63,6 +65,7 @@ const emptyForm = (): EmployeeFormData => ({
   department: '',
   hireDate: today(),
   status: 'Active',
+  branchId: '',
 })
 
 export function EmployeeFormDialog({
@@ -74,6 +77,20 @@ export function EmployeeFormDialog({
   const [form, setForm] = useState<EmployeeFormData>(emptyForm)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [branches, setBranches] = useState<EmployeeBranch[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    const controller = new AbortController()
+    getEmployeeBranches(controller.signal)
+      .then(setBranches)
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
+          setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách chi nhánh.')
+        }
+      })
+    return () => controller.abort()
+  }, [open])
 
   useEffect(() => {
     setForm(
@@ -89,6 +106,7 @@ export function EmployeeFormDialog({
             department: employee.department,
             hireDate: employee.hireDate,
             status: employee.status,
+            branchId: employee.branchId,
           }
         : emptyForm(),
     )
@@ -122,6 +140,7 @@ export function EmployeeFormDialog({
         department: form.department.trim(),
         hireDate: form.hireDate,
         status: form.status,
+        branchId: form.branchId || undefined,
       })
       if (saveError) {
         setError(saveError)
@@ -138,9 +157,11 @@ export function EmployeeFormDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{employee ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}</DialogTitle>
+            <DialogTitle>
+              {employee ? 'Cập nhật hồ sơ nhân viên' : 'Tạo hồ sơ nhân viên'}
+            </DialogTitle>
             <DialogDescription>
-              Cập nhật hồ sơ công việc và thông tin liên hệ của nhân viên thư viện.
+              Hồ sơ nhân sự được quản lý độc lập với tài khoản truy cập hệ thống.
             </DialogDescription>
           </DialogHeader>
 
@@ -156,7 +177,6 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-
             <FormField label="Họ và tên" htmlFor="employee-name">
               <Input
                 id="employee-name"
@@ -170,7 +190,6 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-
             <FormField label="Email" htmlFor="employee-email">
               <Input
                 id="employee-email"
@@ -184,7 +203,6 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-
             <FormField label="Số điện thoại" htmlFor="employee-phone">
               <Input
                 id="employee-phone"
@@ -197,31 +215,46 @@ export function EmployeeFormDialog({
                 disabled={isSubmitting}
               />
             </FormField>
-
-            <FormField label="Phòng ban" htmlFor="employee-department">
+            <FormField label="Chi nhánh" htmlFor="employee-branch">
+              <Select
+                value={form.branchId}
+                onValueChange={(value) => updateField('branchId', value)}
+                disabled={isSubmitting || branches.length === 0}
+              >
+                <SelectTrigger id="employee-branch" className="w-full">
+                  <SelectValue placeholder="Chọn chi nhánh mặc định" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.code} - {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Đơn vị công tác" htmlFor="employee-department">
               <Input
                 id="employee-department"
                 value={form.department}
                 onChange={(event) => updateField('department', event.target.value)}
-                placeholder="Lưu thông"
+                placeholder="Thư viện trung tâm"
                 maxLength={100}
                 disabled={isSubmitting}
                 required
               />
             </FormField>
-
             <FormField label="Chức vụ" htmlFor="employee-position">
               <Input
                 id="employee-position"
                 value={form.position}
                 onChange={(event) => updateField('position', event.target.value)}
-                placeholder="Thủ thư"
+                placeholder="Nhân viên lưu thông"
                 maxLength={100}
                 disabled={isSubmitting}
                 required
               />
             </FormField>
-
             <FormField label="Ngày sinh" htmlFor="employee-birth-date">
               <Input
                 id="employee-birth-date"
@@ -232,8 +265,7 @@ export function EmployeeFormDialog({
                 disabled={isSubmitting}
               />
             </FormField>
-
-            <FormField label="Ngày vào làm" htmlFor="employee-hire-date">
+            <FormField label="Ngày bắt đầu công tác" htmlFor="employee-hire-date">
               <Input
                 id="employee-hire-date"
                 type="date"
@@ -244,8 +276,7 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-
-            <FormField label="Trạng thái" htmlFor="employee-status">
+            <FormField label="Trạng thái việc làm" htmlFor="employee-status">
               <Select
                 value={form.status}
                 onValueChange={(value) => updateField('status', value as EmploymentStatus)}
@@ -255,15 +286,14 @@ export function EmployeeFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {employmentStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {employmentStatusLabels[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FormField>
-
             <FormField label="Địa chỉ" htmlFor="employee-address" className="sm:col-span-2">
               <Input
                 id="employee-address"
@@ -296,7 +326,7 @@ export function EmployeeFormDialog({
               Hủy
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : employee ? 'Lưu thay đổi' : 'Thêm nhân viên'}
+              {isSubmitting ? 'Đang lưu...' : employee ? 'Lưu thay đổi' : 'Tạo hồ sơ'}
             </Button>
           </DialogFooter>
         </form>
@@ -314,7 +344,7 @@ function FormField({
   label: string
   htmlFor: string
   className?: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <div className={`grid gap-2 ${className ?? ''}`}>

@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Persistence;
+using UTH.Library.Domain.Entities;
+using System.Text.Json;
 
 namespace UTH.Library.Infrastructure.Identity;
 
@@ -67,6 +69,20 @@ public sealed class UserManagementService(
         if (await userManager.FindByEmailAsync(email) is not null)
             return UserManagementResult.Failed(UserManagementFailure.Conflict, "A user with this email already exists.");
 
+        Employee? employee = null;
+        if (command.EmployeeId is not null)
+        {
+            employee = await db.Employees.SingleOrDefaultAsync(
+                value => value.Id == command.EmployeeId,
+                cancellationToken);
+            if (employee is null)
+                return UserManagementResult.Failed(UserManagementFailure.NotFound, "Employee was not found.");
+            if (employee.UserId is not null)
+                return UserManagementResult.Failed(
+                    UserManagementFailure.Conflict,
+                    "Employee is already linked to a user account.");
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var user = new ApplicationUser
         {
@@ -85,6 +101,23 @@ public sealed class UserManagementService(
         var roleResult = await userManager.AddToRoleAsync(user, DefaultRole);
         if (!roleResult.Succeeded)
             return ToFailure(roleResult);
+
+        if (employee is not null)
+        {
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            employee.LinkUser(user.Id, now);
+            await db.AuditLogs.AddAsync(
+                AuditLog.Create(
+                    command.ActorUserId,
+                    "employee.account-linked",
+                    nameof(Employee),
+                    employee.Id,
+                    null,
+                    JsonSerializer.Serialize(new { EmployeeId = employee.Id, UserId = user.Id }),
+                    now),
+                cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         await transaction.CommitAsync(cancellationToken);
         return UserManagementResult.Success(Map(user, [DefaultRole]));

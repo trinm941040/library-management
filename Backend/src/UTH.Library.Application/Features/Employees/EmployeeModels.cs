@@ -12,8 +12,13 @@ public sealed record EmployeeModel(
     string? Address,
     string Position,
     string Department,
+    Guid BranchId,
+    string BranchCode,
+    string BranchName,
+    Guid? UserId,
     DateOnly HireDate,
     EmploymentStatus Status,
+    Guid ConcurrencyToken,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);
 
@@ -28,6 +33,7 @@ public sealed record EmployeeListQuery(
     string? Department,
     string? Position,
     EmploymentStatus? Status,
+    Guid? BranchId,
     int PageNumber,
     int PageSize);
 
@@ -41,7 +47,11 @@ public sealed record SaveEmployeeCommand(
     string Position,
     string Department,
     DateOnly HireDate,
-    EmploymentStatus Status);
+    EmploymentStatus Status,
+    Guid? BranchId = null,
+    Guid? ConcurrencyToken = null);
+
+public sealed record EmployeeBranchModel(Guid Id, string Code, string Name);
 
 public enum EmployeeManagementFailure
 {

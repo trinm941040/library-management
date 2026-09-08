@@ -30,8 +30,12 @@ public sealed class Employee
     public string? Address { get; private set; }
     public string Position { get; private set; }
     public string Department { get; private set; }
+    public Guid BranchId { get; private set; }
+    public Branch Branch { get; private set; } = null!;
+    public Guid? UserId { get; private set; }
     public DateOnly HireDate { get; private set; }
     public EmploymentStatus Status { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
 
@@ -46,12 +50,15 @@ public sealed class Employee
         string department,
         DateOnly hireDate,
         EmploymentStatus status,
-        DateTime createdAtUtc)
+        DateTime createdAtUtc,
+        Guid? branchId = null)
     {
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
-            CreatedAtUtc = createdAtUtc
+            CreatedAtUtc = createdAtUtc,
+            BranchId = branchId ?? Branch.MainBranchId,
+            ConcurrencyToken = Guid.NewGuid()
         };
         employee.Update(
             employeeCode,
@@ -64,7 +71,8 @@ public sealed class Employee
             department,
             hireDate,
             status,
-            createdAtUtc);
+            createdAtUtc,
+            branchId);
         return employee;
     }
 
@@ -79,7 +87,8 @@ public sealed class Employee
         string department,
         DateOnly hireDate,
         EmploymentStatus status,
-        DateTime updatedAtUtc)
+        DateTime updatedAtUtc,
+        Guid? branchId = null)
     {
         if (!Enum.IsDefined(status))
             throw new ArgumentOutOfRangeException(nameof(status), "Employment status is invalid.");
@@ -99,8 +108,39 @@ public sealed class Employee
         Address = Optional(address, nameof(address), 500);
         Position = Required(position, nameof(position), 100);
         Department = Required(department, nameof(department), 100);
+        BranchId = branchId ?? BranchId;
+        if (BranchId == Guid.Empty)
+            BranchId = Branch.MainBranchId;
         HireDate = hireDate;
         Status = status;
+        ConcurrencyToken = Guid.NewGuid();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void LinkUser(Guid userId, DateTime updatedAtUtc)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User identifier is required.", nameof(userId));
+        if (UserId is not null && UserId != userId)
+            throw new InvalidOperationException("Employee is already linked to another user account.");
+
+        UserId = userId;
+        ConcurrencyToken = Guid.NewGuid();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void Terminate(DateTime updatedAtUtc)
+    {
+        ChangeStatus(EmploymentStatus.Terminated, updatedAtUtc);
+    }
+
+    public void ChangeStatus(EmploymentStatus status, DateTime updatedAtUtc)
+    {
+        if (!Enum.IsDefined(status))
+            throw new ArgumentOutOfRangeException(nameof(status), "Employment status is invalid.");
+
+        Status = status;
+        ConcurrencyToken = Guid.NewGuid();
         UpdatedAtUtc = updatedAtUtc;
     }
 

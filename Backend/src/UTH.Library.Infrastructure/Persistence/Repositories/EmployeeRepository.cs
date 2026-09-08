@@ -10,7 +10,7 @@ public sealed class EmployeeRepository(LibraryDbContext db) : IEmployeeRepositor
         EmployeeQuery query,
         CancellationToken cancellationToken)
     {
-        var employees = db.Employees.AsNoTracking();
+        IQueryable<Employee> employees = db.Employees.AsNoTracking().Include(employee => employee.Branch);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -37,6 +37,9 @@ public sealed class EmployeeRepository(LibraryDbContext db) : IEmployeeRepositor
         if (query.Status is not null)
             employees = employees.Where(employee => employee.Status == query.Status);
 
+        if (query.BranchId is not null)
+            employees = employees.Where(employee => employee.BranchId == query.BranchId);
+
         var totalCount = await employees.CountAsync(cancellationToken);
         var items = await employees
             .OrderBy(employee => employee.EmployeeCode)
@@ -49,7 +52,9 @@ public sealed class EmployeeRepository(LibraryDbContext db) : IEmployeeRepositor
     }
 
     public Task<Employee?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-        db.Employees.SingleOrDefaultAsync(employee => employee.Id == id, cancellationToken);
+        db.Employees
+            .Include(employee => employee.Branch)
+            .SingleOrDefaultAsync(employee => employee.Id == id, cancellationToken);
 
     public Task<bool> EmployeeCodeExistsAsync(
         string employeeCode,
@@ -69,11 +74,36 @@ public sealed class EmployeeRepository(LibraryDbContext db) : IEmployeeRepositor
                         (excludingId == null || employee.Id != excludingId),
             cancellationToken);
 
+    public Task<EmployeeBranch?> GetActiveBranchAsync(Guid branchId, CancellationToken cancellationToken) =>
+        db.Branches
+            .AsNoTracking()
+            .Where(branch => branch.Id == branchId && branch.IsActive)
+            .Select(branch => new EmployeeBranch(branch.Id, branch.Code, branch.Name, branch.IsActive))
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyCollection<EmployeeBranch>> GetBranchesAsync(CancellationToken cancellationToken) =>
+        await db.Branches
+            .AsNoTracking()
+            .Where(branch => branch.IsActive)
+            .OrderBy(branch => branch.Name)
+            .Select(branch => new EmployeeBranch(branch.Id, branch.Code, branch.Name, branch.IsActive))
+            .ToArrayAsync(cancellationToken);
+
     public Task AddAsync(Employee employee, CancellationToken cancellationToken) =>
         db.Employees.AddAsync(employee, cancellationToken).AsTask();
 
-    public void Remove(Employee employee) => db.Employees.Remove(employee);
+    public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
+        db.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        db.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new EmployeeConcurrencyException(exception);
+        }
+    }
 }

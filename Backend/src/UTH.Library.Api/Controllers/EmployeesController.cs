@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using UTH.Library.Api.Contracts.Employees;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Features.Employees;
@@ -24,6 +25,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
                 request.Department,
                 request.Position,
                 request.Status,
+                request.BranchId,
                 request.PageNumber,
                 request.PageSize),
             cancellationToken);
@@ -38,6 +40,15 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             page.TotalCount,
             totalPages));
     }
+
+    [HttpGet("branches")]
+    [Authorize(Policy = Permissions.EmployeesRead)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<EmployeeBranchResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<EmployeeBranchResponse>>> GetBranches(
+        CancellationToken cancellationToken) =>
+        Ok((await employeeService.GetBranchesAsync(cancellationToken))
+            .Select(branch => new EmployeeBranchResponse(branch.Id, branch.Code, branch.Name))
+            .ToArray());
 
     [HttpGet("{id:guid}")]
     [Authorize(Policy = Permissions.EmployeesRead)]
@@ -62,7 +73,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
         if (HasRequiredWhitespace(request.EmployeeCode, request.FullName, request.Email, request.Position, request.Department))
             return InvalidWhitespace();
 
-        var result = await employeeService.CreateAsync(ToCommand(request), cancellationToken);
+        var result = await employeeService.CreateAsync(ToCommand(request), cancellationToken, GetCurrentUserId());
         if (!result.Succeeded || result.Employee is null)
             return MapFailure(result);
 
@@ -83,7 +94,28 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
         if (HasRequiredWhitespace(request.EmployeeCode, request.FullName, request.Email, request.Position, request.Department))
             return InvalidWhitespace();
 
-        var result = await employeeService.UpdateAsync(id, ToCommand(request), cancellationToken);
+        var result = await employeeService.UpdateAsync(id, ToCommand(request), cancellationToken, GetCurrentUserId());
+        return result.Succeeded && result.Employee is not null
+            ? Ok(ToResponse(result.Employee))
+            : MapFailure(result);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = Permissions.EmployeesUpdate)]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<EmployeeResponse>> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateEmployeeStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await employeeService.UpdateStatusAsync(
+            id,
+            request.Status,
+            request.ConcurrencyToken,
+            cancellationToken,
+            GetCurrentUserId());
         return result.Succeeded && result.Employee is not null
             ? Ok(ToResponse(result.Employee))
             : MapFailure(result);
@@ -95,7 +127,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await employeeService.DeleteAsync(id, cancellationToken);
+        var result = await employeeService.DeleteAsync(id, cancellationToken, GetCurrentUserId());
         return result.Succeeded ? NoContent() : MapFailure(result);
     }
 
@@ -130,7 +162,8 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             request.Position,
             request.Department,
             request.HireDate,
-            request.Status);
+            request.Status,
+            request.BranchId);
 
     private static SaveEmployeeCommand ToCommand(UpdateEmployeeRequest request) =>
         new(
@@ -143,7 +176,9 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             request.Position,
             request.Department,
             request.HireDate,
-            request.Status);
+            request.Status,
+            request.BranchId,
+            request.ConcurrencyToken);
 
     private static ProblemDetails Problem(string detail) => new() { Detail = detail };
 
@@ -158,8 +193,18 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             employee.Address,
             employee.Position,
             employee.Department,
+            employee.BranchId,
+            employee.BranchCode,
+            employee.BranchName,
+            employee.UserId,
             employee.HireDate,
             employee.Status,
+            employee.ConcurrencyToken,
             employee.CreatedAtUtc,
             employee.UpdatedAtUtc);
+
+    private Guid? GetCurrentUserId() =>
+        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)
+            ? id
+            : null;
 }

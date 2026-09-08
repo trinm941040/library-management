@@ -24,7 +24,12 @@ public sealed record UserPage(
     int PageSize,
     int TotalCount);
 
-public sealed record CreateManagedUserCommand(string Email, string Password, string DisplayName);
+public sealed record CreateManagedUserCommand(
+    string Email,
+    string Password,
+    string DisplayName,
+    Guid? EmployeeId = null,
+    Guid? ActorUserId = null);
 
 public sealed record UpdateManagedUserCommand(string Email, string DisplayName);
 
