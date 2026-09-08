@@ -49,6 +49,22 @@ const pageItems: SearchItem[] = [
     keywords: 'user người dùng thành viên nhân viên độc giả account',
   },
   {
+    id: 'employees',
+    title: 'Quản lý nhân viên',
+    description: 'Quản lý hồ sơ, việc làm và tài khoản truy cập của nhân viên.',
+    category: 'Nhân sự',
+    path: '/employee',
+    keywords: 'nhân viên employee hồ sơ chức vụ chi nhánh tài khoản nhân sự',
+  },
+  {
+    id: 'add-employee',
+    title: 'Tạo hồ sơ nhân viên',
+    description: 'Tạo hồ sơ nhân sự mới và ghi nhận thông tin công tác.',
+    category: 'Nhân sự',
+    path: '/employee',
+    keywords: 'thêm tạo nhân viên employee hồ sơ nhân sự',
+  },
+  {
     id: 'add-user',
     title: 'Thêm user mới',
     description: 'Tạo tài khoản mới với vai trò User mặc định.',

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using UTH.Library.Domain.Entities;
+using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.Infrastructure.Persistence.Configurations;
 
@@ -22,6 +23,7 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(employee => employee.Address).HasMaxLength(500);
         builder.Property(employee => employee.Position).HasMaxLength(100).IsRequired();
         builder.Property(employee => employee.Department).HasMaxLength(100).IsRequired();
+        builder.Property(employee => employee.ConcurrencyToken).IsConcurrencyToken().IsRequired();
         builder.Property(employee => employee.Status)
             .HasConversion<string>()
             .HasMaxLength(20)
@@ -30,6 +32,16 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(employee => employee.UpdatedAtUtc).IsRequired();
 
         builder.HasIndex(employee => employee.Department);
+        builder.HasIndex(employee => employee.BranchId);
         builder.HasIndex(employee => employee.Status);
+        builder.HasIndex(employee => employee.UserId).IsUnique();
+        builder.HasOne(employee => employee.Branch)
+            .WithMany()
+            .HasForeignKey(employee => employee.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>()
+            .WithOne()
+            .HasForeignKey<Employee>(employee => employee.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

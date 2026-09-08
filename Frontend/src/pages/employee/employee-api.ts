@@ -6,6 +6,13 @@ export const employmentStatuses = ['Active', 'OnLeave', 'Inactive', 'Terminated'
 
 export type EmploymentStatus = (typeof employmentStatuses)[number]
 
+export const employmentStatusLabels: Record<EmploymentStatus, string> = {
+  Active: 'Đang làm việc',
+  OnLeave: 'Đang nghỉ phép',
+  Inactive: 'Tạm ngưng',
+  Terminated: 'Đã nghỉ việc',
+}
+
 export type Employee = {
   id: string
   employeeCode: string
@@ -16,8 +23,13 @@ export type Employee = {
   address: string | null
   position: string
   department: string
+  branchId: string
+  branchCode: string
+  branchName: string
+  userId: string | null
   hireDate: string
   status: EmploymentStatus
+  concurrencyToken: string
   createdAtUtc: string
   updatedAtUtc: string
 }
@@ -28,6 +40,19 @@ export type EmployeePageResponse = {
   pageSize: number
   totalCount: number
   totalPages: number
+}
+
+export type EmployeeSummary = {
+  total: number
+  active: number
+  onLeave: number
+  stopped: number
+}
+
+export type EmployeeBranch = {
+  id: string
+  code: string
+  name: string
 }
 
 export type EmployeeFilters = {
@@ -50,6 +75,8 @@ export type SaveEmployeeInput = {
   department: string
   hireDate: string
   status: EmploymentStatus
+  branchId?: string
+  concurrencyToken?: string
 }
 
 type ProblemDetails = {
@@ -101,6 +128,33 @@ export async function getEmployees(
   return readResponse<EmployeePageResponse>(response)
 }
 
+export async function getEmployeeById(id: string, signal?: AbortSignal): Promise<Employee> {
+  const response = await authenticatedFetch(`${EMPLOYEES_URL}/${id}`, { signal })
+  return readResponse<Employee>(response)
+}
+
+export async function getEmployeeBranches(signal?: AbortSignal): Promise<EmployeeBranch[]> {
+  const response = await authenticatedFetch(`${EMPLOYEES_URL}/branches`, { signal })
+  return readResponse<EmployeeBranch[]>(response)
+}
+
+export async function getEmployeeSummary(signal?: AbortSignal): Promise<EmployeeSummary> {
+  const [all, active, onLeave, inactive, terminated] = await Promise.all([
+    getEmployees({ pageNumber: 1, pageSize: 1 }, signal),
+    getEmployees({ status: 'Active', pageNumber: 1, pageSize: 1 }, signal),
+    getEmployees({ status: 'OnLeave', pageNumber: 1, pageSize: 1 }, signal),
+    getEmployees({ status: 'Inactive', pageNumber: 1, pageSize: 1 }, signal),
+    getEmployees({ status: 'Terminated', pageNumber: 1, pageSize: 1 }, signal),
+  ])
+
+  return {
+    total: all.totalCount,
+    active: active.totalCount,
+    onLeave: onLeave.totalCount,
+    stopped: inactive.totalCount + terminated.totalCount,
+  }
+}
+
 export async function createEmployee(input: SaveEmployeeInput): Promise<Employee> {
   const response = await authenticatedFetch(EMPLOYEES_URL, {
     method: 'POST',
@@ -117,9 +171,4 @@ export async function updateEmployee(id: string, input: SaveEmployeeInput): Prom
     body: JSON.stringify(input),
   })
   return readResponse<Employee>(response)
-}
-
-export async function deleteEmployee(id: string): Promise<void> {
-  const response = await authenticatedFetch(`${EMPLOYEES_URL}/${id}`, { method: 'DELETE' })
-  await readResponse<void>(response)
 }

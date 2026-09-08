@@ -34,6 +34,12 @@ export type CreateUserInput = {
   email: string
   password: string
   displayName: string
+  employeeId?: string
+}
+
+export async function getUserById(id: string, signal?: AbortSignal): Promise<SystemUser> {
+  const response = await authenticatedFetch(`${USERS_URL}/${id}`, { signal })
+  return readResponse<SystemUser>(response)
 }
 
 export type UpdateUserInput = {

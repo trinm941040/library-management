@@ -7,8 +7,19 @@ public sealed record EmployeeQuery(
     string? Department,
     string? Position,
     EmploymentStatus? Status,
+    Guid? BranchId,
     int PageNumber,
     int PageSize);
+
+public sealed record EmployeeBranch(Guid Id, string Code, string Name, bool IsActive);
+
+public sealed class EmployeeConcurrencyException : Exception
+{
+    public EmployeeConcurrencyException(Exception innerException)
+        : base("The employee was modified by another request.", innerException)
+    {
+    }
+}
 
 public interface IEmployeeRepository
 {
@@ -19,7 +30,9 @@ public interface IEmployeeRepository
     Task<Employee?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<bool> EmployeeCodeExistsAsync(string employeeCode, Guid? excludingId, CancellationToken cancellationToken);
     Task<bool> EmailExistsAsync(string email, Guid? excludingId, CancellationToken cancellationToken);
+    Task<EmployeeBranch?> GetActiveBranchAsync(Guid branchId, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<EmployeeBranch>> GetBranchesAsync(CancellationToken cancellationToken);
     Task AddAsync(Employee employee, CancellationToken cancellationToken);
-    void Remove(Employee employee);
+    Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

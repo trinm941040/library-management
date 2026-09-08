@@ -1,27 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
   CircleAlert,
+  Eye,
   Pencil,
   Plus,
   RefreshCw,
   Search,
-  Trash2,
   UserRoundCheck,
+  UserRoundX,
+  type LucideIcon,
 } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { Pagination } from '@/common/components/ui/pagination'
 import {
@@ -39,35 +33,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/common/components/ui/table'
+import { EmployeeDetailsDialog } from './components/EmployeeDetailsDialog'
 import { EmployeeFormDialog } from './components/EmployeeFormDialog'
 import {
   createEmployee,
-  deleteEmployee,
+  employmentStatusLabels,
+  employmentStatuses,
   getEmployees,
+  getEmployeeSummary,
   updateEmployee,
   type Employee,
   type EmployeePageResponse,
+  type EmployeeSummary,
   type EmploymentStatus,
   type SaveEmployeeInput,
 } from './employee-api'
 
 const EMPLOYEES_PER_PAGE = 20
-
-const statusOptions: { value: EmploymentStatus; label: string }[] = [
-  { value: 'Active', label: 'Đang làm việc' },
-  { value: 'OnLeave', label: 'Đang nghỉ phép' },
-  { value: 'Inactive', label: 'Tạm ngưng' },
-  { value: 'Terminated', label: 'Đã nghỉ việc' },
-]
-
-const statusLabels = Object.fromEntries(
-  statusOptions.map(({ value, label }) => [value, label]),
-) as Record<EmploymentStatus, string>
-
 type StatusFilter = 'all' | EmploymentStatus
 
-export function MemberPage() {
+export function EmployeePage() {
   const [page, setPage] = useState<EmployeePageResponse | null>(null)
+  const [summary, setSummary] = useState<EmployeeSummary | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [departmentInput, setDepartmentInput] = useState('')
@@ -81,10 +68,9 @@ export function MemberPage() {
   const [pageError, setPageError] = useState('')
   const [notice, setNotice] = useState('')
   const [formOpen, setFormOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
-  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null)
-  const [deleteError, setDeleteError] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -100,7 +86,6 @@ export function MemberPage() {
     const controller = new AbortController()
     setIsLoading(true)
     setPageError('')
-
     getEmployees(
       {
         search: search || undefined,
@@ -114,62 +99,68 @@ export function MemberPage() {
     )
       .then((response) => {
         setPage(response)
-        if (response.totalPages > 0 && currentPage > response.totalPages) {
+        if (response.totalPages > 0 && currentPage > response.totalPages)
           setCurrentPage(response.totalPages)
-        }
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách nhân viên.')
+        if (!(error instanceof DOMException && error.name === 'AbortError'))
+          setPageError(
+            error instanceof Error ? error.message : 'Không thể tải danh sách nhân viên.',
+          )
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false)
       })
-
     return () => controller.abort()
   }, [currentPage, department, position, reloadKey, search, status])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getEmployeeSummary(controller.signal)
+      .then(setSummary)
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setSummary(null)
+      })
+    return () => controller.abort()
+  }, [reloadKey])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
     setReloadKey((value) => value + 1)
   }, [])
 
-  const departmentsOnPage = useMemo(
-    () => new Set(page?.items.map((employee) => employee.department) ?? []).size,
-    [page],
-  )
-  const activeOnPage = page?.items.filter((employee) => employee.status === 'Active').length ?? 0
-  const onLeaveOnPage = page?.items.filter((employee) => employee.status === 'OnLeave').length ?? 0
+  const openCreateForm = () => {
+    setEditingEmployee(null)
+    setFormOpen(true)
+  }
+  const openEditForm = (employee: Employee) => {
+    setDetailsOpen(false)
+    setEditingEmployee(employee)
+    setFormOpen(true)
+  }
+  const openDetails = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setDetailsOpen(true)
+  }
 
   const handleSave = async (data: SaveEmployeeInput) => {
     try {
       if (editingEmployee) {
-        await updateEmployee(editingEmployee.id, data)
-        refresh('Đã cập nhật hồ sơ nhân viên.')
+        const updated = await updateEmployee(editingEmployee.id, {
+          ...data,
+          branchId: editingEmployee.branchId,
+          concurrencyToken: editingEmployee.concurrencyToken,
+        })
+        setSelectedEmployee((current) => (current?.id === updated.id ? updated : current))
+        refresh('Đã cập nhật hồ sơ và thông tin việc làm.')
       } else {
         await createEmployee(data)
         setCurrentPage(1)
-        refresh('Đã thêm nhân viên mới.')
+        refresh('Đã tạo hồ sơ nhân viên.')
       }
       return null
     } catch (error) {
       return error instanceof Error ? error.message : 'Không thể lưu hồ sơ nhân viên.'
-    }
-  }
-
-  const confirmDelete = async () => {
-    if (!deletingEmployee) return
-    setDeleteError('')
-    setIsDeleting(true)
-
-    try {
-      await deleteEmployee(deletingEmployee.id)
-      setDeletingEmployee(null)
-      refresh('Đã xóa nhân viên khỏi hệ thống.')
-    } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Không thể xóa nhân viên.')
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -180,7 +171,6 @@ export function MemberPage() {
     setStatus('all')
     setCurrentPage(1)
   }
-
   const displayedFrom = page && page.totalCount > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0
   const displayedTo = page ? Math.min(page.pageNumber * page.pageSize, page.totalCount) : 0
   const hasFilters = Boolean(searchInput || departmentInput || positionInput || status !== 'all')
@@ -191,24 +181,19 @@ export function MemberPage() {
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
-              quản lý người dùng
+              nhân sự và quyền truy cập
             </p>
             <h1 className="text-3xl font-bold tracking-tight">Quản lý nhân viên</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Quản lý hồ sơ, vị trí công tác và trạng thái làm việc của nhân viên thư viện.
+              Quản lý hồ sơ, đơn vị công tác, trạng thái việc làm và tài khoản truy cập.
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
               <RefreshCw className={isLoading ? 'animate-spin' : ''} /> Làm mới
             </Button>
-            <Button
-              onClick={() => {
-                setEditingEmployee(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus /> Thêm nhân viên
+            <Button onClick={openCreateForm}>
+              <Plus /> Tạo hồ sơ
             </Button>
           </div>
         </div>
@@ -229,18 +214,22 @@ export function MemberPage() {
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
-            title="Tổng kết quả"
-            value={page?.totalCount ?? '—'}
+            title="Tổng nhân viên"
+            value={summary?.total ?? '—'}
             icon={BriefcaseBusiness}
           />
-          <SummaryCard title="Đang làm / trang" value={activeOnPage} icon={UserRoundCheck} />
-          <SummaryCard title="Nghỉ phép / trang" value={onLeaveOnPage} icon={CalendarDays} />
-          <SummaryCard title="Phòng ban / trang" value={departmentsOnPage} icon={Building2} />
+          <SummaryCard title="Đang làm việc" value={summary?.active ?? '—'} icon={UserRoundCheck} />
+          <SummaryCard title="Đang nghỉ phép" value={summary?.onLeave ?? '—'} icon={CalendarDays} />
+          <SummaryCard
+            title="Tạm ngưng / nghỉ việc"
+            value={summary?.stopped ?? '—'}
+            icon={UserRoundX}
+          />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Danh sách nhân viên</CardTitle>
+            <CardTitle>Danh sách hồ sơ nhân viên</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(15rem,1fr)_13rem_13rem_12rem_auto]">
@@ -257,13 +246,13 @@ export function MemberPage() {
               <Input
                 value={departmentInput}
                 onChange={(event) => setDepartmentInput(event.target.value)}
-                placeholder="Lọc phòng ban"
-                aria-label="Lọc theo phòng ban"
+                placeholder="Đơn vị hoặc chi nhánh"
+                aria-label="Lọc theo đơn vị hoặc chi nhánh"
               />
               <Input
                 value={positionInput}
                 onChange={(event) => setPositionInput(event.target.value)}
-                placeholder="Lọc chức vụ"
+                placeholder="Chức vụ"
                 aria-label="Lọc theo chức vụ"
               />
               <Select
@@ -278,9 +267,9 @@ export function MemberPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {employmentStatuses.map((employeeStatus) => (
+                    <SelectItem key={employeeStatus} value={employeeStatus}>
+                      {employmentStatusLabels[employeeStatus]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -308,9 +297,9 @@ export function MemberPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nhân viên</TableHead>
-                    <TableHead>Đơn vị công tác</TableHead>
+                    <TableHead>Việc làm</TableHead>
                     <TableHead>Liên hệ</TableHead>
-                    <TableHead>Ngày vào làm</TableHead>
+                    <TableHead>Bắt đầu công tác</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>
                       <span className="sr-only">Thao tác</span>
@@ -322,12 +311,16 @@ export function MemberPage() {
                   {!isLoading && page?.items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Không tìm thấy nhân viên phù hợp.
+                        Không tìm thấy hồ sơ nhân viên phù hợp.
                       </TableCell>
                     </TableRow>
                   ) : null}
                   {page?.items.map((employee) => (
-                    <TableRow key={employee.id} className={isLoading ? 'opacity-60' : undefined}>
+                    <TableRow
+                      key={employee.id}
+                      className={isLoading ? 'opacity-60' : 'cursor-pointer'}
+                      onDoubleClick={() => openDetails(employee)}
+                    >
                       <TableCell>
                         <div className="flex min-w-56 items-center gap-3">
                           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -342,9 +335,11 @@ export function MemberPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="grid min-w-40 gap-0.5">
+                        <div className="grid min-w-44 gap-0.5">
                           <span>{employee.position}</span>
-                          <small className="text-muted-foreground">{employee.department}</small>
+                          <small className="flex items-center gap-1 text-muted-foreground">
+                            <Building2 className="size-3" /> {employee.branchName || employee.department}
+                          </small>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -364,25 +359,18 @@ export function MemberPage() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            aria-label={`Chỉnh sửa ${employee.fullName}`}
-                            onClick={() => {
-                              setEditingEmployee(employee)
-                              setFormOpen(true)
-                            }}
+                            aria-label={`Xem hồ sơ ${employee.fullName}`}
+                            onClick={() => openDetails(employee)}
                           >
-                            <Pencil />
+                            <Eye />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            className="text-destructive hover:text-destructive"
-                            aria-label={`Xóa ${employee.fullName}`}
-                            onClick={() => {
-                              setDeleteError('')
-                              setDeletingEmployee(employee)
-                            }}
+                            aria-label={`Cập nhật ${employee.fullName}`}
+                            onClick={() => openEditForm(employee)}
                           >
-                            <Trash2 />
+                            <Pencil />
                           </Button>
                         </div>
                       </TableCell>
@@ -396,7 +384,7 @@ export function MemberPage() {
               <p className="text-sm text-muted-foreground">
                 {page?.totalCount
                   ? `Hiển thị ${displayedFrom}-${displayedTo} trong ${page.totalCount} nhân viên.`
-                  : 'Không có nhân viên để hiển thị.'}
+                  : 'Không có hồ sơ để hiển thị.'}
               </p>
               {page && page.totalPages > 0 ? (
                 <Pagination
@@ -416,41 +404,12 @@ export function MemberPage() {
         onOpenChange={setFormOpen}
         onSave={handleSave}
       />
-
-      <Dialog
-        open={!!deletingEmployee}
-        onOpenChange={(open) => !open && !isDeleting && setDeletingEmployee(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xóa nhân viên?</DialogTitle>
-            <DialogDescription>
-              Hồ sơ <strong>{deletingEmployee?.fullName}</strong> ({deletingEmployee?.employeeCode})
-              sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError ? (
-            <p
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
-              {deleteError}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={isDeleting}
-              onClick={() => setDeletingEmployee(null)}
-            >
-              Hủy
-            </Button>
-            <Button variant="destructive" disabled={isDeleting} onClick={confirmDelete}>
-              {isDeleting ? 'Đang xóa...' : 'Xóa nhân viên'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EmployeeDetailsDialog
+        open={detailsOpen}
+        employee={selectedEmployee}
+        onOpenChange={setDetailsOpen}
+        onEdit={openEditForm}
+      />
     </>
   )
 }
@@ -461,8 +420,8 @@ function SummaryCard({
   icon: Icon,
 }: {
   title: string
-  value: string | number
-  icon: typeof BriefcaseBusiness
+  value: ReactNode
+  icon: LucideIcon
 }) {
   return (
     <Card>
@@ -488,7 +447,7 @@ function StatusBadge({ status }: { status: EmploymentStatus }) {
   }
   return (
     <Badge variant="outline" className={classes[status]}>
-      {statusLabels[status]}
+      {employmentStatusLabels[status]}
     </Badge>
   )
 }

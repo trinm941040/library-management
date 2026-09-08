@@ -10,7 +10,7 @@ import { SettingsPage } from '../pages/settings/SettingsPage'
 import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
 import { UserPage } from '../pages/users/UserPage'
 import { ViolationsPage } from '../pages/violations/ViolationsPage'
-import { MemberPage } from '../pages/member/MemberPage'
+import { EmployeePage } from '../pages/employee/EmployeePage'
 import { ConfigPage } from '../pages/config/ConfigPage'
 import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
 import { InfoPage } from '../pages/info/InfoPage'
@@ -45,7 +45,7 @@ export function AppRoutes() {
         <Route path="/borrowings" element={<BorrowingsPage />} />
         <Route path="/reservations" element={<ReservationsPage />} />
         <Route path="/violations" element={<ViolationsPage />} />
-        <Route path="/member" element={<MemberPage />} />
+        <Route path="/employee" element={<EmployeePage />} />
         <Route
           path="/roles"
           element={

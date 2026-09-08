@@ -1,3 +1,4 @@
+using System.Text.Json;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Domain.Entities;
 
@@ -13,16 +14,22 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
                 query.Department,
                 query.Position,
                 query.Status,
+                query.BranchId,
                 query.PageNumber,
                 query.PageSize),
             cancellationToken);
 
         return new EmployeePage(
-            items.Select(Map).ToArray(),
+            items.Select(employee => Map(employee)).ToArray(),
             query.PageNumber,
             query.PageSize,
             totalCount);
     }
+
+    public async Task<IReadOnlyCollection<EmployeeBranchModel>> GetBranchesAsync(CancellationToken cancellationToken) =>
+        (await repository.GetBranchesAsync(cancellationToken))
+            .Select(branch => new EmployeeBranchModel(branch.Id, branch.Code, branch.Name))
+            .ToArray();
 
     public async Task<EmployeeModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -32,11 +39,17 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
 
     public async Task<EmployeeManagementResult> CreateAsync(
         SaveEmployeeCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Guid? actorUserId = null)
     {
         var duplicate = await ValidateUniquenessAsync(command, null, cancellationToken);
         if (duplicate is not null)
             return duplicate;
+
+        var branchId = command.BranchId ?? Branch.MainBranchId;
+        var branch = await repository.GetActiveBranchAsync(branchId, cancellationToken);
+        if (branch is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Branch is invalid or inactive.");
 
         try
         {
@@ -52,10 +65,14 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
                 command.Department,
                 command.HireDate,
                 command.Status,
-                now);
+                now,
+                branchId);
             await repository.AddAsync(employee, cancellationToken);
+            await repository.AddAuditLogAsync(
+                AuditLog.Create(actorUserId, "employee.created", nameof(Employee), employee.Id, null, Serialize(employee), now),
+                cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
-            return EmployeeManagementResult.Success(Map(employee));
+            return EmployeeManagementResult.Success(Map(employee, branch));
         }
         catch (ArgumentException exception)
         {
@@ -66,7 +83,8 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
     public async Task<EmployeeManagementResult> UpdateAsync(
         Guid id,
         SaveEmployeeCommand command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Guid? actorUserId = null)
     {
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
@@ -76,8 +94,19 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         if (duplicate is not null)
             return duplicate;
 
+        if (command.ConcurrencyToken is not null && employee.ConcurrencyToken != command.ConcurrencyToken)
+            return EmployeeManagementResult.Failed(
+                EmployeeManagementFailure.Conflict,
+                "The employee was modified by another request. Reload the employee and try again.");
+
+        var branchId = command.BranchId ?? employee.BranchId;
+        if (await repository.GetActiveBranchAsync(branchId, cancellationToken) is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Branch is invalid or inactive.");
+
         try
         {
+            var beforeJson = Serialize(employee);
+            var now = timeProvider.GetUtcNow().UtcDateTime;
             employee.Update(
                 command.EmployeeCode,
                 command.FullName,
@@ -89,7 +118,11 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
                 command.Department,
                 command.HireDate,
                 command.Status,
-                timeProvider.GetUtcNow().UtcDateTime);
+                now,
+                branchId);
+            await repository.AddAuditLogAsync(
+                AuditLog.Create(actorUserId, "employee.updated", nameof(Employee), employee.Id, beforeJson, Serialize(employee), now),
+                cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
             return EmployeeManagementResult.Success(Map(employee));
         }
@@ -97,17 +130,86 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         {
             return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, exception.Message);
         }
+        catch (EmployeeConcurrencyException)
+        {
+            return EmployeeManagementResult.Failed(
+                EmployeeManagementFailure.Conflict,
+                "The employee was modified by another request. Reload the employee and try again.");
+        }
     }
 
-    public async Task<EmployeeManagementResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<EmployeeManagementResult> DeleteAsync(
+        Guid id,
+        CancellationToken cancellationToken,
+        Guid? actorUserId = null)
     {
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
             return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
 
-        repository.Remove(employee);
-        await repository.SaveChangesAsync(cancellationToken);
-        return EmployeeManagementResult.Success();
+        if (employee.Status == EmploymentStatus.Terminated)
+            return EmployeeManagementResult.Success(Map(employee));
+
+        var beforeJson = Serialize(employee);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        employee.Terminate(now);
+        await repository.AddAuditLogAsync(
+            AuditLog.Create(actorUserId, "employee.terminated", nameof(Employee), employee.Id, beforeJson, Serialize(employee), now),
+            cancellationToken);
+
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+            return EmployeeManagementResult.Success(Map(employee));
+        }
+        catch (EmployeeConcurrencyException)
+        {
+            return EmployeeManagementResult.Failed(
+                EmployeeManagementFailure.Conflict,
+                "The employee was modified by another request. Reload the employee and try again.");
+        }
+    }
+
+    public async Task<EmployeeManagementResult> UpdateStatusAsync(
+        Guid id,
+        EmploymentStatus status,
+        Guid? concurrencyToken,
+        CancellationToken cancellationToken,
+        Guid? actorUserId = null)
+    {
+        if (!Enum.IsDefined(status))
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Employment status is invalid.");
+
+        var employee = await repository.GetByIdAsync(id, cancellationToken);
+        if (employee is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
+
+        if (concurrencyToken is not null && employee.ConcurrencyToken != concurrencyToken)
+            return EmployeeManagementResult.Failed(
+                EmployeeManagementFailure.Conflict,
+                "The employee was modified by another request. Reload the employee and try again.");
+
+        if (employee.Status == status)
+            return EmployeeManagementResult.Success(Map(employee));
+
+        var beforeJson = Serialize(employee);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        employee.ChangeStatus(status, now);
+        await repository.AddAuditLogAsync(
+            AuditLog.Create(actorUserId, "employee.status-updated", nameof(Employee), employee.Id, beforeJson, Serialize(employee), now),
+            cancellationToken);
+
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+            return EmployeeManagementResult.Success(Map(employee));
+        }
+        catch (EmployeeConcurrencyException)
+        {
+            return EmployeeManagementResult.Failed(
+                EmployeeManagementFailure.Conflict,
+                "The employee was modified by another request. Reload the employee and try again.");
+        }
     }
 
     private async Task<EmployeeManagementResult?> ValidateUniquenessAsync(
@@ -130,7 +232,7 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         return null;
     }
 
-    private static EmployeeModel Map(Employee employee) =>
+    private static EmployeeModel Map(Employee employee, EmployeeBranch? branch = null) =>
         new(
             employee.Id,
             employee.EmployeeCode,
@@ -141,8 +243,33 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
             employee.Address,
             employee.Position,
             employee.Department,
+            employee.BranchId,
+            branch?.Code ?? employee.Branch?.Code ?? string.Empty,
+            branch?.Name ?? employee.Branch?.Name ?? string.Empty,
+            employee.UserId,
             employee.HireDate,
             employee.Status,
+            employee.ConcurrencyToken,
             employee.CreatedAtUtc,
             employee.UpdatedAtUtc);
+
+    private static string Serialize(Employee employee) => JsonSerializer.Serialize(new
+    {
+        employee.Id,
+        employee.EmployeeCode,
+        employee.FullName,
+        employee.Email,
+        employee.PhoneNumber,
+        employee.DateOfBirth,
+        employee.Address,
+        employee.Position,
+        employee.Department,
+        employee.BranchId,
+        employee.UserId,
+        employee.HireDate,
+        employee.Status,
+        employee.ConcurrencyToken,
+        employee.CreatedAtUtc,
+        employee.UpdatedAtUtc
+    });
 }

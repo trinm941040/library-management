@@ -61,7 +61,12 @@ public sealed class UsersController(IUserManagementService userManagementService
             return InvalidWhitespace();
 
         var result = await userManagementService.CreateAsync(
-            new CreateManagedUserCommand(request.Email, request.Password, request.DisplayName),
+            new CreateManagedUserCommand(
+                request.Email,
+                request.Password,
+                request.DisplayName,
+                request.EmployeeId,
+                TryGetCurrentUserId(out var actorUserId) ? actorUserId : null),
             cancellationToken);
 
         if (!result.Succeeded || result.User is null)
