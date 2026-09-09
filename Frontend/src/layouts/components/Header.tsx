@@ -1,23 +1,27 @@
-import { Bell, ChevronDown, LogOut, Menu } from 'lucide-react'
+import { Bell, Menu } from 'lucide-react'
+import type { User } from '@/auth/auth-api'
 import { Button } from '@/common/components/ui/button'
 import { GlobalSearch } from '@/search/GlobalSearch'
+import { UserMenu } from './UserMenu'
 
 type HeaderProps = {
-  displayName: string
+  user: User
   initials: string
   sidebarVisible: boolean
   sidebarPinned: boolean
   onToggleSidebar: () => void
   onLogout: () => void
+  isLoggingOut: boolean
 }
 
 export function Header({
-  displayName,
+  user,
   initials,
   sidebarVisible,
   sidebarPinned,
   onToggleSidebar,
   onLogout,
+  isLoggingOut,
 }: HeaderProps) {
   return (
     <header className="topbar">
@@ -43,7 +47,7 @@ export function Header({
 
       <GlobalSearch />
 
-      <div className="top-actions mr-12">
+      <div className="top-actions">
         <Button
           variant="ghost"
           size="icon"
@@ -54,19 +58,7 @@ export function Header({
           <Bell />
           <i />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="icon-button"
-          type="button"
-          aria-label="Đăng xuất"
-          onClick={onLogout}
-        >
-          <LogOut />
-        </Button>
-        <span className="top-avatar">{initials}</span>
-        <span className="top-name">{displayName}</span>
-        <ChevronDown className="top-chevron" aria-hidden="true" />
+        <UserMenu user={user} initials={initials} isLoggingOut={isLoggingOut} onLogout={onLogout} />
       </div>
     </header>
   )

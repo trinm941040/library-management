@@ -9,6 +9,8 @@ type AuthContextValue = {
   status: AuthStatus
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updateUser: (user: User) => void
+  clearSession: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -30,20 +32,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
   }, [])
 
+  useEffect(() => {
+    const expire = () => { setUser(null); setStatus('unauthenticated') }
+    window.addEventListener('auth:expired', expire)
+    return () => window.removeEventListener('auth:expired', expire)
+  }, [])
+
   const login = async (email: string, password: string) => {
     const currentUser = await authApi.login(email, password)
     setUser(currentUser)
     setStatus('authenticated')
   }
 
-  const logout = async () => {
-    await authApi.logout()
+  const clearSession = () => {
+    authApi.clearLocalSession()
     setUser(null)
     setStatus('unauthenticated')
   }
 
+  const logout = async () => {
+    try { await authApi.logout() } finally { clearSession() }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, status, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, status, login, logout, updateUser: setUser, clearSession }}>{children}</AuthContext.Provider>
   )
 }
 

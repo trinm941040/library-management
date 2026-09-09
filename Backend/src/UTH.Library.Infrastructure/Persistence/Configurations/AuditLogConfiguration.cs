@@ -15,6 +15,7 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(log => log.BeforeJson).HasColumnType("jsonb");
         builder.Property(log => log.AfterJson).HasColumnType("jsonb");
         builder.Property(log => log.CreatedAtUtc).IsRequired();
+        builder.Property(log => log.CorrelationId).HasMaxLength(100);
         builder.HasIndex(log => new { log.EntityType, log.EntityId, log.CreatedAtUtc });
         builder.HasIndex(log => new { log.ActorUserId, log.CreatedAtUtc });
     }

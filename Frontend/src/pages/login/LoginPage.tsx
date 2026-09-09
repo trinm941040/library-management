@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -8,6 +8,7 @@ import { Label } from '@/common/components/ui/label'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,6 +44,11 @@ export function LoginPage() {
             <CardTitle className="text-3xl">Sign in</CardTitle>
           </CardHeader>
           <CardContent>
+            {(location.state as { notice?: string } | null)?.notice ? (
+              <p className="mb-5 rounded-md border border-green-600/20 bg-green-600/10 p-3 text-sm text-green-700" role="status">
+                {(location.state as { notice?: string }).notice}
+              </p>
+            ) : null}
             <form className="grid gap-6" onSubmit={handleSubmit}>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>

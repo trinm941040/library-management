@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using UTH.Library.Application.Abstractions.Identity;
+using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Persistence;
 
 namespace UTH.Library.Infrastructure.Identity;
@@ -67,13 +68,16 @@ public sealed class AuthService(
         return result;
     }
 
-    public async Task<bool> LogoutAsync(string refreshToken, string? ipAddress, CancellationToken cancellationToken)
+    public async Task<bool> LogoutAsync(string refreshToken, string? ipAddress, string? correlationId, CancellationToken cancellationToken)
     {
         var session = await db.RefreshTokenSessions.SingleOrDefaultAsync(value => value.TokenHash == Hash(refreshToken), cancellationToken);
         if (session is null) return false;
-        session.RevokedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        if (session.RevokedAtUtc is not null) return true;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        session.RevokedAtUtc = now;
         session.RevokedByIp = ipAddress;
         session.RevocationReason = "logout";
+        db.AuditLogs.Add(AuditLog.Create(session.UserId, "session.logged-out", nameof(RefreshTokenSession), session.Id, null, null, now, correlationId));
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }

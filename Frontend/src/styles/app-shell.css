@@ -158,31 +158,6 @@
   width: 13px;
   color: #a5afc0;
 }
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 13px 8px 0;
-  border: 0;
-  border-top: 1px solid #edf0f6;
-  color: #44516a;
-  background: transparent;
-  text-align: left;
-}
-.profile > span:nth-child(2) {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 3px;
-}
-.profile b {
-  font-size: 11px;
-}
-.profile svg {
-  width: 13px;
-  color: #a5afc0;
-}
 .avatar {
   display: grid;
   place-items: center;
@@ -193,7 +168,6 @@
   font-size: 10px;
   font-weight: 700;
 }
-.avatar-indigo,
 .top-avatar {
   color: #fff;
   background: #5969bc;
@@ -259,6 +233,93 @@
 .top-chevron {
   width: 13px;
 }
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 5px 8px;
+  color: #78849a;
+  background: transparent;
+}
+.user-menu-trigger .top-avatar,
+.user-menu-summary .top-avatar { margin-left: 0; }
+.user-menu-trigger-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  text-align: left;
+}
+.user-menu-trigger-copy small {
+  color: #9aa4b5;
+  font-size: 9px;
+}
+.user-menu-trigger:hover,
+.user-menu-trigger:focus-visible {
+  background: #f3f5fa;
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px #3158d733;
+}
+.user-menu-trigger[data-state='open'] .user-menu-chevron {
+  transform: rotate(180deg);
+}
+.user-menu-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s ease;
+}
+.user-menu-content {
+  z-index: 50;
+  width: 290px;
+  max-width: calc(100vw - 24px);
+  padding: 8px;
+  border: 1px solid #e4e8f0;
+  border-radius: 10px;
+  color: var(--foreground);
+  background: var(--popover);
+  box-shadow: 0 12px 32px #1f29371f;
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+.user-menu-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+}
+.user-menu-summary > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.user-menu-summary strong,
+.user-menu-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu-summary small { color: #8995a9; font-size: 11px; }
+.user-menu-separator { height: 1px; margin: 5px 0; background: #e9edf5; }
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
+  min-height: 48px;
+  padding: 7px 9px;
+  font-size: 13px;
+  outline: none;
+  user-select: none;
+}
+.user-menu-item > span:last-child { display: grid; gap: 2px; }
+.user-menu-item small { color: #929daf; font-size: 10px; }
+.user-menu-item-icon { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; background: #f2f5fb; }
+.user-menu-item svg { width: 15px; height: 15px; }
+.user-menu-item[data-highlighted] { color: #3158d7; background: #edf1ff; }
+.user-menu-item.danger { color: #d14343; }
+.user-menu-item.danger .user-menu-item-icon { background: #d1434312; }
+.user-menu-item[data-disabled] { opacity: 0.5; }
 .mobile-menu {
   display: block;
   margin-right: 12px;
@@ -302,9 +363,14 @@
   background: #263451;
   color: #91a8ff;
 }
+[data-theme='dark'] .user-menu-trigger:hover,
+[data-theme='dark'] .user-menu-trigger:focus-visible,
+[data-theme='dark'] .user-menu-item[data-highlighted] { background: #263451; }
+[data-theme='dark'] .user-menu-content,
+[data-theme='dark'] .user-menu-separator { border-color: #2a3548; }
+[data-theme='dark'] .user-menu-item-icon { background: #263451; }
 
 [data-theme='dark'] .queue-row,
-[data-theme='dark'] .profile,
 [data-theme='dark'] .table-row {
   border-color: #2a3548;
 }
@@ -357,6 +423,19 @@
 }
 .primary-button svg {
   width: 14px;
+}
+
+@media (max-width: 640px) {
+  .topbar { padding: 0 16px; }
+  .top-actions { margin-right: 0; gap: 4px; }
+  .top-name { display: none; }
+  .user-menu-trigger-copy small { display: none; }
+  .user-menu-trigger { padding-inline: 3px; }
+  .content-wrap { padding: 28px 18px 50px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 .primary-button:hover {
   background: #2448c0;

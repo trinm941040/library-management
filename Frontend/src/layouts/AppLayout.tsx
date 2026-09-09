@@ -11,6 +11,7 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const { sidebarPinned } = useSettings()
   const [sidebarVisible, setSidebarVisible] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const displayName = user?.displayName ?? 'User'
   const initials = displayName
@@ -25,16 +26,23 @@ export function AppLayout() {
   }, [sidebarPinned])
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      navigate('/login', { replace: true })
+    } catch {
+      navigate('/login', {
+        replace: true,
+        state: { notice: 'Đã xóa phiên trên thiết bị. Máy chủ chưa xác nhận đăng xuất do lỗi kết nối.' },
+      })
+    }
   }
 
   return (
     <div className="app-shell">
       <Sidebar
         isVisible={sidebarVisible}
-        displayName={displayName}
-        initials={initials}
         roles={user?.roles ?? []}
         onClose={() => {
           if (!sidebarPinned) setSidebarVisible(false)
@@ -42,8 +50,8 @@ export function AppLayout() {
       />
 
       <main className="main-content">
-        <Header
-          displayName={displayName}
+        {user ? <Header
+          user={user}
           initials={initials}
           sidebarVisible={sidebarVisible}
           sidebarPinned={sidebarPinned}
@@ -51,7 +59,8 @@ export function AppLayout() {
             if (!sidebarPinned) setSidebarVisible((visible) => !visible)
           }}
           onLogout={handleLogout}
-        />
+          isLoggingOut={isLoggingOut}
+        /> : null}
         <Outlet />
       </main>
     </div>

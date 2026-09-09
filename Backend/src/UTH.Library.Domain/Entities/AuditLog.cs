@@ -16,6 +16,7 @@ public sealed class AuditLog
     public string? BeforeJson { get; private set; }
     public string? AfterJson { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
+    public string? CorrelationId { get; private set; }
 
     public static AuditLog Create(
         Guid? actorUserId,
@@ -24,7 +25,8 @@ public sealed class AuditLog
         Guid entityId,
         string? beforeJson,
         string? afterJson,
-        DateTime createdAtUtc) =>
+        DateTime createdAtUtc,
+        string? correlationId = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -34,6 +36,7 @@ public sealed class AuditLog
             EntityId = entityId,
             BeforeJson = beforeJson,
             AfterJson = afterJson,
-            CreatedAtUtc = createdAtUtc
+            CreatedAtUtc = createdAtUtc,
+            CorrelationId = correlationId
         };
 }

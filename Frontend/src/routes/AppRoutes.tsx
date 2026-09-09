@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppLayout } from '../layouts/AppLayout'
@@ -17,6 +18,9 @@ import { InfoPage } from '../pages/info/InfoPage'
 import { OtherSettingsPage } from '../pages/other-settings/OtherSettingsPage'
 import { MemberPage } from '../pages/members/MemberPage'
 import { ProtectedRoute } from './ProtectedRoute'
+
+const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })))
+const ChangePasswordPage = lazy(() => import('../pages/profile/ChangePasswordPage').then((module) => ({ default: module.ChangePasswordPage })))
 
 function LoginRoute() {
   const { status } = useAuth()
@@ -57,6 +61,8 @@ export function AppRoutes() {
           }
         />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}><ProfilePage /></Suspense>} />
+        <Route path="/profile/change-password" element={<Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}><ChangePasswordPage /></Suspense>} />
         {/* System Management Routes */}
         <Route path="/system/config" element={<ConfigPage />} />
         <Route path="/system/activity-log" element={<ActivityLogPage />} />
