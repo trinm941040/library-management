@@ -15,6 +15,7 @@ import { ConfigPage } from '../pages/config/ConfigPage'
 import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
 import { InfoPage } from '../pages/info/InfoPage'
 import { OtherSettingsPage } from '../pages/other-settings/OtherSettingsPage'
+import { MemberPage } from '../pages/members/MemberPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 function LoginRoute() {
@@ -46,6 +47,7 @@ export function AppRoutes() {
         <Route path="/reservations" element={<ReservationsPage />} />
         <Route path="/violations" element={<ViolationsPage />} />
         <Route path="/employee" element={<EmployeePage />} />
+        <Route path="/members" element={<MemberPage />} />
         <Route
           path="/roles"
           element={

@@ -57,6 +57,14 @@ const pageItems: SearchItem[] = [
     keywords: 'nhân viên employee hồ sơ chức vụ chi nhánh tài khoản nhân sự',
   },
   {
+    id: 'members',
+    title: 'Quản lý độc giả',
+    description: 'Quản lý hồ sơ, thẻ, hạn chế, lịch sử và tiền phạt của độc giả.',
+    category: 'Thành viên',
+    path: '/members',
+    keywords: 'độc giả thành viên member thẻ thư viện hạn chế tiền phạt',
+  },
+  {
     id: 'add-employee',
     title: 'Tạo hồ sơ nhân viên',
     description: 'Tạo hồ sơ nhân sự mới và ghi nhận thông tin công tác.',

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UTH.Library.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using UTH.Library.Infrastructure.Persistence;
 namespace UTH.Library.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LibraryDbContext))]
-    partial class LibraryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908154641_AddMemberManagement")]
+    partial class AddMemberManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1615,6 +1618,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("UTH.Library.Domain.Entities.AuditLog", b =>
+                {
+                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
                 {
                     b.HasOne("UTH.Library.Domain.Entities.Branch", "Branch")
@@ -1633,12 +1644,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.FineAdjustment", b =>
                 {
-                    b.HasOne("UTH.Library.Domain.Entities.Member", null)
-                        .WithMany()
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("UTH.Library.Domain.Entities.Violation", null)
                         .WithMany()
                         .HasForeignKey("ViolationId")
@@ -1648,12 +1653,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.FinePayment", b =>
                 {
-                    b.HasOne("UTH.Library.Domain.Entities.Member", null)
-                        .WithMany()
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("UTH.Library.Domain.Entities.Violation", null)
                         .WithMany()
                         .HasForeignKey("ViolationId")

@@ -1,4 +1,3 @@
-using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Domain.Entities;
 
@@ -7,7 +6,7 @@ namespace UTH.Library.Application.Features.Borrowings;
 public sealed class BorrowingService(
     IBorrowingRepository borrowings,
     IBookRepository books,
-    IUserManagementService users,
+    IMemberRepository members,
     TimeProvider timeProvider)
 {
     public async Task<BorrowingPageModel> GetAsync(BorrowingListQuery query, CancellationToken cancellationToken)
@@ -42,24 +41,34 @@ public sealed class BorrowingService(
         if (book is null)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
 
-        var borrower = await users.GetByIdAsync(command.BorrowerId, cancellationToken);
-        if (borrower is null || !borrower.IsActive)
+        var borrower = await members.GetByIdAsync(command.BorrowerId, cancellationToken);
+        if (borrower is null || borrower.Status != MemberStatus.Active)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrower was not found.");
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active || borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower's membership card is not active.");
+        if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an active borrowing restriction.");
+        var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= borrower.BorrowingLimit)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing limit has been reached.");
 
         if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "This borrower already has this book on loan.");
 
         try
         {
-            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var loanDays = command.LoanDays <= 0 ? borrower.LoanPeriodDays : command.LoanDays;
+            if (loanDays > borrower.LoanPeriodDays)
+                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the member's allowed duration.");
             book.Checkout(now);
             var borrowing = Borrowing.Create(
                 book.Id,
                 borrower.Id,
-                borrower.DisplayName,
+                borrower.FullName,
                 borrower.Email,
                 now,
-                command.LoanDays <= 0 ? Borrowing.DefaultLoanDays : command.LoanDays);
+                loanDays);
             await borrowings.AddAsync(borrowing, cancellationToken);
             await borrowings.SaveChangesAsync(cancellationToken);
             return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
