@@ -5,6 +5,7 @@ using UTH.Library.Application.Features.Todos;
 namespace UTH.Library.Api.Controllers;
 
 [ApiController]
+[NonController]
 [Route("api/todos")]
 public sealed class TodosController(TodoService todoService) : ControllerBase
 {

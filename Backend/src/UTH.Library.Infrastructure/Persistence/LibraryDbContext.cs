@@ -26,6 +26,30 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshTokenSession> RefreshTokenSessions => Set<RefreshTokenSession>();
+    public DbSet<Author> Authors => Set<Author>();
+    public DbSet<Publisher> Publishers => Set<Publisher>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<BookAuthor> BookAuthors => Set<BookAuthor>();
+    public DbSet<BookCategory> BookCategories => Set<BookCategory>();
+    public DbSet<Area> Areas => Set<Area>();
+    public DbSet<Shelf> Shelves => Set<Shelf>();
+    public DbSet<BookCopy> BookCopies => Set<BookCopy>();
+    public DbSet<InventoryAudit> InventoryAudits => Set<InventoryAudit>();
+    public DbSet<InventoryAuditItem> InventoryAuditItems => Set<InventoryAuditItem>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<StockReceipt> StockReceipts => Set<StockReceipt>();
+    public DbSet<StockReceiptItem> StockReceiptItems => Set<StockReceiptItem>();
+    public DbSet<DiscrepancyReport> DiscrepancyReports => Set<DiscrepancyReport>();
+    public DbSet<Renewal> Renewals => Set<Renewal>();
+    public DbSet<CirculationPolicy> CirculationPolicies => Set<CirculationPolicy>();
+    public DbSet<BorrowingLimitPolicy> BorrowingLimitPolicies => Set<BorrowingLimitPolicy>();
+    public DbSet<FinePolicy> FinePolicies => Set<FinePolicy>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<ConfigurationPackage> ConfigurationPackages => Set<ConfigurationPackage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,18 +157,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(token => token.RowVersion).IsConcurrencyToken();
         });
 
-        modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
-        modelBuilder.ApplyConfiguration(new MemberConfiguration());
-        modelBuilder.ApplyConfiguration(new MembershipCardConfiguration());
-        modelBuilder.ApplyConfiguration(new MemberRestrictionConfiguration());
-        modelBuilder.ApplyConfiguration(new FinePaymentConfiguration());
-        modelBuilder.ApplyConfiguration(new FineAdjustmentConfiguration());
-        modelBuilder.ApplyConfiguration(new BranchConfiguration());
-        modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
-        modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());
-        modelBuilder.ApplyConfiguration(new AdministratorRoleSeedConfiguration());
-        modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());
-        modelBuilder.ApplyConfiguration(new AdministratorPermissionSeedConfiguration());
-        modelBuilder.ApplyConfiguration(new AdministratorUserRoleSeedConfiguration());
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(LibraryDbContext).Assembly);
     }
 }

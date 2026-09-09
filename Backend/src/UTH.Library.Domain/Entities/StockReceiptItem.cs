@@ -1,0 +1,2 @@
+namespace UTH.Library.Domain.Entities;
+public sealed class StockReceiptItem { public Guid Id { get; private set; } public Guid StockReceiptId { get; private set; } public Guid BookId { get; private set; } public int ExpectedQuantity { get; private set; } public int ReceivedQuantity { get; private set; } public int DamagedQuantity { get; private set; } public decimal? UnitCost { get; private set; } public Guid ConcurrencyToken { get; private set; } }
