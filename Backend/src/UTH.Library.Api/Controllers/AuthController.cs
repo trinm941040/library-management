@@ -34,7 +34,7 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        if (Request.Cookies.TryGetValue(RefreshCookie, out var token)) await authService.LogoutAsync(token, Ip(), cancellationToken);
+        if (Request.Cookies.TryGetValue(RefreshCookie, out var token)) await authService.LogoutAsync(token, Ip(), HttpContext.TraceIdentifier, cancellationToken);
         DeleteRefreshCookie();
         return NoContent();
     }

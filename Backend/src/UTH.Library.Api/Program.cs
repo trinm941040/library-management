@@ -28,6 +28,15 @@ builder.Services.AddSwaggerGen(config =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.Use(async (context, next) =>
+{
+    const string headerName = "X-Correlation-ID";
+    var requestedId = context.Request.Headers[headerName].ToString();
+    if (!string.IsNullOrWhiteSpace(requestedId) && requestedId.Length <= 100)
+        context.TraceIdentifier = requestedId;
+    context.Response.Headers[headerName] = context.TraceIdentifier;
+    await next(context);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapOpenApi();

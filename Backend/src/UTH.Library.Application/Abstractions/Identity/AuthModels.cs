@@ -68,12 +68,55 @@ public static class Permissions
 public sealed record AuthResult(Guid UserId, string AccessToken, string RefreshToken, DateTimeOffset AccessTokenExpiresAtUtc, DateTimeOffset RefreshTokenExpiresAtUtc);
 public sealed record UserProfile(Guid Id, string Email, string DisplayName, IReadOnlyCollection<string> Roles);
 
+public sealed record CurrentBranch(Guid Id, string Code, string Name);
+public sealed record CurrentProfile(
+    Guid UserId,
+    Guid? EmployeeId,
+    string DisplayName,
+    string LoginIdentifier,
+    DateTime? LastLoginAtUtc,
+    string? EmployeeCode,
+    string? FullName,
+    string? PhoneNumber,
+    DateOnly? DateOfBirth,
+    string? Address,
+    string? Position,
+    string? Department,
+    string? EmploymentStatus,
+    CurrentBranch? Branch,
+    IReadOnlyCollection<string> Roles,
+    IReadOnlyCollection<string> Permissions,
+    Guid? RowVersion);
+
+public sealed record UpdateCurrentProfileCommand(
+    string FullName,
+    string? PhoneNumber,
+    DateOnly? DateOfBirth,
+    string? Address,
+    Guid RowVersion,
+    string? CorrelationId = null);
+
+public enum CurrentProfileFailure { None, NotFound, Validation, Conflict, InvalidPassword }
+public sealed record CurrentProfileResult(CurrentProfile? Profile, CurrentProfileFailure Failure, string? Error)
+{
+    public bool Succeeded => Failure == CurrentProfileFailure.None;
+    public static CurrentProfileResult Success(CurrentProfile? profile = null) => new(profile, CurrentProfileFailure.None, null);
+    public static CurrentProfileResult Failed(CurrentProfileFailure failure, string error) => new(null, failure, error);
+}
+
+public interface ICurrentProfileService
+{
+    Task<CurrentProfile?> GetAsync(Guid userId, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions, CancellationToken cancellationToken);
+    Task<CurrentProfileResult> UpdateAsync(Guid userId, UpdateCurrentProfileCommand command, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions, CancellationToken cancellationToken);
+    Task<CurrentProfileResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, string? ipAddress, string? correlationId, CancellationToken cancellationToken);
+}
+
 public interface IAuthService
 {
     Task<(bool Succeeded, string? Error, AuthResult? Result)> RegisterAsync(string email, string password, string displayName, string? ipAddress, string? userAgent, CancellationToken cancellationToken);
     Task<(bool Succeeded, string? Error, AuthResult? Result)> LoginAsync(string email, string password, string? ipAddress, string? userAgent, CancellationToken cancellationToken);
     Task<(bool Succeeded, string? Error, AuthResult? Result)> RefreshAsync(string refreshToken, string? ipAddress, string? userAgent, CancellationToken cancellationToken);
-    Task<bool> LogoutAsync(string refreshToken, string? ipAddress, CancellationToken cancellationToken);
+    Task<bool> LogoutAsync(string refreshToken, string? ipAddress, string? correlationId, CancellationToken cancellationToken);
     Task LogoutAllAsync(Guid userId, string? ipAddress, CancellationToken cancellationToken);
     Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken);
 }

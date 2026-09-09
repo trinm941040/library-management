@@ -19,6 +19,21 @@ public static class DependencyInjection
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddProblemDetails();
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var details = new ValidationProblemDetails(context.ModelState)
+                {
+                    Status = context.HttpContext.Request.Path.StartsWithSegments("/api/v1/me")
+                        ? StatusCodes.Status422UnprocessableEntity
+                        : StatusCodes.Status400BadRequest
+                };
+                return details.Status == StatusCodes.Status422UnprocessableEntity
+                    ? new UnprocessableEntityObjectResult(details)
+                    : new BadRequestObjectResult(details);
+            };
+        });
         services.AddHealthChecks();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

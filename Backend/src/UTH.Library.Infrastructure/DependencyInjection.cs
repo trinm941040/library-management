@@ -42,6 +42,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ICurrentProfileService, CurrentProfileService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddSingleton<RsaJwtKeyProvider>();
