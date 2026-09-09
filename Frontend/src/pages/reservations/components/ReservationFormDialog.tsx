@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/common/components/ui/select'
 import { getBooks, type LibraryBook } from '@/pages/books/book-api'
-import { getUsers, type SystemUser } from '@/pages/users/user-api'
+import { getMembers, type Member } from '@/pages/members/member-api'
 
 export type ReservationFormData = {
   bookId: string
@@ -35,7 +35,7 @@ type ReservationFormDialogProps = {
 export function ReservationFormDialog({ open, onOpenChange, onSave }: ReservationFormDialogProps) {
   const [form, setForm] = useState<ReservationFormData>({ bookId: '', reserverId: '', holdDays: '7' })
   const [books, setBooks] = useState<LibraryBook[]>([])
-  const [users, setUsers] = useState<SystemUser[]>([])
+  const [users, setUsers] = useState<Member[]>([])
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -48,7 +48,7 @@ export function ReservationFormDialog({ open, onOpenChange, onSave }: Reservatio
     const controller = new AbortController()
     Promise.all([
       getBooks({ pageNumber: 1, pageSize: 100 }, controller.signal),
-      getUsers({ isActive: true, pageNumber: 1, pageSize: 100 }, controller.signal),
+      getMembers({ status: 'Active', pageNumber: 1, pageSize: 100 }, controller.signal),
     ])
       .then(([bookPage, userPage]) => {
         setBooks(bookPage.items)
@@ -119,7 +119,7 @@ export function ReservationFormDialog({ open, onOpenChange, onSave }: Reservatio
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.displayName} · {user.email}
+                      {user.fullName} · {user.email}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -27,7 +27,7 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
       { label: 'Tài khoản', icon: Users, to: '/users' },
       { label: 'Vai trò & Quyền hạn', icon: BookOpen, to: '/roles', requiredRole: 'Administrator' },
       { label: 'Nhân viên', icon: UserRoundCog, to: '/employee' },
-      { label: 'Đọc giả', icon: Users },
+      { label: 'Độc giả', icon: Users, to: '/members' },
     ],
   },
   {

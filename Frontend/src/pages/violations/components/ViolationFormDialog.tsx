@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/common/components/ui/select'
 import { getBooks, type LibraryBook } from '@/pages/books/book-api'
-import { getUsers, type SystemUser } from '@/pages/users/user-api'
+import { getMembers, type Member } from '@/pages/members/member-api'
 
 export type ViolationFormData = {
   borrowerId: string
@@ -43,7 +43,7 @@ export function ViolationFormDialog({ open, onOpenChange, onSave }: ViolationFor
     fineAmount: '0',
   })
   const [books, setBooks] = useState<LibraryBook[]>([])
-  const [users, setUsers] = useState<SystemUser[]>([])
+  const [users, setUsers] = useState<Member[]>([])
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -56,7 +56,7 @@ export function ViolationFormDialog({ open, onOpenChange, onSave }: ViolationFor
     const controller = new AbortController()
     Promise.all([
       getBooks({ pageNumber: 1, pageSize: 100 }, controller.signal),
-      getUsers({ isActive: true, pageNumber: 1, pageSize: 100 }, controller.signal),
+      getMembers({ status: 'Active', pageNumber: 1, pageSize: 100 }, controller.signal),
     ])
       .then(([bookPage, userPage]) => {
         setBooks(bookPage.items)
@@ -110,7 +110,7 @@ export function ViolationFormDialog({ open, onOpenChange, onSave }: ViolationFor
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.displayName} · {user.email}
+                      {user.fullName} · {user.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
