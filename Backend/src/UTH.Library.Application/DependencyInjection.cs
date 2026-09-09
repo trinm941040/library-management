@@ -5,6 +5,7 @@ using UTH.Library.Application.Features.Reservations;
 using UTH.Library.Application.Features.Employees;
 using UTH.Library.Application.Features.Todos;
 using UTH.Library.Application.Features.Violations;
+using UTH.Library.Application.Features.Members;
 
 namespace UTH.Library.Application;
 
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<BorrowingService>();
         services.AddScoped<ReservationService>();
         services.AddScoped<ViolationService>();
+        services.AddScoped<MemberService>();
         return services;
     }
 }

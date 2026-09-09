@@ -1,4 +1,3 @@
-using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Domain.Entities;
 
@@ -8,7 +7,7 @@ public sealed class ReservationService(
     IReservationRepository reservations,
     IBorrowingRepository borrowings,
     IBookRepository books,
-    IUserManagementService users,
+    IMemberRepository members,
     TimeProvider timeProvider)
 {
     public async Task<ReservationPageModel> GetAsync(ReservationListQuery query, CancellationToken cancellationToken)
@@ -37,9 +36,14 @@ public sealed class ReservationService(
         if (book is null)
             return ReservationResult.Fail(ReservationFailure.NotFound, "Book was not found.");
 
-        var reserver = await users.GetByIdAsync(command.ReserverId, cancellationToken);
-        if (reserver is null || !reserver.IsActive)
+        var reserver = await members.GetByIdAsync(command.ReserverId, cancellationToken);
+        if (reserver is null || reserver.Status != MemberStatus.Active)
             return ReservationResult.Fail(ReservationFailure.NotFound, "Reserver was not found.");
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (reserver.MembershipCard is null || reserver.MembershipCard.Status != MembershipCardStatus.Active || reserver.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Reserver's membership card is not active.");
+        if (reserver.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Reservation or MemberRestrictionType.AllTransactions))
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Reserver has an active reservation restriction.");
 
         if (await reservations.HasOpenReservationAsync(command.BookId, command.ReserverId, cancellationToken))
             return ReservationResult.Fail(ReservationFailure.Conflict, "This user already has an open reservation for this book.");
@@ -49,11 +53,10 @@ public sealed class ReservationService(
 
         try
         {
-            var now = timeProvider.GetUtcNow().UtcDateTime;
             var reservation = Reservation.Create(
                 book.Id,
                 reserver.Id,
-                reserver.DisplayName,
+                reserver.FullName,
                 reserver.Email,
                 now,
                 command.HoldDays <= 0 ? Reservation.DefaultHoldDays : command.HoldDays);
@@ -100,6 +103,12 @@ public sealed class ReservationService(
         var book = await books.GetByIdAsync(reservation.BookId, cancellationToken);
         if (book is null)
             return ReservationResult.Fail(ReservationFailure.NotFound, "Book was not found.");
+        var member = await members.GetByIdAsync(reservation.ReserverId, cancellationToken);
+        if (member is null || member.Status != MemberStatus.Active || member.MembershipCard?.Status != MembershipCardStatus.Active)
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Member or membership card is not active.");
+        var history = await members.GetHistoryAsync(member.Id, cancellationToken);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= member.BorrowingLimit)
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Borrowing limit has been reached.");
 
         if (await borrowings.HasActiveBorrowingAsync(reservation.BookId, reservation.ReserverId, cancellationToken))
             return ReservationResult.Fail(ReservationFailure.Conflict, "This user already has this book on loan.");
@@ -114,7 +123,7 @@ public sealed class ReservationService(
                 reservation.ReserverName,
                 reservation.ReserverEmail,
                 now,
-                Borrowing.DefaultLoanDays);
+                member.LoanPeriodDays);
             await borrowings.AddAsync(borrowing, cancellationToken);
             await reservations.SaveChangesAsync(cancellationToken);
             return ReservationResult.Success(ToModel(reservation, book.Title, book.Quantity, now));

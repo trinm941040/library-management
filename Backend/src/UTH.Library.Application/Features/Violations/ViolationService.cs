@@ -1,4 +1,3 @@
-using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Domain.Entities;
 
@@ -7,7 +6,7 @@ namespace UTH.Library.Application.Features.Violations;
 public sealed class ViolationService(
     IViolationRepository violations,
     IBookRepository books,
-    IUserManagementService users,
+    IMemberRepository members,
     TimeProvider timeProvider)
 {
     public async Task<ViolationPageModel> GetAsync(ViolationListQuery query, CancellationToken cancellationToken)
@@ -26,8 +25,8 @@ public sealed class ViolationService(
 
     public async Task<ViolationResult> CreateAsync(CreateViolationCommand command, CancellationToken cancellationToken)
     {
-        var borrower = await users.GetByIdAsync(command.BorrowerId, cancellationToken);
-        if (borrower is null || !borrower.IsActive)
+        var borrower = await members.GetByIdAsync(command.BorrowerId, cancellationToken);
+        if (borrower is null)
             return ViolationResult.Fail(ViolationFailure.NotFound, "Borrower was not found.");
 
         string bookTitle = string.Empty;
@@ -44,7 +43,7 @@ public sealed class ViolationService(
         {
             var violation = Violation.Create(
                 borrower.Id,
-                borrower.DisplayName,
+                borrower.FullName,
                 borrower.Email,
                 bookId,
                 bookTitle,

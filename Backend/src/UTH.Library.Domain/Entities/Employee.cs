@@ -1,7 +1,9 @@
 using System.Net.Mail;
+using System.Text.Json.Serialization;
 
 namespace UTH.Library.Domain.Entities;
 
+[JsonConverter(typeof(JsonStringEnumConverter<EmploymentStatus>))]
 public enum EmploymentStatus
 {
     Active,

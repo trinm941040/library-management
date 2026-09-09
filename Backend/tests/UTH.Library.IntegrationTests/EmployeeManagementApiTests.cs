@@ -32,7 +32,7 @@ public sealed class EmployeeManagementApiTests(UserManagementApiFactory factory)
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<EmployeeResponse>();
         Assert.NotNull(created);
-        Assert.Equal(employeeCode, created.EmployeeCode);
+        Assert.Equal(employeeCode.ToUpperInvariant(), created.EmployeeCode);
         Assert.Equal(EmploymentStatus.Active, created.Status);
 
         var page = await client.GetFromJsonAsync<EmployeePageResponse>(
@@ -67,7 +67,9 @@ public sealed class EmployeeManagementApiTests(UserManagementApiFactory factory)
         Assert.Equal(updated.Email, getResponse.Email);
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/v1/employees/{created.Id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/employees/{created.Id}")).StatusCode);
+        var terminated = await client.GetFromJsonAsync<EmployeeResponse>($"/api/v1/employees/{created.Id}");
+        Assert.NotNull(terminated);
+        Assert.Equal(EmploymentStatus.Terminated, terminated.Status);
     }
 
     [Fact]

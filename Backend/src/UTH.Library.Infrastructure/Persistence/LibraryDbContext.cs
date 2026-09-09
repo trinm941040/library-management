@@ -16,6 +16,11 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<Violation> Violations => Set<Violation>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Member> Members => Set<Member>();
+    public DbSet<MembershipCard> MembershipCards => Set<MembershipCard>();
+    public DbSet<MemberRestriction> MemberRestrictions => Set<MemberRestriction>();
+    public DbSet<FinePayment> FinePayments => Set<FinePayment>();
+    public DbSet<FineAdjustment> FineAdjustments => Set<FineAdjustment>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Permission> Permissions => Set<Permission>();
@@ -129,6 +134,11 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         });
 
         modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
+        modelBuilder.ApplyConfiguration(new MemberConfiguration());
+        modelBuilder.ApplyConfiguration(new MembershipCardConfiguration());
+        modelBuilder.ApplyConfiguration(new MemberRestrictionConfiguration());
+        modelBuilder.ApplyConfiguration(new FinePaymentConfiguration());
+        modelBuilder.ApplyConfiguration(new FineAdjustmentConfiguration());
         modelBuilder.ApplyConfiguration(new BranchConfiguration());
         modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorUserSeedConfiguration());

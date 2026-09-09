@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using UTH.Library.Domain.Entities;
-using UTH.Library.Infrastructure.Identity;
 
 namespace UTH.Library.Infrastructure.Persistence.Configurations;
 
@@ -18,9 +17,5 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(log => log.CreatedAtUtc).IsRequired();
         builder.HasIndex(log => new { log.EntityType, log.EntityId, log.CreatedAtUtc });
         builder.HasIndex(log => new { log.ActorUserId, log.CreatedAtUtc });
-        builder.HasOne<ApplicationUser>()
-            .WithMany()
-            .HasForeignKey(log => log.ActorUserId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

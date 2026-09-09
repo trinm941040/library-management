@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IViolationRepository, ViolationRepository>();
+        services.AddScoped<IMemberRepository, MemberRepository>();
         return services;
     }
 }
