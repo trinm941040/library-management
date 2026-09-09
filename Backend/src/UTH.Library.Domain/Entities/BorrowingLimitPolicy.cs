@@ -1,0 +1,2 @@
+namespace UTH.Library.Domain.Entities;
+public sealed class BorrowingLimitPolicy { public Guid Id { get; private set; } public Guid CirculationPolicyId { get; private set; } public string MemberType { get; private set; } = string.Empty; public int MaxActiveLoans { get; private set; } public int LoanDays { get; private set; } public int MaxRenewals { get; private set; } public int ReservationHoldDays { get; private set; } }
