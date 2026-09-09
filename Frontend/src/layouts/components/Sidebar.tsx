@@ -1,7 +1,6 @@
 import {
   AlertTriangle,
   BookOpen,
-  ChevronDown,
   Clock,
   LayoutDashboard,
   Layers,
@@ -52,15 +51,11 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
 
 type SidebarProps = {
   isVisible: boolean
-  displayName: string
-  initials: string
   roles: string[]
   onClose: () => void
 }
 
-export function Sidebar({ isVisible, displayName, initials, roles, onClose }: SidebarProps) {
-  const displayRole = roles.includes('Administrator') ? 'Administrator' : (roles[0] ?? 'User')
-
+export function Sidebar({ isVisible, roles, onClose }: SidebarProps) {
   return (
     <>
       <aside className={`sidebar ${isVisible ? 'is-open' : 'is-hidden'}`}>
@@ -117,14 +112,6 @@ export function Sidebar({ isVisible, displayName, initials, roles, onClose }: Si
             <Settings aria-hidden="true" />
             <span>Cài đặt</span>
           </NavLink>
-          <Button variant="ghost" className="profile" type="button">
-            <span className="avatar avatar-indigo">{initials}</span>
-            <span>
-              <b>{displayName}</b>
-              <small>{displayRole}</small>
-            </span>
-            <ChevronDown aria-hidden="true" />
-          </Button>
         </div>
       </aside>
 
