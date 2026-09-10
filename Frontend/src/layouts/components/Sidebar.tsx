@@ -1,6 +1,7 @@
-import { BookOpen, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/common/components/ui/button'
+import { BrandLogo } from '@/common/components/BrandLogo'
 
 import { navigationGroups, settingsNavigationItem } from '@/app/navigation'
 import { canAll } from '@/shared/auth/permissions'
@@ -12,19 +13,17 @@ type SidebarProps = {
 }
 
 export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
-  const groups = navigationGroups.map((group) => ({ ...group, items: group.items.filter((item) => canAll(permissions, item.requiredPermissions)) })).filter((group) => group.items.length > 0)
+  const groups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAll(permissions, item.requiredPermissions)),
+    }))
+    .filter((group) => group.items.length > 0)
   return (
     <>
       <aside className={`sidebar ${isVisible ? 'is-open' : 'is-hidden'}`}>
         <div className="brand">
-          <span className="brand-mark">
-            <BookOpen aria-hidden="true" />
-          </span>
-          <span>
-            Thư viện Northstar
-            <br />
-            <b>Cổng thông tin</b>
-          </span>
+          <BrandLogo variant="horizontal" tone="auto" className="brand-logo" />
         </div>
 
         <nav aria-label="Điều hướng chính">
@@ -32,17 +31,15 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
             <div className="pb-2 pt-2" key={group.label}>
               <p className="nav-label pd-[10px]">{group.label}</p>
               {group.items.map(({ label, icon: Icon, path }) => (
-                    <NavLink
-                      to={path}
-                      key={label}
-                      className={({ isActive }) =>
-                        `nav-item justify-start ${isActive ? 'active' : ''}`
-                      }
-                    >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
-                    </NavLink>
-                  ))}
+                <NavLink
+                  to={path}
+                  key={label}
+                  className={({ isActive }) => `nav-item justify-start ${isActive ? 'active' : ''}`}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{label}</span>
+                </NavLink>
+              ))}
             </div>
           ))}
         </nav>
