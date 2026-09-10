@@ -32,7 +32,7 @@ export function GlobalSearch() {
       <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={query}
-        placeholder="Tìm page hoặc chức năng..."
+        placeholder="Tìm trang hoặc chức năng..."
         className="bg-background pr-3 pl-9"
         role="combobox"
         aria-label="Tìm kiếm toàn hệ thống"
@@ -89,7 +89,7 @@ export function GlobalSearch() {
           ) : (
             <div className="grid place-items-center gap-2 px-4 py-8 text-center text-muted-foreground">
               <SearchX className="size-6" />
-              <p className="text-sm">Không tìm thấy page hoặc chức năng phù hợp.</p>
+              <p className="text-sm">Không tìm thấy trang hoặc chức năng phù hợp.</p>
             </div>
           )}
         </div>

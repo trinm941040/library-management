@@ -267,7 +267,7 @@ export function RolePermissionPage() {
             icon={ShieldPlus}
           />
           <SummaryCard title="Tổng quyền hạn" value={permissions.length} icon={KeyRound} />
-          <SummaryCard title="Module" value={modules.length} icon={Layers3} />
+          <SummaryCard title="Phân hệ" value={modules.length} icon={Layers3} />
         </div>
 
         <div
@@ -501,11 +501,11 @@ function PermissionsTable({
           />
         </div>
         <Select value={moduleFilter} onValueChange={onModuleChange}>
-          <SelectTrigger className="w-full sm:w-56" aria-label="Lọc theo module">
+          <SelectTrigger className="w-full sm:w-56" aria-label="Lọc theo phân hệ">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả module</SelectItem>
+            <SelectItem value="all">Tất cả phân hệ</SelectItem>
             {modules.map((module) => (
               <SelectItem key={module} value={module}>
                 {module}
@@ -520,7 +520,7 @@ function PermissionsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Tên quyền</TableHead>
-                <TableHead>Module</TableHead>
+                <TableHead>Phân hệ</TableHead>
                 <TableHead>Loại</TableHead>
                 <TableHead>Mô tả</TableHead>
                 <TableHead>Ngày tạo</TableHead>
@@ -694,7 +694,7 @@ function DeleteDialog({
           <DialogTitle>Xóa {target?.type === 'role' ? 'vai trò' : 'quyền hạn'}?</DialogTitle>
           <DialogDescription>
             <strong>{name}</strong> sẽ bị xóa vĩnh viễn. Thao tác sẽ thất bại nếu tài nguyên đang
-            được bảo vệ hoặc vai trò còn được gán cho user.
+            được bảo vệ hoặc vai trò còn được gán cho người dùng.
           </DialogDescription>
         </DialogHeader>
         {error ? (

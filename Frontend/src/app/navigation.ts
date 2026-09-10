@@ -1,0 +1,27 @@
+import { AlertTriangle, BookOpen, Clock, LayoutDashboard, Layers, RefreshCw, Settings, UserRoundCog, Users, type LucideIcon } from 'lucide-react'
+
+export type NavigationItem = { path: string; label: string; icon: LucideIcon; requiredPermissions: readonly string[] }
+export type NavigationGroup = { label: string; items: readonly NavigationItem[] }
+export const navigationGroups: readonly NavigationGroup[] = [
+  { label: 'Tổng quan', items: [{ path: '/dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard, requiredPermissions: [] }] },
+  { label: 'Quản lý người dùng', items: [
+    { path: '/users', label: 'Tài khoản', icon: Users, requiredPermissions: ['users.read'] },
+    { path: '/roles', label: 'Vai trò & Quyền hạn', icon: BookOpen, requiredPermissions: ['roles.read', 'permissions.read'] },
+    { path: '/employee', label: 'Nhân viên', icon: UserRoundCog, requiredPermissions: ['employees.read'] },
+    { path: '/members', label: 'Độc giả', icon: Users, requiredPermissions: ['members.read'] },
+  ]},
+  { label: 'Quản lý tác vụ', items: [
+    { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
+    { path: '/borrowings', label: 'Mượn/trả', icon: RefreshCw, requiredPermissions: ['borrowings.read'] },
+    { path: '/reservations', label: 'Đặt trước', icon: Clock, requiredPermissions: ['reservations.read'] },
+    { path: '/violations', label: 'Vi phạm', icon: AlertTriangle, requiredPermissions: ['violations.read'] },
+  ]},
+  { label: 'Quản lý hệ thống', items: [
+    { path: '/system/config', label: 'Cấu hình', icon: Layers, requiredPermissions: ['permissions.read'] },
+    { path: '/system/activity-log', label: 'Nhật ký hoạt động', icon: RefreshCw, requiredPermissions: ['permissions.read'] },
+    { path: '/system/info', label: 'Thông tin', icon: Clock, requiredPermissions: [] },
+    { path: '/system/other-settings', label: 'Thiết lập khác', icon: Settings, requiredPermissions: ['permissions.read'] },
+  ]},
+]
+export const settingsNavigationItem: NavigationItem = { path: '/settings', label: 'Cài đặt', icon: Settings, requiredPermissions: [] }
+export const routePermissions = new Map([...navigationGroups.flatMap((group) => group.items.map((item) => [item.path, item.requiredPermissions] as const)), [settingsNavigationItem.path, settingsNavigationItem.requiredPermissions] as const])

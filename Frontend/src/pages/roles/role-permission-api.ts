@@ -115,6 +115,15 @@ export async function replaceRolePermissions(
   return readResponse<Role>(response)
 }
 
+export async function replaceUserRoles(userId: string, roleIds: string[]): Promise<void> {
+  const response = await authenticatedFetch(`/api/v1/users/${userId}/roles`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roleIds }),
+  })
+  await readResponse<void>(response)
+}
+
 export async function getPermissions(
   filters: { search?: string; module?: string } = {},
   signal?: AbortSignal,
