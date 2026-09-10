@@ -3,13 +3,17 @@ using Microsoft.AspNetCore.Mvc;
 using UTH.Library.Api.Contracts.Books;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Features.Books;
+using UTH.Library.Application.Common;
 
 namespace UTH.Library.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/v1/books")]
-public sealed class BooksController(BookService bookService) : ControllerBase
+public sealed class BooksController(
+    BookService bookService,
+    IQueryHandler<BookListQuery, BookPageModel> listHandler,
+    ICommandHandler<CreateBookCommand, BookResult> createHandler) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = Permissions.BooksRead)]
@@ -18,7 +22,7 @@ public sealed class BooksController(BookService bookService) : ControllerBase
         [FromQuery] BookFilterRequest request,
         CancellationToken cancellationToken)
     {
-        var page = await bookService.GetAsync(
+        var page = await listHandler.HandleAsync(
             new BookListQuery(request.Search, request.Category, request.PageNumber, request.PageSize),
             cancellationToken);
 
@@ -52,7 +56,7 @@ public sealed class BooksController(BookService bookService) : ControllerBase
         [FromBody] CreateBookRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await bookService.CreateAsync(
+        var result = await createHandler.HandleAsync(
             new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity),
             cancellationToken);
 

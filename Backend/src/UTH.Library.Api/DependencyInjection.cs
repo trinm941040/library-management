@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Identity;
+using UTH.Library.Api.Infrastructure;
+using UTH.Library.Application.Abstractions;
 
 namespace UTH.Library.Api;
 
@@ -18,7 +20,14 @@ public static class DependencyInjection
     {
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-        services.AddProblemDetails();
+        services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+        {
+            context.ProblemDetails.Extensions.TryAdd("code", $"http.{context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode}");
+            context.ProblemDetails.Extensions.TryAdd("correlationId", context.HttpContext.TraceIdentifier);
+        });
+        services.AddExceptionHandler<ApiExceptionHandler>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IRequestContext, HttpRequestContext>();
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -29,6 +38,8 @@ public static class DependencyInjection
                         ? StatusCodes.Status422UnprocessableEntity
                         : StatusCodes.Status400BadRequest
                 };
+                details.Extensions["code"] = "validation.failed";
+                details.Extensions["correlationId"] = context.HttpContext.TraceIdentifier;
                 return details.Status == StatusCodes.Status422UnprocessableEntity
                     ? new UnprocessableEntityObjectResult(details)
                     : new BadRequestObjectResult(details);
@@ -103,7 +114,12 @@ public static class DependencyInjection
             Status = statusCode,
             Title = title,
             Detail = detail,
-            Type = $"https://httpstatuses.com/{statusCode}"
+            Type = $"https://httpstatuses.com/{statusCode}",
+            Extensions =
+            {
+                ["code"] = statusCode == StatusCodes.Status401Unauthorized ? "authentication.required" : "authorization.forbidden",
+                ["correlationId"] = httpContext.TraceIdentifier
+            }
         });
     }
 }

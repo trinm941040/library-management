@@ -65,6 +65,8 @@ public sealed class UserManagementService(
         CreateManagedUserCommand command,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
+            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
         var email = command.Email.Trim();
         if (await userManager.FindByEmailAsync(email) is not null)
             return UserManagementResult.Failed(UserManagementFailure.Conflict, "A user with this email already exists.");
@@ -129,6 +131,8 @@ public sealed class UserManagementService(
         UpdateManagedUserCommand command,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
+            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
             return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
