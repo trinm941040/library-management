@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { canAll } from '@/shared/auth/permissions'
+import { ForbiddenPage } from '@/pages/errors/ForbiddenPage'
 
 type ProtectedRouteProps = {
   children: ReactNode
-  requiredRole?: string
+  requiredPermissions?: readonly string[]
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredPermissions = [] }: ProtectedRouteProps) {
   const { status, user } = useAuth()
 
   if (status === 'loading') {
@@ -18,8 +20,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />
   }
 
-  if (requiredRole && !user?.roles.includes(requiredRole)) {
-    return <Navigate to="/dashboard" replace />
+  if (!canAll(user?.permissions ?? [], requiredPermissions)) {
+    return <ForbiddenPage />
   }
 
   return children

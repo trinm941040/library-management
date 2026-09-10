@@ -67,11 +67,11 @@ export function OtherSettingsPage() {
           </CardHeader>
           <CardContent className="grid gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="smtp-host">SMTP Host</Label>
+              <Label htmlFor="smtp-host">Máy chủ SMTP</Label>
               <Input id="smtp-host" value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="smtp-port">SMTP Port</Label>
+              <Label htmlFor="smtp-port">Cổng SMTP</Label>
               <Input id="smtp-port" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} />
             </div>
             <div className="grid gap-2">
@@ -83,7 +83,7 @@ export function OtherSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sao lưu dữ liệu (Backup)</CardTitle>
+            <CardTitle>Sao lưu dữ liệu</CardTitle>
             <CardDescription>Thiết lập sao lưu cơ sở dữ liệu tự động.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
@@ -91,7 +91,7 @@ export function OtherSettingsPage() {
               <div className="grid gap-1">
                 <Label htmlFor="auto-backup">Tự động sao lưu</Label>
                 <p className="text-xs text-muted-foreground">
-                  Sao lưu Database mỗi ngày vào lúc 00:00.
+                  Sao lưu cơ sở dữ liệu mỗi ngày vào lúc 00:00.
                 </p>
               </div>
               <Switch id="auto-backup" checked={autoBackup} onCheckedChange={setAutoBackup} />

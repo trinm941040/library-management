@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Biểu tượng ứng dụng Quản lý Thư viện</title>
+  <desc id="desc">Biểu tượng sách mở và cổng truy cập màu trắng trên nền xanh.</desc>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="#2563EB"/>
+  <path d="M142 314v-72c0-68 51-120 114-142 63 22 114 74 114 142v72" fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="181" y="210" width="42" height="104" rx="11" fill="#FFFFFF"/>
+  <rect x="235" y="188" width="42" height="126" rx="11" fill="#F59E0B"/>
+  <rect x="289" y="210" width="42" height="104" rx="11" fill="#FFFFFF"/>
+  <path d="M80 319c68-4 126 15 176 63 50-48 108-67 176-63l-14 66c-59-1-110 17-162 64-52-47-103-65-162-64z" fill="#FFFFFF"/>
+  <path d="M103 341c56 2 104 19 153 60v29c-48-36-93-53-147-54zm306 0c-56 2-104 19-153 60v29c48-36 93-53 147-54z" fill="#BFDBFE"/>
+</svg>

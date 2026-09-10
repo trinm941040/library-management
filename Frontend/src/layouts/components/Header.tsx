@@ -31,14 +31,14 @@ export function Header({
         className="mobile-menu"
         aria-label={
           sidebarPinned
-            ? 'Sidebar đang được cố định'
+            ? 'Thanh bên đang được cố định'
             : sidebarVisible
-              ? 'Ẩn sidebar'
-              : 'Hiện sidebar'
+              ? 'Ẩn thanh bên'
+              : 'Hiện thanh bên'
         }
         aria-expanded={sidebarVisible}
         disabled={sidebarPinned}
-        title={sidebarPinned ? 'Tắt cố định sidebar trong trang Cài đặt để có thể ẩn' : undefined}
+        title={sidebarPinned ? 'Tắt cố định thanh bên trong trang Cài đặt để có thể ẩn' : undefined}
         type="button"
         onClick={onToggleSidebar}
       >

@@ -42,6 +42,8 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { UserFormDialog, type UserFormData } from './components/UserFormDialog'
+import { UserRoleDialog } from './components/UserRoleDialog'
+import { can } from '@/shared/auth/permissions'
 import {
   createUser,
   deactivateUser,
@@ -83,6 +85,7 @@ export function UserPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null)
   const [deactivatingUser, setDeactivatingUser] = useState<SystemUser | null>(null)
+  const [roleUser, setRoleUser] = useState<SystemUser | null>(null)
   const [deactivateError, setDeactivateError] = useState('')
   const [isDeactivating, setIsDeactivating] = useState(false)
 
@@ -118,7 +121,7 @@ export function UserPage() {
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách user.')
+        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách người dùng.')
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false)
@@ -166,7 +169,7 @@ export function UserPage() {
 
   const handleSave = async (data: UserFormData) => {
     if (editingUser?.isProtected && editingUser.id !== currentUser?.id) {
-      return 'Không thể thay đổi thông tin của tài khoản Administrator khác.'
+      return 'Không thể thay đổi thông tin của tài khoản quản trị viên khác.'
     }
 
     try {
@@ -193,7 +196,7 @@ export function UserPage() {
   const confirmDeactivate = async () => {
     if (!deactivatingUser) return
     if (deactivatingUser.isProtected) {
-      setDeactivateError('Không thể vô hiệu hóa tài khoản Administrator.')
+      setDeactivateError('Không thể vô hiệu hóa tài khoản quản trị viên.')
       return
     }
     setDeactivateError('')
@@ -214,6 +217,7 @@ export function UserPage() {
 
   const displayedFrom = page && page.totalCount > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0
   const displayedTo = page ? Math.min(page.pageNumber * page.pageSize, page.totalCount) : 0
+  const canAssignRoles = can(currentUser?.permissions ?? [], 'roles.assign')
 
   return (
     <>
@@ -231,7 +235,7 @@ export function UserPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              aria-label="Tải lại danh sách user"
+              aria-label="Tải lại danh sách người dùng"
               disabled={isLoading}
               onClick={() => refresh()}
             >
@@ -239,7 +243,7 @@ export function UserPage() {
               Làm mới
             </Button>
             <Button onClick={openCreateForm}>
-              <Plus /> Thêm user
+              <Plus /> Thêm người dùng
             </Button>
           </div>
         </div>
@@ -260,7 +264,7 @@ export function UserPage() {
         ) : null}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <SummaryCard title="Tổng user" value={summary?.total ?? '—'} icon={Users} />
+          <SummaryCard title="Tổng người dùng" value={summary?.total ?? '—'} icon={Users} />
           <SummaryCard title="Đang hoạt động" value={summary?.active ?? '—'} icon={UserCheck} />
           <SummaryCard title="Đã vô hiệu hóa" value={summary?.inactive ?? '—'} icon={UserX} />
         </div>
@@ -269,7 +273,7 @@ export function UserPage() {
           <CardHeader className="gap-4">
             <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
               <div>
-                <CardTitle>Danh sách user</CardTitle>
+                <CardTitle>Danh sách người dùng</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {page ? `${page.totalCount} tài khoản phù hợp với bộ lọc.` : 'Đang tải dữ liệu.'}
                 </p>
@@ -327,7 +331,7 @@ export function UserPage() {
               >
                 <CircleAlert className="size-6 text-destructive" />
                 <div>
-                  <p className="font-medium">Không thể tải danh sách user</p>
+                  <p className="font-medium">Không thể tải danh sách người dùng</p>
                   <p className="mt-1 text-sm text-muted-foreground">{pageError}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => refresh()}>
@@ -340,7 +344,7 @@ export function UserPage() {
               <Table aria-busy={isLoading}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
+                    <TableHead>Người dùng</TableHead>
                     <TableHead>Vai trò</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>Đăng nhập cuối</TableHead>
@@ -353,7 +357,7 @@ export function UserPage() {
                   {!isLoading && !pageError && page?.items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Không tìm thấy user phù hợp.
+                        Không tìm thấy người dùng phù hợp.
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -365,12 +369,12 @@ export function UserPage() {
                       ? isCurrentUser && user.isProtected
                         ? 'Chỉnh sửa thông tin cá nhân'
                         : 'Chỉnh sửa'
-                      : 'Không thể thay đổi Administrator khác'
+                      : 'Không thể thay đổi quản trị viên khác'
                     const deactivateTitle = user.isProtected
-                      ? 'Không thể vô hiệu hóa tài khoản Administrator'
+                      ? 'Không thể vô hiệu hóa tài khoản quản trị viên'
                       : user.isActive
-                        ? 'Vô hiệu hóa user'
-                        : 'User đã bị vô hiệu hóa'
+                        ? 'Vô hiệu hóa người dùng'
+                        : 'Người dùng đã bị vô hiệu hóa'
 
                     return (
                       <TableRow key={user.id} className={isLoading ? 'opacity-60' : undefined}>
@@ -414,6 +418,17 @@ export function UserPage() {
                         <TableCell>{formatDateTime(user.createdAtUtc)}</TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
+                            {canAssignRoles ? (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Quản lý vai trò của ${user.displayName}`}
+                                title="Thêm, xóa hoặc thay đổi vai trò"
+                                onClick={() => setRoleUser(user)}
+                              >
+                                <ShieldCheck />
+                              </Button>
+                            ) : null}
                             <Button
                               variant="ghost"
                               size="icon-sm"
@@ -450,8 +465,8 @@ export function UserPage() {
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 {page?.totalCount
-                  ? `Hiển thị ${displayedFrom}-${displayedTo} trong ${page.totalCount} user.`
-                  : 'Không có user để hiển thị.'}
+                  ? `Hiển thị ${displayedFrom}-${displayedTo} trong ${page.totalCount} người dùng.`
+                  : 'Không có người dùng để hiển thị.'}
               </p>
               {page && page.totalPages > 0 ? (
                 <Pagination
@@ -470,6 +485,12 @@ export function UserPage() {
         user={editingUser}
         onOpenChange={setFormOpen}
         onSave={handleSave}
+      />
+
+      <UserRoleDialog
+        user={roleUser}
+        onOpenChange={(open) => !open && setRoleUser(null)}
+        onSaved={() => refresh('Đã cập nhật vai trò của tài khoản.')}
       />
 
       <Dialog

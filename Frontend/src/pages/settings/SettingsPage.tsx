@@ -17,20 +17,20 @@ export function SettingsPage() {
       <div className="mb-7">
         <p className="mb-2 text-xs font-bold tracking-widest text-primary">HỆ THỐNG</p>
         <h1 className="text-3xl font-bold tracking-tight">Cài đặt</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Tùy chỉnh cách sidebar hoạt động.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Tùy chỉnh cách thanh bên hoạt động.</p>
       </div>
 
       <div className="grid gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>Sidebar</CardTitle>
+            <CardTitle>Thanh bên</CardTitle>
             <CardDescription>Cấu hình cách menu bên trái hiển thị.</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-6">
             <div className="grid gap-1">
-              <Label htmlFor="sidebar-pinned">Cố định sidebar</Label>
+              <Label htmlFor="sidebar-pinned">Cố định thanh bên</Label>
               <p className="text-sm text-muted-foreground">
-                Giữ sidebar luôn hiển thị và không cho phép ẩn.
+                Giữ thanh bên luôn hiển thị và không cho phép ẩn.
               </p>
             </div>
             <Switch

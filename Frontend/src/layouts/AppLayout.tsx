@@ -13,7 +13,7 @@ export function AppLayout() {
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const displayName = user?.displayName ?? 'User'
+  const displayName = user?.displayName ?? 'Người dùng'
   const initials = displayName
     .split(' ')
     .map((part) => part[0])
@@ -43,7 +43,7 @@ export function AppLayout() {
     <div className="app-shell">
       <Sidebar
         isVisible={sidebarVisible}
-        roles={user?.roles ?? []}
+        permissions={user?.permissions ?? []}
         onClose={() => {
           if (!sidebarPinned) setSidebarVisible(false)
         }}

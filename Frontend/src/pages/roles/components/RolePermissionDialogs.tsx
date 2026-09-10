@@ -178,7 +178,7 @@ export function PermissionFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="permission-module">Module</Label>
+              <Label htmlFor="permission-module">Phân hệ</Label>
               <Input
                 id="permission-module"
                 value={module}
@@ -325,7 +325,7 @@ export function PermissionAssignmentDialog({
             Quyền của {role?.name}
           </DialogTitle>
           <DialogDescription>
-            Cây quyền được tổ chức theo module. Chọn node cha để bật hoặc tắt toàn bộ quyền con.
+            Cây quyền được tổ chức theo phân hệ. Chọn nút cha để bật hoặc tắt toàn bộ quyền con.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -335,7 +335,7 @@ export function PermissionAssignmentDialog({
               className="pl-9"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm quyền hoặc module..."
+              placeholder="Tìm quyền hoặc phân hệ..."
             />
           </div>
           <div className="flex gap-2">
@@ -384,13 +384,13 @@ export function PermissionAssignmentDialog({
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`${expanded ? 'Thu gọn' : 'Mở'} module ${module}`}
+                    aria-label={`${expanded ? 'Thu gọn' : 'Mở'} phân hệ ${module}`}
                     onClick={() => toggleModule(module)}
                   >
                     {expanded ? <ChevronDown /> : <ChevronRight />}
                   </Button>
                   <TreeCheckbox
-                    label={`Chọn toàn bộ quyền của module ${module}`}
+                    label={`Chọn toàn bộ quyền của phân hệ ${module}`}
                     checked={allSelected}
                     indeterminate={partiallySelected}
                     disabled={isSubmitting}
