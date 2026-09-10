@@ -4,12 +4,19 @@ using Microsoft.AspNetCore.Identity;
 using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Identity;
 using UTH.Library.Infrastructure.Persistence.Configurations;
+using UTH.Library.Application.Common;
 
 namespace UTH.Library.Infrastructure.Persistence;
 
 public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try { return await base.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException exception)
+        { throw new OptimisticConcurrencyException("The resource was modified by another request.", exception); }
+    }
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<Book> Books => Set<Book>();
     public DbSet<Borrowing> Borrowings => Set<Borrowing>();
@@ -81,6 +88,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(book => book.CreatedAtUtc).IsRequired();
             entity.HasIndex(book => book.Isbn).IsUnique();
             entity.HasIndex(book => book.Title);
+            entity.Property(book => book.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
         });
 
         modelBuilder.Entity<Borrowing>(entity =>
@@ -94,6 +102,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
             entity.HasIndex(borrowing => borrowing.DueAtUtc);
             entity.Ignore(borrowing => borrowing.IsReturned);
+            entity.Property(borrowing => borrowing.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
         });
 
         modelBuilder.Entity<Reservation>(entity =>
@@ -109,6 +118,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Ignore(reservation => reservation.IsFulfilled);
             entity.Ignore(reservation => reservation.IsCancelled);
             entity.Ignore(reservation => reservation.IsOpen);
+            entity.Property(reservation => reservation.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
         });
 
         modelBuilder.Entity<Violation>(entity =>
@@ -126,6 +136,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasIndex(violation => new { violation.BorrowerId, violation.ResolvedAtUtc });
             entity.HasIndex(violation => violation.RecordedAtUtc);
             entity.Ignore(violation => violation.IsOpen);
+            entity.Property(violation => violation.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");

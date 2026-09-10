@@ -15,11 +15,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<LibraryDbContext>(options =>
+        services.AddScoped<AuditSaveChangesInterceptor>();
+        services.AddDbContext<LibraryDbContext>((provider, options) =>
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
             options.UseNpgsql(connectionString);
+            options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());
         });
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
@@ -50,7 +52,7 @@ public static class DependencyInjection
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-        services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IBookRepository, BookRepository>();
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();

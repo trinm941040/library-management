@@ -42,6 +42,8 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         CancellationToken cancellationToken,
         Guid? actorUserId = null)
     {
+        var validation = Validate(command);
+        if (validation is not null) return validation;
         var duplicate = await ValidateUniquenessAsync(command, null, cancellationToken);
         if (duplicate is not null)
             return duplicate;
@@ -86,6 +88,8 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         CancellationToken cancellationToken,
         Guid? actorUserId = null)
     {
+        var validation = Validate(command);
+        if (validation is not null) return validation;
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
             return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
@@ -231,6 +235,11 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
 
         return null;
     }
+
+    private static EmployeeManagementResult? Validate(SaveEmployeeCommand command) =>
+        new[] { command.EmployeeCode, command.FullName, command.Email, command.Position, command.Department }.Any(string.IsNullOrWhiteSpace)
+            ? EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Required employee fields cannot contain only whitespace.")
+            : null;
 
     private static EmployeeModel Map(Employee employee, EmployeeBranch? branch = null) =>
         new(

@@ -271,6 +271,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("ConcurrencyToken").IsConcurrencyToken().ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValueSql("gen_random_uuid()");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -391,6 +393,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConcurrencyToken").IsConcurrencyToken().ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("BorrowedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1322,6 +1326,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ConcurrencyToken").IsConcurrencyToken().ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValueSql("gen_random_uuid()");
+
                     b.Property<DateTime?>("CancelledAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1648,6 +1654,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid?>("BookId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConcurrencyToken").IsConcurrencyToken().ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<string>("BookTitle")
                         .IsRequired()

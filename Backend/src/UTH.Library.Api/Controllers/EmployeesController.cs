@@ -70,9 +70,6 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
         [FromBody] CreateEmployeeRequest request,
         CancellationToken cancellationToken)
     {
-        if (HasRequiredWhitespace(request.EmployeeCode, request.FullName, request.Email, request.Position, request.Department))
-            return InvalidWhitespace();
-
         var result = await employeeService.CreateAsync(ToCommand(request), cancellationToken, GetCurrentUserId());
         if (!result.Succeeded || result.Employee is null)
             return MapFailure(result);
@@ -91,9 +88,6 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
         [FromBody] UpdateEmployeeRequest request,
         CancellationToken cancellationToken)
     {
-        if (HasRequiredWhitespace(request.EmployeeCode, request.FullName, request.Email, request.Position, request.Department))
-            return InvalidWhitespace();
-
         var result = await employeeService.UpdateAsync(id, ToCommand(request), cancellationToken, GetCurrentUserId());
         return result.Succeeded && result.Employee is not null
             ? Ok(ToResponse(result.Employee))
@@ -141,15 +135,6 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             _ => BadRequest(Problem(detail))
         };
     }
-
-    private ActionResult InvalidWhitespace()
-    {
-        ModelState.AddModelError("employee", "Required employee fields cannot contain only whitespace.");
-        return ValidationProblem(ModelState);
-    }
-
-    private static bool HasRequiredWhitespace(params string[] values) =>
-        values.Any(string.IsNullOrWhiteSpace);
 
     private static SaveEmployeeCommand ToCommand(CreateEmployeeRequest request) =>
         new(
