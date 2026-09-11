@@ -67,11 +67,11 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}</DialogTitle>
+            <DialogTitle>{user ? 'Chỉnh sửa user' : 'Thêm user mới'}</DialogTitle>
             <DialogDescription>
               {user
                 ? 'Cập nhật tên hiển thị và email của tài khoản.'
-                : 'Tạo tài khoản mới. Hệ thống sẽ tự gán vai trò người dùng.'}
+                : 'Tạo tài khoản mới. Hệ thống sẽ tự gán vai trò User.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -98,7 +98,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
                 type="email"
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
-                placeholder="nguoidung@example.com"
+                placeholder="user@example.com"
                 maxLength={256}
                 autoComplete="email"
                 disabled={isSubmitting}
@@ -146,7 +146,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
               Hủy
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm người dùng'}
+              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm user'}
             </Button>
           </DialogFooter>
         </form>

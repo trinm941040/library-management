@@ -11,9 +11,8 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const { sidebarPinned } = useSettings()
   const [sidebarVisible, setSidebarVisible] = useState(true)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const displayName = user?.displayName ?? 'Người dùng'
+  const displayName = user?.displayName ?? 'User'
   const initials = displayName
     .split(' ')
     .map((part) => part[0])
@@ -26,51 +25,33 @@ export function AppLayout() {
   }, [sidebarPinned])
 
   const handleLogout = async () => {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
-    try {
-      await logout()
-      navigate('/login', { replace: true })
-    } catch {
-      navigate('/login', {
-        replace: true,
-        state: {
-          notice: 'Đã xóa phiên trên thiết bị. Máy chủ chưa xác nhận đăng xuất do lỗi kết nối.',
-        },
-      })
-    }
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
     <div className="app-shell">
-      <a
-        href="#main-content"
-        className="fixed top-2 left-2 z-[200] -translate-y-20 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform focus:translate-y-0 motion-reduce:transition-none"
-      >
-        Chuyển đến nội dung chính
-      </a>
       <Sidebar
         isVisible={sidebarVisible}
-        permissions={user?.permissions ?? []}
+        displayName={displayName}
+        initials={initials}
+        roles={user?.roles ?? []}
         onClose={() => {
           if (!sidebarPinned) setSidebarVisible(false)
         }}
       />
 
-      <main id="main-content" className="main-content" tabIndex={-1}>
-        {user ? (
-          <Header
-            user={user}
-            initials={initials}
-            sidebarVisible={sidebarVisible}
-            sidebarPinned={sidebarPinned}
-            onToggleSidebar={() => {
-              if (!sidebarPinned) setSidebarVisible((visible) => !visible)
-            }}
-            onLogout={handleLogout}
-            isLoggingOut={isLoggingOut}
-          />
-        ) : null}
+      <main className="main-content">
+        <Header
+          displayName={displayName}
+          initials={initials}
+          sidebarVisible={sidebarVisible}
+          sidebarPinned={sidebarPinned}
+          onToggleSidebar={() => {
+            if (!sidebarPinned) setSidebarVisible((visible) => !visible)
+          }}
+          onLogout={handleLogout}
+        />
         <Outlet />
       </main>
     </div>

@@ -56,7 +56,6 @@ public sealed class RolePermissionManagementService(
             Name = name,
             Description = command.Description.Trim(),
             IsSystemRole = false,
-            IsActive = true,
             CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
         };
         var result = await roleManager.CreateAsync(role);
@@ -78,15 +77,12 @@ public sealed class RolePermissionManagementService(
         var name = command.Name.Trim();
         if (role.IsSystemRole && !string.Equals(role.Name, name, StringComparison.OrdinalIgnoreCase))
             return RoleFailure(RolePermissionManagementFailure.ProtectedResource, "A system role cannot be renamed.");
-        if (role.IsSystemRole && command.IsActive == false)
-            return RoleFailure(RolePermissionManagementFailure.ProtectedResource, "Vai trò hệ thống không thể bị vô hiệu hóa.");
 
         var duplicate = await roleManager.FindByNameAsync(name);
         if (duplicate is not null && duplicate.Id != id)
             return RoleFailure(RolePermissionManagementFailure.Conflict, "A role with this name already exists.");
 
         role.Name = name;
-        role.IsActive = command.IsActive ?? role.IsActive;
         role.Description = command.Description.Trim();
         var result = await roleManager.UpdateAsync(role);
         if (!result.Succeeded)
@@ -159,7 +155,7 @@ public sealed class RolePermissionManagementService(
             return OperationFailure(RolePermissionManagementFailure.Validation, "At least one role is required.");
 
         var requestedRoles = await db.Roles
-            .Where(role => requestedIds.Contains(role.Id) && role.IsActive)
+            .Where(role => requestedIds.Contains(role.Id))
             .OrderBy(role => role.Name)
             .ToListAsync(cancellationToken);
         if (requestedRoles.Count != requestedIds.Length)
@@ -195,6 +191,15 @@ public sealed class RolePermissionManagementService(
             var stampResult = await userManager.UpdateSecurityStampAsync(user);
             if (!stampResult.Succeeded)
                 return OperationFailure(stampResult);
+
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            await db.RefreshTokenSessions
+                .Where(token => token.UserId == userId && token.RevokedAtUtc == null)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(token => token.RevokedAtUtc, now)
+                        .SetProperty(token => token.RevocationReason, "user-roles-updated"),
+                    cancellationToken);
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -325,8 +330,7 @@ public sealed class RolePermissionManagementService(
             role.Description,
             role.IsSystemRole,
             role.CreatedAtUtc,
-            permissions.Select(MapPermission).ToArray(),
-            role.IsActive);
+            permissions.Select(MapPermission).ToArray());
 
     private static ManagedPermission MapPermission(Permission permission) =>
         new(permission.Id, permission.Name, permission.Description, permission.Module, permission.CreatedAtUtc);

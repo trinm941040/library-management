@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using UTH.Library.Application.Abstractions.Identity;
@@ -15,13 +15,12 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<AuditSaveChangesInterceptor>();
-        services.AddDbContext<LibraryDbContext>((provider, options) =>
+        services.AddDbContext<LibraryDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
             options.UseNpgsql(connectionString);
-            options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());
+            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
@@ -44,8 +43,6 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IAuthorizationStateService, AuthorizationStateService>();
-        services.AddScoped<ICurrentProfileService, CurrentProfileService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddSingleton<RsaJwtKeyProvider>();
@@ -53,12 +50,13 @@ public static class DependencyInjection
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<ITodoRepository, TodoRepository>();
         services.AddScoped<IBookRepository, BookRepository>();
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IViolationRepository, ViolationRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         return services;
     }
 }

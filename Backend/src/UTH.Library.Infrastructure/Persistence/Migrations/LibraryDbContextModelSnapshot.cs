@@ -145,39 +145,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Area", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId", "Code")
-                        .IsUnique();
-
-                    b.ToTable("areas", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -197,10 +164,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("BeforeJson")
                         .HasColumnType("jsonb");
-
-                    b.Property<string>("CorrelationId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -222,39 +185,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Author", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Biography")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FullName");
-
-                    b.ToTable("authors", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Book", b =>
                 {
                     b.Property<Guid>("Id")
@@ -270,12 +200,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -306,89 +230,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("books", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookAuthor", b =>
-                {
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("BookId", "AuthorId");
-
-                    b.HasIndex("AuthorId");
-
-                    b.ToTable("book_authors", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookCategory", b =>
-                {
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("BookId", "CategoryId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("book_categories", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookCopy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AcquiredAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Barcode")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Condition")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid?>("ShelfId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid?>("StockReceiptItemId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Barcode")
-                        .IsUnique();
-
-                    b.HasIndex("ShelfId");
-
-                    b.HasIndex("StockReceiptItemId");
-
-                    b.HasIndex("BookId", "Status");
-
-                    b.ToTable("book_copies", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -414,12 +255,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
                     b.Property<DateTime>("DueAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -433,40 +268,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookId", "BorrowerId", "ReturnedAtUtc");
 
                     b.ToTable("borrowings", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BorrowingLimitPolicy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CirculationPolicyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("LoanDays")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MaxActiveLoans")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MaxRenewals")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("MemberType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("ReservationHoldDays")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CirculationPolicyId", "MemberType")
-                        .IsUnique();
-
-                    b.ToTable("borrowing_limit_policies", (string)null);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Branch", b =>
@@ -519,144 +320,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                             Name = "Main Library",
                             UpdatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Category", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("categories", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.CirculationPolicy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("EffectiveFromUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("EffectiveToUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsActive");
-
-                    b.ToTable("circulation_policies", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.ConfigurationPackage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Checksum")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Data")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Checksum")
-                        .IsUnique();
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("configuration_packages", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.DiscrepancyReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ActualQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("ExpectedQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("StockReceiptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StockReceiptId");
-
-                    b.ToTable("discrepancy_reports", (string)null);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
@@ -822,128 +485,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("fine_payments", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.FinePolicy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("AmountPerDay")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CirculationPolicyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("FixedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal?>("MaximumAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("ViolationType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CirculationPolicyId", "ViolationType")
-                        .IsUnique();
-
-                    b.ToTable("fine_policies", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAudit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("StartedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("StartedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StartedByUserId");
-
-                    b.HasIndex("BranchId", "Status");
-
-                    b.ToTable("inventory_audits", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAuditItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ActualShelfId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BookCopyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid?>("ExpectedShelfId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("InventoryAuditId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Result")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("ScannedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActualShelfId");
-
-                    b.HasIndex("BookCopyId");
-
-                    b.HasIndex("ExpectedShelfId");
-
-                    b.HasIndex("InventoryAuditId", "BookCopyId")
-                        .IsUnique();
-
-                    b.ToTable("inventory_audit_items", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Member", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1101,230 +642,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("membership_cards", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Destination")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("FailureReason")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid>("RecipientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RecipientType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("ScheduledAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SentAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("TemplateId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TemplateId");
-
-                    b.HasIndex("Status", "ScheduledAtUtc");
-
-                    b.ToTable("notifications", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.NotificationTemplate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BodyTemplate")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("SubjectTemplate")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code", "Channel")
-                        .IsUnique();
-
-                    b.ToTable("notification_templates", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Publisher", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("ContactInfo")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("publishers", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Renewal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BorrowingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("NewDueAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PreviousDueAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("RenewedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("RenewedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RenewedByUserId");
-
-                    b.HasIndex("BorrowingId", "RenewedAtUtc");
-
-                    b.ToTable("renewals", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Report", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Definition")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("reports", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Reservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1336,12 +653,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("CancelledAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1372,268 +683,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookId", "ReserverId", "FulfilledAtUtc", "CancelledAtUtc");
 
                     b.ToTable("reservations", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.SavedFilter", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Criteria")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<Guid>("OwnerUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Sort")
-                        .HasColumnType("jsonb");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerUserId", "Scope", "Name")
-                        .IsUnique();
-
-                    b.ToTable("saved_filters", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Shelf", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AreaId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AreaId", "Code")
-                        .IsUnique();
-
-                    b.ToTable("shelves", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.StockReceipt", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime?>("ConfirmedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("ReceiptNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("ReceivedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ReceivedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("ReceiptNumber")
-                        .IsUnique();
-
-                    b.HasIndex("ReceivedByUserId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("stock_receipts", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.StockReceiptItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<int>("DamagedQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ExpectedQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ReceivedQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("StockReceiptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal?>("UnitCost")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookId");
-
-                    b.HasIndex("StockReceiptId", "BookId")
-                        .IsUnique();
-
-                    b.ToTable("stock_receipt_items", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Supplier", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("ContactName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("suppliers", (string)null);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.SystemSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UpdatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("ValueType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("UpdatedByUserId");
-
-                    b.ToTable("system_settings", (string)null);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.TodoItem", b =>
@@ -1685,12 +734,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
                     b.Property<decimal>("FineAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -1741,11 +784,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
                     b.Property<bool>("IsSystemRole")
                         .HasColumnType("boolean");
 
@@ -1758,8 +796,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsActive");
 
                     b.HasIndex("NormalizedName")
                         .IsUnique()
@@ -1774,7 +810,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                             ConcurrencyStamp = "20000000-0000-0000-0000-000000000002",
                             CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Full system access.",
-                            IsActive = true,
                             IsSystemRole = true,
                             Name = "Administrator",
                             NormalizedName = "ADMINISTRATOR"
@@ -2264,10 +1299,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FamilyId");
-
-                    b.HasIndex("ParentTokenId");
-
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
@@ -2584,91 +1615,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Area", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Branch", null)
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookAuthor", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Author", null)
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Book", null)
-                        .WithMany()
-                        .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookCategory", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Book", null)
-                        .WithMany()
-                        .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Category", null)
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookCopy", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Book", null)
-                        .WithMany()
-                        .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Shelf", null)
-                        .WithMany()
-                        .HasForeignKey("ShelfId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("UTH.Library.Domain.Entities.StockReceiptItem", null)
-                        .WithMany()
-                        .HasForeignKey("StockReceiptItemId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BorrowingLimitPolicy", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
-                        .WithMany()
-                        .HasForeignKey("CirculationPolicyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.ConfigurationPackage", b =>
-                {
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.DiscrepancyReport", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.StockReceipt", null)
-                        .WithMany()
-                        .HasForeignKey("StockReceiptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Employee", b =>
                 {
                     b.HasOne("UTH.Library.Domain.Entities.Branch", "Branch")
@@ -2715,55 +1661,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.FinePolicy", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
-                        .WithMany()
-                        .HasForeignKey("CirculationPolicyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAudit", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Branch", null)
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("StartedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAuditItem", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Shelf", null)
-                        .WithMany()
-                        .HasForeignKey("ActualShelfId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("UTH.Library.Domain.Entities.BookCopy", null)
-                        .WithMany()
-                        .HasForeignKey("BookCopyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Shelf", null)
-                        .WithMany()
-                        .HasForeignKey("ExpectedShelfId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("UTH.Library.Domain.Entities.InventoryAudit", null)
-                        .WithMany()
-                        .HasForeignKey("InventoryAuditId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.MemberRestriction", b =>
                 {
                     b.HasOne("UTH.Library.Domain.Entities.Member", null)
@@ -2779,102 +1676,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .WithOne("MembershipCard")
                         .HasForeignKey("UTH.Library.Domain.Entities.MembershipCard", "MemberId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Notification", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.NotificationTemplate", null)
-                        .WithMany()
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Renewal", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Borrowing", null)
-                        .WithMany()
-                        .HasForeignKey("BorrowingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RenewedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Report", b =>
-                {
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.SavedFilter", b =>
-                {
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.Shelf", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Area", null)
-                        .WithMany()
-                        .HasForeignKey("AreaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.StockReceipt", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Branch", null)
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ReceivedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Supplier", null)
-                        .WithMany()
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.StockReceiptItem", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Book", null)
-                        .WithMany()
-                        .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.StockReceipt", null)
-                        .WithMany()
-                        .HasForeignKey("StockReceiptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.SystemSetting", b =>
-                {
-                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UpdatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

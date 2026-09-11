@@ -1,14 +1,6 @@
 ## .NET build output
-# Standard .NET output (Git normalizes Windows path separators to `/`).
-**/[Bb]in/
-**/[Oo]bj/
-
-# Some .NET/EF tooling can emit literal Windows-style directory names on Unix.
-# `?` matches the literal backslash character, but does not cross `/` boundaries.
-**/[Bb]in?[Dd]ebug/
-**/[Bb]in?[Rr]elease/
-**/[Oo]bj?[Dd]ebug/
-**/[Oo]bj?[Rr]elease/
+**/bin/
+**/obj/
 **/TestResults/
 
 ## IDE

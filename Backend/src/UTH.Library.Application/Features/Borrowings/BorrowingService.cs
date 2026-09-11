@@ -1,4 +1,5 @@
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Borrowings;
@@ -7,6 +8,7 @@ public sealed class BorrowingService(
     IBorrowingRepository borrowings,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<BorrowingPageModel> GetAsync(BorrowingListQuery query, CancellationToken cancellationToken)
@@ -49,18 +51,27 @@ public sealed class BorrowingService(
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower's membership card is not active.");
         if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an active borrowing restriction.");
+
+        var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
         var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
-        if (history.Borrowings.Count(x => !x.IsReturned) >= borrower.BorrowingLimit)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing limit has been reached.");
+
+        var allowedMaxBooks = Math.Min(borrower.BorrowingLimit, policy.MaxLoanBooks);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= allowedMaxBooks)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Borrowing limit ({allowedMaxMax(allowedMaxBooks)}) has been reached according to '{policy.PolicyName}'.");
+
+        if (policy.BlockIfOverdue && history.Borrowings.Any(x => !x.IsReturned && x.IsOverdue(now)))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has overdue books that must be returned first according to circulation policy.");
 
         if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "This borrower already has this book on loan.");
 
         try
         {
-            var loanDays = command.LoanDays <= 0 ? borrower.LoanPeriodDays : command.LoanDays;
-            if (loanDays > borrower.LoanPeriodDays)
-                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the member's allowed duration.");
+            var maxLoanDays = Math.Min(borrower.LoanPeriodDays, policy.LoanPeriodDays);
+            var loanDays = command.LoanDays <= 0 ? maxLoanDays : command.LoanDays;
+            if (loanDays > maxLoanDays)
+                return BorrowingResult.Fail(BorrowingFailure.Validation, $"Loan period exceeds allowed duration ({maxLoanDays} days).");
+
             book.Checkout(now);
             var borrowing = Borrowing.Create(
                 book.Id,
@@ -81,6 +92,39 @@ public sealed class BorrowingService(
         {
             return BorrowingResult.Fail(BorrowingFailure.Validation, exception.Message);
         }
+    }
+
+    public async Task<BorrowingResult> RenewAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var borrowing = await borrowings.GetByIdAsync(id, cancellationToken);
+        if (borrowing is null)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrowing was not found.");
+
+        if (borrowing.IsReturned)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Cannot renew returned book.");
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (borrowing.IsOverdue(now))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Cannot renew overdue borrowing.");
+
+        var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
+        var borrower = await members.GetByIdAsync(borrowing.BorrowerId, cancellationToken);
+
+        var policy = await policyResolver.ResolveAsync(
+            borrower?.MemberGroup,
+            book?.Category,
+            null,
+            now,
+            cancellationToken);
+
+        if (policy.MaxRenewals <= 0)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Policy does not permit renewals.");
+
+        var newDue = borrowing.DueAtUtc.AddDays(policy.RenewalPeriodDays > 0 ? policy.RenewalPeriodDays : 7);
+        borrowing.ExtendDue(newDue);
+        await borrowings.SaveChangesAsync(cancellationToken);
+
+        return BorrowingResult.Success(ToModel(borrowing, book?.Title ?? "Book", now));
     }
 
     public async Task<BorrowingResult> ReturnAsync(Guid id, CancellationToken cancellationToken)
@@ -106,6 +150,8 @@ public sealed class BorrowingService(
             return BorrowingResult.Fail(BorrowingFailure.Conflict, exception.Message);
         }
     }
+
+    private static int allowedMaxMax(int val) => val;
 
     private async Task<BorrowingModel> MapAsync(Borrowing borrowing, CancellationToken cancellationToken)
     {

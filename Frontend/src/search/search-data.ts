@@ -10,7 +10,7 @@ export type SearchItem = {
 const pageItems: SearchItem[] = [
   {
     id: 'dashboard',
-    title: 'Bảng điều khiển - Tổng quan',
+    title: 'Dashboard - Tổng quan',
     description: 'Xem số lượt mượn, thành viên, sách quá hạn và hoạt động gần đây.',
     category: 'Trang',
     path: '/dashboard',
@@ -19,7 +19,7 @@ const pageItems: SearchItem[] = [
   {
     id: 'new-checkout',
     title: 'Tạo phiếu mượn sách',
-    description: 'Tạo phiếu và ghi nhận sách được mượn.',
+    description: 'Thực hiện checkout và ghi nhận sách được mượn.',
     category: 'Mượn / trả',
     path: '/dashboard',
     keywords: 'mượn sách checkout lưu thông độc giả',
@@ -36,7 +36,7 @@ const pageItems: SearchItem[] = [
     id: 'recent-activity',
     title: 'Hoạt động gần đây',
     description: 'Xem các thao tác mới nhất của nhân viên trong hệ thống.',
-    category: 'Bảng điều khiển',
+    category: 'Dashboard',
     path: '/dashboard',
     keywords: 'lịch sử nhật ký activity nhân viên',
   },
@@ -74,15 +74,15 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'add-user',
-    title: 'Thêm người dùng mới',
-    description: 'Tạo tài khoản mới với vai trò người dùng mặc định.',
+    title: 'Thêm user mới',
+    description: 'Tạo tài khoản mới với vai trò User mặc định.',
     category: 'Người dùng',
     path: '/users',
     keywords: 'tạo thêm user tài khoản đăng ký',
   },
   {
     id: 'edit-user',
-    title: 'Chỉnh sửa thông tin người dùng',
+    title: 'Chỉnh sửa thông tin user',
     description: 'Thay đổi họ tên hoặc email của tài khoản.',
     category: 'Người dùng',
     path: '/users',
@@ -90,7 +90,7 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'deactivate-user',
-    title: 'Vô hiệu hóa người dùng',
+    title: 'Vô hiệu hóa user',
     description: 'Ngăn tài khoản đăng nhập và thu hồi các phiên hiện tại.',
     category: 'Người dùng',
     path: '/users',
@@ -138,8 +138,8 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'settings',
-    title: 'Cài đặt thanh bên',
-    description: 'Cố định thanh bên để trình đơn luôn hiển thị.',
+    title: 'Cài đặt sidebar',
+    description: 'Cố định sidebar để menu luôn hiển thị.',
     category: 'Cài đặt',
     path: '/settings',
     keywords: 'setting cấu hình ghim pin menu thanh bên',

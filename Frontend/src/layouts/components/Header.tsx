@@ -1,27 +1,23 @@
-import { Bell, Menu } from 'lucide-react'
-import type { User } from '@/auth/auth-api'
+import { Bell, ChevronDown, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
 import { GlobalSearch } from '@/search/GlobalSearch'
-import { UserMenu } from './UserMenu'
 
 type HeaderProps = {
-  user: User
+  displayName: string
   initials: string
   sidebarVisible: boolean
   sidebarPinned: boolean
   onToggleSidebar: () => void
   onLogout: () => void
-  isLoggingOut: boolean
 }
 
 export function Header({
-  user,
+  displayName,
   initials,
   sidebarVisible,
   sidebarPinned,
   onToggleSidebar,
   onLogout,
-  isLoggingOut,
 }: HeaderProps) {
   return (
     <header className="topbar">
@@ -31,14 +27,14 @@ export function Header({
         className="mobile-menu"
         aria-label={
           sidebarPinned
-            ? 'Thanh bên đang được cố định'
+            ? 'Sidebar đang được cố định'
             : sidebarVisible
-              ? 'Ẩn thanh bên'
-              : 'Hiện thanh bên'
+              ? 'Ẩn sidebar'
+              : 'Hiện sidebar'
         }
         aria-expanded={sidebarVisible}
         disabled={sidebarPinned}
-        title={sidebarPinned ? 'Tắt cố định thanh bên trong trang Cài đặt để có thể ẩn' : undefined}
+        title={sidebarPinned ? 'Tắt cố định sidebar trong trang Cài đặt để có thể ẩn' : undefined}
         type="button"
         onClick={onToggleSidebar}
       >
@@ -47,7 +43,7 @@ export function Header({
 
       <GlobalSearch />
 
-      <div className="top-actions">
+      <div className="top-actions mr-12">
         <Button
           variant="ghost"
           size="icon"
@@ -58,7 +54,19 @@ export function Header({
           <Bell />
           <i />
         </Button>
-        <UserMenu user={user} initials={initials} isLoggingOut={isLoggingOut} onLogout={onLogout} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="icon-button"
+          type="button"
+          aria-label="Đăng xuất"
+          onClick={onLogout}
+        >
+          <LogOut />
+        </Button>
+        <span className="top-avatar">{initials}</span>
+        <span className="top-name">{displayName}</span>
+        <ChevronDown className="top-chevron" aria-hidden="true" />
       </div>
     </header>
   )

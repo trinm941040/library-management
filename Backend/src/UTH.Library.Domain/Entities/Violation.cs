@@ -26,7 +26,6 @@ public sealed class Violation
         Note = note;
         FineAmount = fineAmount;
         RecordedAtUtc = recordedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     private Violation()
@@ -50,7 +49,6 @@ public sealed class Violation
     public DateTime RecordedAtUtc { get; private set; }
     public DateTime? ResolvedAtUtc { get; private set; }
     public string? Resolution { get; private set; }
-    public Guid ConcurrencyToken { get; private set; }
 
     public bool IsOpen => ResolvedAtUtc is null;
 
@@ -100,6 +98,5 @@ public sealed class Violation
 
         ResolvedAtUtc = resolvedAtUtc;
         Resolution = resolution;
-        ConcurrencyToken = Guid.NewGuid();
     }
 }

@@ -20,7 +20,6 @@ public sealed class Borrowing
         BorrowerEmail = borrowerEmail;
         BorrowedAtUtc = borrowedAtUtc;
         DueAtUtc = dueAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     private Borrowing()
@@ -37,7 +36,6 @@ public sealed class Borrowing
     public DateTime BorrowedAtUtc { get; private set; }
     public DateTime DueAtUtc { get; private set; }
     public DateTime? ReturnedAtUtc { get; private set; }
-    public Guid ConcurrencyToken { get; private set; }
 
     public bool IsReturned => ReturnedAtUtc is not null;
 
@@ -76,7 +74,13 @@ public sealed class Borrowing
             throw new InvalidOperationException("Borrowing is already returned.");
 
         ReturnedAtUtc = returnedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void ExtendDue(DateTime newDueAtUtc)
+    {
+        if (IsReturned)
+            throw new InvalidOperationException("Borrowing is already returned.");
+        DueAtUtc = newDueAtUtc;
     }
 
     public bool IsOverdue(DateTime utcNow) => !IsReturned && DueAtUtc < utcNow;

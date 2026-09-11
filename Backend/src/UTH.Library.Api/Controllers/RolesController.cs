@@ -58,7 +58,7 @@ public sealed class RolesController(IRolePermissionManagementService managementS
     {
         var result = await managementService.UpdateRoleAsync(
             id,
-            new UpdateManagedRoleCommand(request.Name, request.Description, request.IsActive),
+            new UpdateManagedRoleCommand(request.Name, request.Description),
             cancellationToken);
         return result.Succeeded && result.Value is not null
             ? Ok(ToResponse(result.Value))
@@ -126,6 +126,5 @@ public sealed class RolesController(IRolePermissionManagementService managementS
                 permission.Id,
                 permission.Name,
                 permission.Description,
-                permission.Module)).ToArray(),
-            role.IsActive);
+                permission.Module)).ToArray());
 }
