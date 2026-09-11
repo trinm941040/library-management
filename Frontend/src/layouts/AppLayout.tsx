@@ -34,13 +34,21 @@ export function AppLayout() {
     } catch {
       navigate('/login', {
         replace: true,
-        state: { notice: 'Đã xóa phiên trên thiết bị. Máy chủ chưa xác nhận đăng xuất do lỗi kết nối.' },
+        state: {
+          notice: 'Đã xóa phiên trên thiết bị. Máy chủ chưa xác nhận đăng xuất do lỗi kết nối.',
+        },
       })
     }
   }
 
   return (
     <div className="app-shell">
+      <a
+        href="#main-content"
+        className="fixed top-2 left-2 z-[200] -translate-y-20 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform focus:translate-y-0 motion-reduce:transition-none"
+      >
+        Chuyển đến nội dung chính
+      </a>
       <Sidebar
         isVisible={sidebarVisible}
         permissions={user?.permissions ?? []}
@@ -49,18 +57,20 @@ export function AppLayout() {
         }}
       />
 
-      <main className="main-content">
-        {user ? <Header
-          user={user}
-          initials={initials}
-          sidebarVisible={sidebarVisible}
-          sidebarPinned={sidebarPinned}
-          onToggleSidebar={() => {
-            if (!sidebarPinned) setSidebarVisible((visible) => !visible)
-          }}
-          onLogout={handleLogout}
-          isLoggingOut={isLoggingOut}
-        /> : null}
+      <main id="main-content" className="main-content" tabIndex={-1}>
+        {user ? (
+          <Header
+            user={user}
+            initials={initials}
+            sidebarVisible={sidebarVisible}
+            sidebarPinned={sidebarPinned}
+            onToggleSidebar={() => {
+              if (!sidebarPinned) setSidebarVisible((visible) => !visible)
+            }}
+            onLogout={handleLogout}
+            isLoggingOut={isLoggingOut}
+          />
+        ) : null}
         <Outlet />
       </main>
     </div>

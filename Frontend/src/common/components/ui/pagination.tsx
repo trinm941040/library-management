@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
 import { cn } from '@/utils/cn'
 
@@ -18,15 +18,30 @@ function Pagination({ currentPage, totalPages, onPageChange, className }: Pagina
       <Button
         type="button"
         variant="outline"
+        size="icon-sm"
+        disabled={page === 1}
+        onClick={() => onPageChange(1)}
+        aria-label="Đến trang đầu"
+      >
+        <ChevronFirst aria-hidden="true" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
         size="sm"
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
+        aria-label="Đến trang trước"
       >
-        <ChevronLeft />
-        Trước
+        <ChevronLeft aria-hidden="true" />
+        <span className="hidden sm:inline">Trước</span>
       </Button>
 
-      <span className="min-w-24 text-center text-sm text-muted-foreground" aria-live="polite">
+      <span
+        className="min-w-24 text-center text-sm text-muted-foreground"
+        aria-live="polite"
+        aria-current="page"
+      >
         Trang {page} / {lastPage}
       </span>
 
@@ -36,9 +51,20 @@ function Pagination({ currentPage, totalPages, onPageChange, className }: Pagina
         size="sm"
         disabled={page === lastPage}
         onClick={() => onPageChange(page + 1)}
+        aria-label="Đến trang sau"
       >
-        Sau
-        <ChevronRight />
+        <span className="hidden sm:inline">Sau</span>
+        <ChevronRight aria-hidden="true" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        disabled={page === lastPage}
+        onClick={() => onPageChange(lastPage)}
+        aria-label="Đến trang cuối"
+      >
+        <ChevronLast aria-hidden="true" />
       </Button>
     </nav>
   )

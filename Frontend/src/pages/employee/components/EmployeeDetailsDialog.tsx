@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { createUser, getUserById, getUsers, type SystemUser } from '@/pages/users/user-api'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
+import { formatDate, formatDateTime } from '@/common/formatters'
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,8 @@ import {
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
-import {
-  employmentStatusLabels,
-  getEmployeeById,
-  type Employee,
-  type EmploymentStatus,
-} from '../employee-api'
+import { employmentStatusLabels, getEmployeeById, type Employee } from '../employee-api'
+import { EmploymentStatusBadge } from './EmploymentStatusBadge'
 
 type EmployeeDetailsDialogProps = {
   open: boolean
@@ -144,7 +141,7 @@ export function EmployeeDetailsDialog({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-semibold">{details.fullName}</h2>
-                    <StatusBadge status={details.status} />
+                    <EmploymentStatusBadge status={details.status} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {details.employeeCode} · {details.position}
@@ -174,10 +171,7 @@ export function EmployeeDetailsDialog({
               </h3>
               <dl className="grid gap-x-8 gap-y-4 rounded-xl border p-5 sm:grid-cols-2">
                 <Detail label="Chức vụ" value={details.position} />
-                <Detail
-                  label="Chi nhánh"
-                  value={details.branchName || details.department}
-                />
+                <Detail label="Chi nhánh" value={details.branchName || details.department} />
                 <Detail label="Đơn vị" value={details.department} />
                 <Detail label="Ngày bắt đầu công tác" value={formatDate(details.hireDate)} />
                 <Detail
@@ -327,20 +321,6 @@ function Detail({ label, value }: { label: string; value: string }) {
   )
 }
 
-function StatusBadge({ status }: { status: EmploymentStatus }) {
-  const classes: Record<EmploymentStatus, string> = {
-    Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    OnLeave: 'border-amber-200 bg-amber-50 text-amber-700',
-    Inactive: 'border-slate-200 bg-slate-100 text-slate-700',
-    Terminated: 'border-red-200 bg-red-50 text-red-700',
-  }
-  return (
-    <Badge variant="outline" className={classes[status]}>
-      {employmentStatusLabels[status]}
-    </Badge>
-  )
-}
-
 function getInitials(name: string) {
   return name
     .trim()
@@ -349,15 +329,4 @@ function getInitials(name: string) {
     .join('')
     .slice(0, 2)
     .toUpperCase()
-}
-
-function formatDate(value: string | null) {
-  if (!value) return 'Chưa cập nhật'
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`))
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(
-    new Date(value),
-  )
 }

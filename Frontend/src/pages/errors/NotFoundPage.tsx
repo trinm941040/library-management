@@ -1,2 +1,17 @@
-import { Link } from 'react-router-dom'
-export function NotFoundPage() { return <main className="p-8 text-center"><h1 className="text-2xl font-semibold">Không tìm thấy trang</h1><Link className="underline" to="/dashboard">Về trang tổng quan</Link></main> }
+import { useNavigate } from 'react-router-dom'
+import { ScreenState } from '@/common/components/molecules/ScreenState'
+
+export function NotFoundPage() {
+  const navigate = useNavigate()
+  return (
+    <main className="p-8">
+      <ScreenState
+        kind="empty"
+        title="Không tìm thấy trang"
+        description="Địa chỉ này không tồn tại hoặc đã được di chuyển."
+        actionLabel="Về trang tổng quan"
+        onAction={() => navigate('/dashboard')}
+      />
+    </main>
+  )
+}
