@@ -4,4 +4,5 @@ public interface IRequestContext
 {
     Guid? UserId { get; }
     string CorrelationId { get; }
+    string? IpAddress { get; }
 }

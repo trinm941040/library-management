@@ -60,6 +60,7 @@ export function AppRoutes() {
         {/* System Management Routes */}
         <Route path="/system/config" element={<ConfigPage />} />
         <Route path="/system/activity-log" element={<ActivityLogPage />} />
+        <Route path="/audit-log" element={<ActivityLogPage />} />
         <Route path="/system/info" element={<InfoPage />} />
         <Route path="/system/other-settings" element={<OtherSettingsPage />} />
       </Route>

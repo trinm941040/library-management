@@ -30,6 +30,8 @@ public sealed class CirculationPolicy
     // Khoảng thời gian hiệu lực (Effective Range)
     public DateTime EffectiveFrom { get; private set; }
     public DateTime? EffectiveTo { get; private set; }
+    public DateTime EffectiveFromUtc => EffectiveFrom;
+    public DateTime? EffectiveToUtc => EffectiveTo;
 
     // BorrowingLimit (Giới hạn mượn)
     public int MaxLoanBooks { get; private set; }

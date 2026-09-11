@@ -45,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
+        services.AddScoped<IAuthorizationStateService, AuthorizationStateService>();
+        services.AddScoped<ICurrentProfileService, CurrentProfileService>();
         services.AddSingleton<RsaJwtKeyProvider>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
@@ -57,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IViolationRepository, ViolationRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
+        services.AddScoped<UTH.Library.Application.Features.AuditLogs.IAuditLogService, UTH.Library.Infrastructure.Services.AuditLogService>();
         return services;
     }
 }

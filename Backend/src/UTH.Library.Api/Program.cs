@@ -1,4 +1,4 @@
-﻿using UTH.Library.Api;
+using UTH.Library.Api;
 using UTH.Library.Application;
 using UTH.Library.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using UTH.Library.Infrastructure.Identity;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,8 +26,15 @@ builder.Services.AddSwaggerGen(config =>
     });
 });
 
+// Configure trusted forwarded headers for accurate client IP resolution
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
