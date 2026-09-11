@@ -9,11 +9,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Identity;
-using UTH.Library.Api.Infrastructure;
-using UTH.Library.Application.Abstractions;
-using UTH.Library.Api.Authorization;
-using Microsoft.AspNetCore.Authorization;
-using System.Threading.RateLimiting;
 
 namespace UTH.Library.Api;
 
@@ -23,74 +18,15 @@ public static class DependencyInjection
     {
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-        services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
-        {
-            context.ProblemDetails.Extensions.TryAdd("code", $"http.{context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode}");
-            context.ProblemDetails.Extensions.TryAdd("correlationId", context.HttpContext.TraceIdentifier);
-        });
-        services.AddExceptionHandler<ApiExceptionHandler>();
-        services.AddHttpContextAccessor();
-        services.AddScoped<IRequestContext, HttpRequestContext>();
-        services.Configure<ApiBehaviorOptions>(options =>
-        {
-            options.InvalidModelStateResponseFactory = context =>
-            {
-                var details = new ValidationProblemDetails(context.ModelState)
-                {
-                    Status = context.HttpContext.Request.Path.StartsWithSegments("/api/v1/me")
-                        ? StatusCodes.Status422UnprocessableEntity
-                        : StatusCodes.Status400BadRequest
-                };
-                details.Extensions["code"] = "validation.failed";
-                details.Extensions["correlationId"] = context.HttpContext.TraceIdentifier;
-                return details.Status == StatusCodes.Status422UnprocessableEntity
-                    ? new UnprocessableEntityObjectResult(details)
-                    : new BadRequestObjectResult(details);
-            };
-        });
+        services.AddProblemDetails();
         services.AddHealthChecks();
-        services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = 429;
-            options.OnRejected = async (context, cancellationToken) =>
-            {
-                context.HttpContext.Response.Headers.RetryAfter = "60";
-                await context.HttpContext.Response.WriteAsJsonAsync(new ProblemDetails
-                {
-                    Status = 429, Title = "Quá nhiều yêu cầu", Detail = "Vui lòng thử lại sau một phút.",
-                    Extensions = { ["code"] = "authentication.rate_limited", ["correlationId"] = context.HttpContext.TraceIdentifier }
-                }, cancellationToken);
-            };
-            foreach (var (name, limit) in new[] { ("auth-login", 10), ("auth-refresh", 60) })
-                options.AddPolicy(name, context => RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
-        });
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
             options.Events = new JwtBearerEvents
             {
-                OnTokenValidated = async context =>
-                {
-                    var rawUserId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-                    if (!Guid.TryParse(rawUserId, out var userId))
-                    {
-                        context.Fail("Invalid subject.");
-                        return;
-                    }
-                    var authorizationStateService = context.HttpContext.RequestServices
-                        .GetRequiredService<IAuthorizationStateService>();
-                    var state = await authorizationStateService.GetAsync(
-                        userId,
-                        context.HttpContext.RequestAborted);
-                    if (state?.CanAuthenticate != true ||
-                        !Guid.TryParse(context.Principal?.FindFirst("sid")?.Value, out var familyId) ||
-                        !await authorizationStateService.IsSessionActiveAsync(userId, familyId, context.HttpContext.RequestAborted))
-                        context.Fail("Account unavailable.");
-                },
-                OnChallenge = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Chưa xác thực", "Vui lòng đăng nhập để truy cập tài nguyên này.", context.HandleResponse),
-                OnForbidden = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status403Forbidden, "Không có quyền truy cập", "Bạn không có quyền truy cập tài nguyên này.")
+                OnChallenge = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Unauthorized", "Authentication is required to access this resource.", context.HandleResponse),
+                OnForbidden = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status403Forbidden, "Forbidden", "You do not have permission to access this resource.")
             };
         });
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -123,11 +59,12 @@ public static class DependencyInjection
                 options.AddPolicy(permission, policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    policy.AddRequirements(new PermissionRequirement(permission));
+                    policy.RequireAssertion(context =>
+                        context.User.IsInRole(RoleNames.Administrator) ||
+                        context.User.HasClaim("permission", permission));
                 });
             }
         });
-        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         //Build swagger documentation with versioning
         services.AddSwaggerGen(config =>
@@ -151,12 +88,7 @@ public static class DependencyInjection
             Status = statusCode,
             Title = title,
             Detail = detail,
-            Type = $"https://httpstatuses.com/{statusCode}",
-            Extensions =
-            {
-                ["code"] = statusCode == StatusCodes.Status401Unauthorized ? "authentication.required" : "authorization.forbidden",
-                ["correlationId"] = httpContext.TraceIdentifier
-            }
+            Type = $"https://httpstatuses.com/{statusCode}"
         });
     }
 }

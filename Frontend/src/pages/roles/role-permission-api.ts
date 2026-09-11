@@ -1,4 +1,4 @@
-import { authenticatedFetch, authorizationChanged } from '@/auth/auth-api'
+import { authenticatedFetch } from '@/auth/auth-api'
 
 const ROLES_URL = '/api/v1/roles'
 const PERMISSIONS_URL = '/api/v1/permissions'
@@ -18,7 +18,6 @@ export type Role = {
   name: string
   description: string
   isSystemRole: boolean
-  isActive: boolean
   createdAtUtc: string
   permissions: PermissionSummary[]
 }
@@ -67,12 +66,6 @@ async function readResponse<T>(response: Response): Promise<T> {
   )
 }
 
-async function readMutation<T>(response: Response): Promise<T> {
-  const result = await readResponse<T>(response)
-  await authorizationChanged()
-  return result
-}
-
 function withQuery(url: string, values: Record<string, string | undefined>) {
   const query = new URLSearchParams()
   Object.entries(values).forEach(([key, value]) => {
@@ -102,12 +95,12 @@ export async function updateRole(id: string, input: RoleInput): Promise<Role> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readMutation<Role>(response)
+  return readResponse<Role>(response)
 }
 
 export async function deleteRole(id: string): Promise<void> {
   const response = await authenticatedFetch(`${ROLES_URL}/${id}`, { method: 'DELETE' })
-  await readMutation<void>(response)
+  await readResponse<void>(response)
 }
 
 export async function replaceRolePermissions(
@@ -119,16 +112,7 @@ export async function replaceRolePermissions(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ permissionIds }),
   })
-  return readMutation<Role>(response)
-}
-
-export async function replaceUserRoles(userId: string, roleIds: string[]): Promise<void> {
-  const response = await authenticatedFetch(`/api/v1/users/${userId}/roles`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roleIds }),
-  })
-  await readMutation<void>(response)
+  return readResponse<Role>(response)
 }
 
 export async function getPermissions(
@@ -154,12 +138,12 @@ export async function updatePermission(id: string, input: PermissionInput): Prom
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readMutation<Permission>(response)
+  return readResponse<Permission>(response)
 }
 
 export async function deletePermission(id: string): Promise<void> {
   const response = await authenticatedFetch(`${PERMISSIONS_URL}/${id}`, { method: 'DELETE' })
-  await readMutation<void>(response)
+  await readResponse<void>(response)
 }
 
 const systemPermissionNames = new Set([

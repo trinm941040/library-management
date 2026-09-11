@@ -1,4 +1,5 @@
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Violations;
@@ -7,6 +8,7 @@ public sealed class ViolationService(
     IViolationRepository violations,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<ViolationPageModel> GetAsync(ViolationListQuery query, CancellationToken cancellationToken)
@@ -30,6 +32,7 @@ public sealed class ViolationService(
             return ViolationResult.Fail(ViolationFailure.NotFound, "Borrower was not found.");
 
         string bookTitle = string.Empty;
+        string? bookCategory = null;
         Guid? bookId = command.BookId is Guid id && id != Guid.Empty ? id : null;
         if (bookId is not null)
         {
@@ -37,6 +40,15 @@ public sealed class ViolationService(
             if (book is null)
                 return ViolationResult.Fail(ViolationFailure.NotFound, "Book was not found.");
             bookTitle = book.Title;
+            bookCategory = book.Category;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var fine = command.FineAmount;
+        if (fine <= 0)
+        {
+            var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, bookCategory, null, now, cancellationToken);
+            fine = policyResolver.CalculateFine(policy, 1);
         }
 
         try
@@ -49,8 +61,8 @@ public sealed class ViolationService(
                 bookTitle,
                 command.Type,
                 command.Note,
-                command.FineAmount,
-                timeProvider.GetUtcNow().UtcDateTime);
+                fine,
+                now);
             await violations.AddAsync(violation, cancellationToken);
             await violations.SaveChangesAsync(cancellationToken);
             return ViolationResult.Success(Map(violation));

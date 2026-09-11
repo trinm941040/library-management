@@ -18,7 +18,6 @@ public sealed class Book
         Category = category;
         Quantity = quantity;
         CreatedAtUtc = createdAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     private Book()
@@ -44,7 +43,6 @@ public sealed class Book
     public DateTime CreatedAtUtc { get; private set; }
 
     public DateTime? UpdatedAtUtc { get; private set; }
-    public Guid ConcurrencyToken { get; private set; }
 
     public static Book Create(
         string title,
@@ -80,7 +78,6 @@ public sealed class Book
         Category = category.Trim();
         Quantity = quantity;
         UpdatedAtUtc = updatedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void Checkout(DateTime updatedAtUtc)
@@ -90,14 +87,12 @@ public sealed class Book
 
         Quantity--;
         UpdatedAtUtc = updatedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void CheckIn(DateTime updatedAtUtc)
     {
         Quantity++;
         UpdatedAtUtc = updatedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     private static void Validate(string title, string author, string isbn, string category, int quantity)

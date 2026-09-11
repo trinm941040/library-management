@@ -18,7 +18,7 @@ export function MetricCard({ label, value, delta, positive, icon, tone }: Metric
         <p>{label}</p>
         <strong>{value}</strong>
         <span className={positive ? 'positive' : 'negative'}>
-          {positive ? '↗' : '↘'} {delta} <em>so với tháng trước</em>
+          {positive ? '↗' : '↘'} {delta} <em>vs. last month</em>
         </span>
       </div>
     </Card>

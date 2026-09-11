@@ -13,8 +13,8 @@ import {
   UserRoundX,
   type LucideIcon,
 } from 'lucide-react'
+import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
-import { formatDate } from '@/common/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
 import { Pagination } from '@/common/components/ui/pagination'
@@ -34,7 +34,6 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { EmployeeDetailsDialog } from './components/EmployeeDetailsDialog'
-import { EmploymentStatusBadge } from './components/EmploymentStatusBadge'
 import { EmployeeFormDialog } from './components/EmployeeFormDialog'
 import {
   createEmployee,
@@ -339,8 +338,7 @@ export function EmployeePage() {
                         <div className="grid min-w-44 gap-0.5">
                           <span>{employee.position}</span>
                           <small className="flex items-center gap-1 text-muted-foreground">
-                            <Building2 className="size-3" />{' '}
-                            {employee.branchName || employee.department}
+                            <Building2 className="size-3" /> {employee.branchName || employee.department}
                           </small>
                         </div>
                       </TableCell>
@@ -354,7 +352,7 @@ export function EmployeePage() {
                       </TableCell>
                       <TableCell>{formatDate(employee.hireDate)}</TableCell>
                       <TableCell>
-                        <EmploymentStatusBadge status={employee.status} />
+                        <StatusBadge status={employee.status} />
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
@@ -440,6 +438,20 @@ function SummaryCard({
   )
 }
 
+function StatusBadge({ status }: { status: EmploymentStatus }) {
+  const classes: Record<EmploymentStatus, string> = {
+    Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    OnLeave: 'border-amber-200 bg-amber-50 text-amber-700',
+    Inactive: 'border-slate-200 bg-slate-100 text-slate-700',
+    Terminated: 'border-red-200 bg-red-50 text-red-700',
+  }
+  return (
+    <Badge variant="outline" className={classes[status]}>
+      {employmentStatusLabels[status]}
+    </Badge>
+  )
+}
+
 function LoadingRows() {
   return Array.from({ length: 5 }, (_, index) => (
     <TableRow key={index}>
@@ -458,4 +470,8 @@ function getInitials(name: string) {
     .join('')
     .slice(0, 2)
     .toUpperCase()
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`))
 }

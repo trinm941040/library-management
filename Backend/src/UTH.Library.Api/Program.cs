@@ -4,7 +4,8 @@ using UTH.Library.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UTH.Library.Infrastructure.Identity;
-using UTH.Library.Api.Infrastructure;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,11 +14,20 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOpenApi();
 
+//Build swagger documentation with versioning
+builder.Services.AddSwaggerGen(config =>
+{
+    config.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "UTH.Library API Development",
+        Version = "v1",
+        Description = "API documentation for UTH.Library",
+    });
+});
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
-app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapOpenApi();

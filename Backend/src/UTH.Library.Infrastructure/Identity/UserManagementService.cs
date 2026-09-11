@@ -34,7 +34,7 @@ public sealed class UserManagementService(
             var normalizedRole = userManager.NormalizeName(query.Role.Trim());
             usersQuery = usersQuery.Where(user => db.UserRoles.Any(userRole =>
                 userRole.UserId == user.Id &&
-                db.Roles.Any(role => role.Id == userRole.RoleId && role.IsActive && role.NormalizedName == normalizedRole)));
+                db.Roles.Any(role => role.Id == userRole.RoleId && role.NormalizedName == normalizedRole)));
         }
 
         var totalCount = await usersQuery.CountAsync(cancellationToken);
@@ -65,8 +65,6 @@ public sealed class UserManagementService(
         CreateManagedUserCommand command,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
-            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
         var email = command.Email.Trim();
         if (await userManager.FindByEmailAsync(email) is not null)
             return UserManagementResult.Failed(UserManagementFailure.Conflict, "A user with this email already exists.");
@@ -131,8 +129,6 @@ public sealed class UserManagementService(
         UpdateManagedUserCommand command,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
-            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
             return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
@@ -214,7 +210,7 @@ public sealed class UserManagementService(
         var memberships = await (
             from userRole in db.UserRoles.AsNoTracking()
             join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
-            where userIds.Contains(userRole.UserId) && role.IsActive
+            where userIds.Contains(userRole.UserId)
             select new { userRole.UserId, Role = role.Name! })
             .ToListAsync(cancellationToken);
 

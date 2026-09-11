@@ -20,7 +20,6 @@ public sealed class Reservation
         ReserverEmail = reserverEmail;
         ReservedAtUtc = reservedAtUtc;
         ExpiresAtUtc = expiresAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     private Reservation()
@@ -38,7 +37,6 @@ public sealed class Reservation
     public DateTime ExpiresAtUtc { get; private set; }
     public DateTime? FulfilledAtUtc { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
-    public Guid ConcurrencyToken { get; private set; }
 
     public bool IsFulfilled => FulfilledAtUtc is not null;
     public bool IsCancelled => CancelledAtUtc is not null;
@@ -79,7 +77,6 @@ public sealed class Reservation
             throw new InvalidOperationException("Reservation is no longer active.");
 
         CancelledAtUtc = cancelledAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void MarkFulfilled(DateTime fulfilledAtUtc)
@@ -88,7 +85,6 @@ public sealed class Reservation
             throw new InvalidOperationException("Reservation is no longer active.");
 
         FulfilledAtUtc = fulfilledAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
     }
 
     public bool IsExpired(DateTime utcNow) => IsOpen && ExpiresAtUtc < utcNow;

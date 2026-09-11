@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, CircleAlert, Plus, RefreshCw, Search } from 'lucide-react'
+import { CircleAlert, Plus, RefreshCw, Search } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'

@@ -1,4 +1,5 @@
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Reservations;
@@ -8,6 +9,7 @@ public sealed class ReservationService(
     IBorrowingRepository borrowings,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<ReservationPageModel> GetAsync(ReservationListQuery query, CancellationToken cancellationToken)
@@ -51,6 +53,9 @@ public sealed class ReservationService(
         if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.ReserverId, cancellationToken))
             return ReservationResult.Fail(ReservationFailure.Conflict, "This user already has this book on loan.");
 
+        var policy = await policyResolver.ResolveAsync(reserver.MemberGroup, book.Category, null, now, cancellationToken);
+        var holdDays = command.HoldDays <= 0 ? policy.HoldDays : command.HoldDays;
+
         try
         {
             var reservation = Reservation.Create(
@@ -59,7 +64,7 @@ public sealed class ReservationService(
                 reserver.FullName,
                 reserver.Email,
                 now,
-                command.HoldDays <= 0 ? Reservation.DefaultHoldDays : command.HoldDays);
+                holdDays);
             await reservations.AddAsync(reservation, cancellationToken);
             await reservations.SaveChangesAsync(cancellationToken);
             return ReservationResult.Success(ToModel(reservation, book.Title, book.Quantity, now));
