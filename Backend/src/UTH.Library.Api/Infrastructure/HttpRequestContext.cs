@@ -8,4 +8,5 @@ internal sealed class HttpRequestContext(IHttpContextAccessor accessor) : IReque
     private HttpContext? Context => accessor.HttpContext;
     public Guid? UserId => Guid.TryParse(Context?.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Context?.User.FindFirstValue("sub"), out var id) ? id : null;
     public string CorrelationId => Context?.TraceIdentifier ?? string.Empty;
+    public string? IpAddress => Context?.Connection.RemoteIpAddress?.ToString();
 }

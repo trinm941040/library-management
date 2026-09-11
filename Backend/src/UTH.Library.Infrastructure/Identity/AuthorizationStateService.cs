@@ -38,7 +38,7 @@ public sealed class AuthorizationStateService(
         var roles = await (
             from userRole in db.UserRoles.AsNoTracking()
             join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
-            where userRole.UserId == userId && role.IsActive
+            where userRole.UserId == userId
             orderby role.Name
             select new { role.Id, Name = role.Name! })
             .ToArrayAsync(cancellationToken);
