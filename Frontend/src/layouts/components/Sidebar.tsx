@@ -21,7 +21,11 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
     .filter((group) => group.items.length > 0)
   return (
     <>
-      <aside className={`sidebar ${isVisible ? 'is-open' : 'is-hidden'}`}>
+      <aside
+        className={`sidebar ${isVisible ? 'is-open' : 'is-hidden'}`}
+        aria-hidden={!isVisible}
+        inert={!isVisible}
+      >
         <div className="brand">
           <BrandLogo variant="horizontal" tone="auto" className="brand-logo" />
         </div>
