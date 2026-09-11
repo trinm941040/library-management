@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
+import { loginSchema } from '@/auth/auth-api'
+import { safeIntendedDestination } from '@/shared/auth/intended-destination'
 import { BrandLogo } from '@/common/components/BrandLogo'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -19,12 +21,19 @@ export function LoginPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSubmitting) return
+    const parsed = loginSchema.safeParse({ email, password })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Thông tin đăng nhập không hợp lệ.')
+      return
+    }
     setError('')
     setIsSubmitting(true)
 
     try {
-      await login(email, password)
-      navigate('/dashboard', { replace: true })
+      await login(parsed.data.email, parsed.data.password)
+      setPassword('')
+      navigate(safeIntendedDestination(location.state?.from), { replace: true })
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Đăng nhập không thành công.')
     } finally {

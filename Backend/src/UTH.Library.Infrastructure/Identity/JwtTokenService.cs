@@ -15,7 +15,7 @@ public sealed class JwtTokenService(
     private readonly SigningCredentials signingCredentials =
         new(keyProvider.SigningKey, SecurityAlgorithms.RsaSha256);
 
-    public (string Token, DateTimeOffset ExpiresAtUtc) CreateAccessToken(Guid userId, string email, IEnumerable<string> roles, IEnumerable<string> permissions)
+    public (string Token, DateTimeOffset ExpiresAtUtc) CreateAccessToken(Guid userId, string email, IEnumerable<string> roles, IEnumerable<string> permissions, Guid? familyId = null)
     {
         var now = timeProvider.GetUtcNow();
         var expires = now.AddMinutes(settings.AccessTokenMinutes);
@@ -29,7 +29,8 @@ public sealed class JwtTokenService(
                 EpochTime.GetIntDate(now.UtcDateTime).ToString(),
                 ClaimValueTypes.Integer64)
         };
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        if (familyId is not null) claims.Add(new Claim("sid", familyId.Value.ToString()));
+        claims.AddRange(roles.Select(role => new Claim("role", role)));
         claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
 
         var token = new JwtSecurityToken(

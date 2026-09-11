@@ -9,6 +9,7 @@ namespace UTH.Library.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/me")]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class MeController(ICurrentProfileService profileService) : ControllerBase
 {
     [HttpGet]
@@ -17,8 +18,10 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
     public async Task<ActionResult<CurrentProfileResponse>> Get(CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Authenticated user identifier is invalid."));
-        var profile = await profileService.GetAsync(userId, Roles(), Permissions(), cancellationToken);
-        return profile is null ? Unauthorized(Problem("The current account is unavailable.")) : Ok(Map(profile));
+        var profile = await profileService.GetAsync(userId, cancellationToken);
+        return profile is null
+            ? Unauthorized(Problem("Tài khoản hiện tại không khả dụng."))
+            : Ok(CurrentProfileResponseMapper.Map(profile));
     }
 
     [HttpPatch("profile")]
@@ -38,10 +41,10 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
         var result = await profileService.UpdateAsync(
             userId,
             new UpdateCurrentProfileCommand(request.FullName, request.PhoneNumber, request.DateOfBirth, request.Address, request.RowVersion, HttpContext.TraceIdentifier),
-            Roles(), Permissions(), cancellationToken);
+            cancellationToken);
         return result.Failure switch
         {
-            CurrentProfileFailure.None when result.Profile is not null => Ok(Map(result.Profile)),
+            CurrentProfileFailure.None when result.Profile is not null => Ok(CurrentProfileResponseMapper.Map(result.Profile)),
             CurrentProfileFailure.Conflict => Conflict(Problem(result.Error!)),
             CurrentProfileFailure.NotFound => NotFound(Problem(result.Error!)),
             _ => UnprocessableEntity(new ProblemDetails { Status = 422, Title = "Profile validation failed", Detail = result.Error })
@@ -62,13 +65,5 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
     }
 
     private bool TryGetUserId(out Guid id) => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out id);
-    private string[] Roles() => User.Claims.Where(value => value.Type is ClaimTypes.Role or "role").Select(value => value.Value).Distinct().ToArray();
-    private string[] Permissions() => User.FindAll("permission").Select(value => value.Value).Distinct().ToArray();
     private static ProblemDetails Problem(string detail) => new() { Detail = detail };
-    private static CurrentProfileResponse Map(CurrentProfile value) => new(
-        value.UserId, value.EmployeeId, value.DisplayName, value.LoginIdentifier, value.LastLoginAtUtc,
-        value.EmployeeCode, value.FullName, value.PhoneNumber, value.DateOfBirth, value.Address,
-        value.Position, value.Department, value.EmploymentStatus,
-        value.Branch is null ? null : new BranchResponse(value.Branch.Id, value.Branch.Code, value.Branch.Name),
-        value.Roles, value.Permissions, value.RowVersion);
 }

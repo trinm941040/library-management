@@ -43,6 +43,7 @@ import {
 } from '@/common/components/ui/table'
 import { UserFormDialog, type UserFormData } from './components/UserFormDialog'
 import { UserRoleDialog } from './components/UserRoleDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { can } from '@/shared/auth/permissions'
 import {
   createUser,
@@ -217,7 +218,9 @@ export function UserPage() {
 
   const displayedFrom = page && page.totalCount > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0
   const displayedTo = page ? Math.min(page.pageNumber * page.pageSize, page.totalCount) : 0
-  const canAssignRoles = can(currentUser?.permissions ?? [], 'roles.assign')
+  const canAssignRoles =
+    can(currentUser?.permissions ?? [], 'roles.assign') &&
+    can(currentUser?.permissions ?? [], 'roles.read')
 
   return (
     <>
@@ -242,9 +245,11 @@ export function UserPage() {
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button onClick={openCreateForm}>
-              <Plus /> Thêm người dùng
-            </Button>
+            <PermissionBoundary requiredPermissions={['users.create']}>
+              <Button onClick={openCreateForm}>
+                <Plus /> Thêm người dùng
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -429,30 +434,34 @@ export function UserPage() {
                                 <ShieldCheck />
                               </Button>
                             ) : null}
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Chỉnh sửa ${user.displayName}`}
-                              title={editTitle}
-                              disabled={!canEdit}
-                              onClick={() => openEditForm(user)}
-                            >
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-destructive hover:text-destructive"
-                              aria-label={`Vô hiệu hóa ${user.displayName}`}
-                              title={deactivateTitle}
-                              disabled={!canDeactivate}
-                              onClick={() => {
-                                setDeactivateError('')
-                                setDeactivatingUser(user)
-                              }}
-                            >
-                              <Ban />
-                            </Button>
+                            <PermissionBoundary requiredPermissions={['users.update']}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Chỉnh sửa ${user.displayName}`}
+                                title={editTitle}
+                                disabled={!canEdit}
+                                onClick={() => openEditForm(user)}
+                              >
+                                <Pencil />
+                              </Button>
+                            </PermissionBoundary>
+                            <PermissionBoundary requiredPermissions={['users.deactivate']}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive hover:text-destructive"
+                                aria-label={`Vô hiệu hóa ${user.displayName}`}
+                                title={deactivateTitle}
+                                disabled={!canDeactivate}
+                                onClick={() => {
+                                  setDeactivateError('')
+                                  setDeactivatingUser(user)
+                                }}
+                              >
+                                <Ban />
+                              </Button>
+                            </PermissionBoundary>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -480,53 +489,59 @@ export function UserPage() {
         </Card>
       </div>
 
-      <UserFormDialog
-        open={formOpen}
-        user={editingUser}
-        onOpenChange={setFormOpen}
-        onSave={handleSave}
-      />
+      <PermissionBoundary requiredPermissions={[editingUser ? 'users.update' : 'users.create']}>
+        <UserFormDialog
+          open={formOpen}
+          user={editingUser}
+          onOpenChange={setFormOpen}
+          onSave={handleSave}
+        />
+      </PermissionBoundary>
 
-      <UserRoleDialog
-        user={roleUser}
-        onOpenChange={(open) => !open && setRoleUser(null)}
-        onSaved={() => refresh('Đã cập nhật vai trò của tài khoản.')}
-      />
+      <PermissionBoundary requiredPermissions={['roles.assign', 'roles.read']}>
+        <UserRoleDialog
+          user={roleUser}
+          onOpenChange={(open) => !open && setRoleUser(null)}
+          onSaved={() => refresh('Đã cập nhật vai trò của tài khoản.')}
+        />
+      </PermissionBoundary>
 
-      <Dialog
-        open={!!deactivatingUser}
-        onOpenChange={(open) => !open && !isDeactivating && setDeactivatingUser(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Vô hiệu hóa tài khoản?</DialogTitle>
-            <DialogDescription>
-              Tài khoản <strong>{deactivatingUser?.displayName}</strong> sẽ không thể đăng nhập và
-              tất cả phiên hiện tại sẽ bị thu hồi. API hiện chưa hỗ trợ kích hoạt lại tài khoản.
-            </DialogDescription>
-          </DialogHeader>
-          {deactivateError ? (
-            <p
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
-              {deactivateError}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={isDeactivating}
-              onClick={() => setDeactivatingUser(null)}
-            >
-              Hủy
-            </Button>
-            <Button variant="destructive" disabled={isDeactivating} onClick={confirmDeactivate}>
-              {isDeactivating ? 'Đang xử lý...' : 'Vô hiệu hóa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PermissionBoundary requiredPermissions={['users.deactivate']}>
+        <Dialog
+          open={!!deactivatingUser}
+          onOpenChange={(open) => !open && !isDeactivating && setDeactivatingUser(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Vô hiệu hóa tài khoản?</DialogTitle>
+              <DialogDescription>
+                Tài khoản <strong>{deactivatingUser?.displayName}</strong> sẽ không thể đăng nhập và
+                tất cả phiên hiện tại sẽ bị thu hồi. API hiện chưa hỗ trợ kích hoạt lại tài khoản.
+              </DialogDescription>
+            </DialogHeader>
+            {deactivateError ? (
+              <p
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {deactivateError}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isDeactivating}
+                onClick={() => setDeactivatingUser(null)}
+              >
+                Hủy
+              </Button>
+              <Button variant="destructive" disabled={isDeactivating} onClick={confirmDeactivate}>
+                {isDeactivating ? 'Đang xử lý...' : 'Vô hiệu hóa'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PermissionBoundary>
     </>
   )
 }

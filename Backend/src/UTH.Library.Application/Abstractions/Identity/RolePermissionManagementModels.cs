@@ -13,10 +13,11 @@ public sealed record ManagedRole(
     string Description,
     bool IsSystemRole,
     DateTime CreatedAtUtc,
-    IReadOnlyCollection<ManagedPermission> Permissions);
+    IReadOnlyCollection<ManagedPermission> Permissions,
+    bool IsActive = true);
 
 public sealed record CreateManagedRoleCommand(string Name, string Description);
-public sealed record UpdateManagedRoleCommand(string Name, string Description);
+public sealed record UpdateManagedRoleCommand(string Name, string Description, bool? IsActive = null);
 public sealed record CreateManagedPermissionCommand(string Name, string Description, string Module);
 public sealed record UpdateManagedPermissionCommand(string Name, string Description, string Module);
 

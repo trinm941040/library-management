@@ -1,40 +1,99 @@
 import { lazy, Suspense } from 'react'
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppLayout } from '../layouts/AppLayout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { routePermissions } from '@/app/navigation'
 import { NotFoundPage } from '@/pages/errors/NotFoundPage'
+import { safeIntendedDestination } from '@/shared/auth/intended-destination'
+import { ScreenState } from '@/common/components'
 
-const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })))
-const LoginPage = lazy(() => import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })))
-const ChangePasswordPage = lazy(() => import('../pages/profile/ChangePasswordPage').then((module) => ({ default: module.ChangePasswordPage })))
-const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
-const BooksPage = lazy(() => import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })))
-const BorrowingsPage = lazy(() => import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })))
-const ReservationsPage = lazy(() => import('../pages/reservations/ReservationsPage').then((m) => ({ default: m.ReservationsPage })))
-const ViolationsPage = lazy(() => import('../pages/violations/ViolationsPage').then((m) => ({ default: m.ViolationsPage })))
-const SettingsPage = lazy(() => import('../pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const RolePermissionPage = lazy(() => import('../pages/roles/RolePermissionPage').then((m) => ({ default: m.RolePermissionPage })))
-const UserPage = lazy(() => import('../pages/users/UserPage').then((m) => ({ default: m.UserPage })))
-const EmployeePage = lazy(() => import('../pages/employee/EmployeePage').then((m) => ({ default: m.EmployeePage })))
-const MemberPage = lazy(() => import('../pages/members/MemberPage').then((m) => ({ default: m.MemberPage })))
-const ConfigPage = lazy(() => import('../pages/config/ConfigPage').then((m) => ({ default: m.ConfigPage })))
-const ActivityLogPage = lazy(() => import('../pages/activity-logs/ActivityLogPage').then((m) => ({ default: m.ActivityLogPage })))
+const ProfilePage = lazy(() =>
+  import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+)
+const LoginPage = lazy(() =>
+  import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })),
+)
+const ChangePasswordPage = lazy(() =>
+  import('../pages/profile/ChangePasswordPage').then((module) => ({
+    default: module.ChangePasswordPage,
+  })),
+)
+const DashboardPage = lazy(() =>
+  import('../pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+)
+const BooksPage = lazy(() =>
+  import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
+)
+const BorrowingsPage = lazy(() =>
+  import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
+)
+const ReservationsPage = lazy(() =>
+  import('../pages/reservations/ReservationsPage').then((m) => ({ default: m.ReservationsPage })),
+)
+const ViolationsPage = lazy(() =>
+  import('../pages/violations/ViolationsPage').then((m) => ({ default: m.ViolationsPage })),
+)
+const SettingsPage = lazy(() =>
+  import('../pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+)
+const RolePermissionPage = lazy(() =>
+  import('../pages/roles/RolePermissionPage').then((m) => ({ default: m.RolePermissionPage })),
+)
+const UserPage = lazy(() =>
+  import('../pages/users/UserPage').then((m) => ({ default: m.UserPage })),
+)
+const EmployeePage = lazy(() =>
+  import('../pages/employee/EmployeePage').then((m) => ({ default: m.EmployeePage })),
+)
+const MemberPage = lazy(() =>
+  import('../pages/members/MemberPage').then((m) => ({ default: m.MemberPage })),
+)
+const ConfigPage = lazy(() =>
+  import('../pages/config/ConfigPage').then((m) => ({ default: m.ConfigPage })),
+)
+const ActivityLogPage = lazy(() =>
+  import('../pages/activity-logs/ActivityLogPage').then((m) => ({ default: m.ActivityLogPage })),
+)
 const InfoPage = lazy(() => import('../pages/info/InfoPage').then((m) => ({ default: m.InfoPage })))
-const OtherSettingsPage = lazy(() => import('../pages/other-settings/OtherSettingsPage').then((m) => ({ default: m.OtherSettingsPage })))
+const OtherSettingsPage = lazy(() =>
+  import('../pages/other-settings/OtherSettingsPage').then((m) => ({
+    default: m.OtherSettingsPage,
+  })),
+)
 
-const page = (path: string, element: ReactNode) => <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}><Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>{element}</Suspense></ProtectedRoute>
+const page = (path: string, element: ReactNode) => (
+  <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
+    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>{element}</Suspense>
+  </ProtectedRoute>
+)
 
 function LoginRoute() {
-  const { status } = useAuth()
+  const { status, retrySession } = useAuth()
+  const location = useLocation()
+
+  if (status === 'error')
+    return (
+      <ScreenState
+        kind="error"
+        title="Không thể kiểm tra phiên đăng nhập"
+        actionLabel="Thử lại"
+        onAction={retrySession}
+      />
+    )
 
   if (status === 'loading') {
     return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
   }
 
-  return status === 'authenticated' ? <Navigate to="/dashboard" replace /> : <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}><LoginPage /></Suspense>
+  return status === 'authenticated' ? (
+    <Navigate to={safeIntendedDestination(location.state?.from)} replace />
+  ) : (
+    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+      <LoginPage />
+    </Suspense>
+  )
 }
 
 export function AppRoutes() {
@@ -59,13 +118,33 @@ export function AppRoutes() {
         <Route path="/members" element={page('/members', <MemberPage />)} />
         <Route path="/roles" element={page('/roles', <RolePermissionPage />)} />
         <Route path="/settings" element={page('/settings', <SettingsPage />)} />
-        <Route path="/profile" element={<Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}><ProfilePage /></Suspense>} />
-        <Route path="/profile/change-password" element={<Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}><ChangePasswordPage /></Suspense>} />
+        <Route
+          path="/profile"
+          element={
+            <Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/profile/change-password"
+          element={
+            <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+              <ChangePasswordPage />
+            </Suspense>
+          }
+        />
         {/* System Management Routes */}
         <Route path="/system/config" element={page('/system/config', <ConfigPage />)} />
-        <Route path="/system/activity-log" element={page('/system/activity-log', <ActivityLogPage />)} />
+        <Route
+          path="/system/activity-log"
+          element={page('/system/activity-log', <ActivityLogPage />)}
+        />
         <Route path="/system/info" element={page('/system/info', <InfoPage />)} />
-        <Route path="/system/other-settings" element={page('/system/other-settings', <OtherSettingsPage />)} />
+        <Route
+          path="/system/other-settings"
+          element={page('/system/other-settings', <OtherSettingsPage />)}
+        />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

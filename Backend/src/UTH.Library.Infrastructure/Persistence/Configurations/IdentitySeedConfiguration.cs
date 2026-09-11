@@ -93,6 +93,7 @@ internal sealed class AdministratorRoleSeedConfiguration : IEntityTypeConfigurat
             ConcurrencyStamp = "20000000-0000-0000-0000-000000000002",
             Description = "Full system access.",
             IsSystemRole = true,
+            IsActive = true,
             CreatedAtUtc = IdentitySeedData.CreatedAtUtc
         });
 }
