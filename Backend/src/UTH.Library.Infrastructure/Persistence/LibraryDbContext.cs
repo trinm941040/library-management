@@ -140,7 +140,13 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         });
 
         modelBuilder.Entity<ApplicationUser>().ToTable("users");
-        modelBuilder.Entity<ApplicationRole>().ToTable("roles");
+        modelBuilder.Entity<ApplicationRole>(entity =>
+        {
+            entity.ToTable("roles");
+            entity.Property(role => role.IsActive).HasDefaultValue(true).IsRequired();
+            entity.Property(role => role.CreatedAtUtc).IsRequired();
+            entity.HasIndex(role => role.IsActive);
+        });
         modelBuilder.Entity<Permission>(entity =>
         {
             entity.ToTable("permissions");
@@ -162,6 +168,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(token => token.TokenHash).HasMaxLength(128).IsRequired();
             entity.HasIndex(token => token.TokenHash).IsUnique();
             entity.HasIndex(token => new { token.UserId, token.ExpiresAtUtc });
+            entity.HasIndex(token => token.FamilyId);
+            entity.HasIndex(token => token.ParentTokenId);
             entity.Property(token => token.UserAgent).HasMaxLength(500);
             entity.Property(token => token.RevocationReason).HasMaxLength(100);
             entity.HasOne(token => token.User).WithMany().HasForeignKey(token => token.UserId).OnDelete(DeleteBehavior.Cascade);

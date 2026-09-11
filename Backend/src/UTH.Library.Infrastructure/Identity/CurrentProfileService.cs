@@ -9,30 +9,32 @@ namespace UTH.Library.Infrastructure.Identity;
 public sealed class CurrentProfileService(
     LibraryDbContext db,
     UserManager<ApplicationUser> userManager,
+    IAuthorizationStateService authorizationStateService,
     TimeProvider timeProvider) : ICurrentProfileService
 {
     public async Task<CurrentProfile?> GetAsync(
         Guid userId,
-        IReadOnlyCollection<string> roles,
-        IReadOnlyCollection<string> permissions,
         CancellationToken cancellationToken)
     {
+        var authorization = await authorizationStateService.GetAsync(userId, cancellationToken);
+        if (authorization is null || !authorization.CanAuthenticate) return null;
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(value => value.Id == userId, cancellationToken);
         if (user is null) return null;
 
         var employee = await db.Employees.AsNoTracking()
             .Include(value => value.Branch)
             .SingleOrDefaultAsync(value => value.UserId == userId, cancellationToken);
-        return Map(user, employee, roles, permissions);
+        return Map(user, employee, authorization.Roles, authorization.Permissions);
     }
 
     public async Task<CurrentProfileResult> UpdateAsync(
         Guid userId,
         UpdateCurrentProfileCommand command,
-        IReadOnlyCollection<string> roles,
-        IReadOnlyCollection<string> permissions,
         CancellationToken cancellationToken)
     {
+        var authorization = await authorizationStateService.GetAsync(userId, cancellationToken);
+        if (authorization is null || !authorization.CanAuthenticate)
+            return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Tài khoản nhân viên không khả dụng.");
         var user = await db.Users.SingleOrDefaultAsync(value => value.Id == userId, cancellationToken);
         var employee = await db.Employees.Include(value => value.Branch)
             .SingleOrDefaultAsync(value => value.UserId == userId, cancellationToken);
@@ -48,7 +50,7 @@ public sealed class CurrentProfileService(
             user.DisplayName = employee.FullName;
             db.AuditLogs.Add(AuditLog.Create(userId, "profile.updated", nameof(Employee), employee.Id, null, null, now, command.CorrelationId));
             await db.SaveChangesAsync(cancellationToken);
-            return CurrentProfileResult.Success(Map(user, employee, roles, permissions));
+            return CurrentProfileResult.Success(Map(user, employee, authorization.Roles, authorization.Permissions));
         }
         catch (ArgumentException exception)
         {
@@ -73,6 +75,7 @@ public sealed class CurrentProfileService(
             return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Account was not found.");
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await SessionLock.AcquireAsync(db, userId, cancellationToken);
         var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         if (!result.Succeeded)
             return CurrentProfileResult.Failed(CurrentProfileFailure.InvalidPassword, "Password could not be changed. Check the current password and password requirements.");

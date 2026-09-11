@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import {
   Dialog,
@@ -228,19 +229,23 @@ export function RolePermissionPage() {
             <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
               <RefreshCw className={isLoading ? 'animate-spin' : ''} /> Làm mới
             </Button>
-            <Button
-              onClick={() => {
-                if (view === 'roles') {
-                  setEditingRole(null)
-                  setRoleFormOpen(true)
-                } else {
-                  setEditingPermission(null)
-                  setPermissionFormOpen(true)
-                }
-              }}
+            <PermissionBoundary
+              requiredPermissions={[view === 'roles' ? 'roles.create' : 'permissions.create']}
             >
-              <Plus /> {view === 'roles' ? 'Tạo vai trò' : 'Tạo quyền'}
-            </Button>
+              <Button
+                onClick={() => {
+                  if (view === 'roles') {
+                    setEditingRole(null)
+                    setRoleFormOpen(true)
+                  } else {
+                    setEditingPermission(null)
+                    setPermissionFormOpen(true)
+                  }
+                }}
+              >
+                <Plus /> {view === 'roles' ? 'Tạo vai trò' : 'Tạo quyền'}
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -328,33 +333,47 @@ export function RolePermissionPage() {
         )}
       </div>
 
-      <RoleFormDialog
-        open={roleFormOpen}
-        role={editingRole}
-        onOpenChange={setRoleFormOpen}
-        onSave={saveRole}
-      />
-      <PermissionFormDialog
-        open={permissionFormOpen}
-        permission={editingPermission}
-        isSystemPermission={editingPermission ? isSystemPermission(editingPermission) : false}
-        onOpenChange={setPermissionFormOpen}
-        onSave={savePermission}
-      />
-      <PermissionAssignmentDialog
-        open={!!permissionRole}
-        role={permissionRole}
-        permissions={permissions}
-        onOpenChange={(open) => !open && setPermissionRole(null)}
-        onSave={saveRolePermissions}
-      />
-      <DeleteDialog
-        target={deleteTarget}
-        error={deleteError}
-        isDeleting={isDeleting}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
-      />
+      <PermissionBoundary requiredPermissions={[editingRole ? 'roles.update' : 'roles.create']}>
+        <RoleFormDialog
+          open={roleFormOpen}
+          role={editingRole}
+          onOpenChange={setRoleFormOpen}
+          onSave={saveRole}
+        />
+      </PermissionBoundary>
+      <PermissionBoundary
+        requiredPermissions={[editingPermission ? 'permissions.update' : 'permissions.create']}
+      >
+        <PermissionFormDialog
+          open={permissionFormOpen}
+          permission={editingPermission}
+          isSystemPermission={editingPermission ? isSystemPermission(editingPermission) : false}
+          onOpenChange={setPermissionFormOpen}
+          onSave={savePermission}
+        />
+      </PermissionBoundary>
+      <PermissionBoundary requiredPermissions={['roles.assign']}>
+        <PermissionAssignmentDialog
+          open={!!permissionRole}
+          role={permissionRole}
+          permissions={permissions}
+          onOpenChange={(open) => !open && setPermissionRole(null)}
+          onSave={saveRolePermissions}
+        />
+      </PermissionBoundary>
+      <PermissionBoundary
+        requiredPermissions={[
+          deleteTarget?.type === 'role' ? 'roles.delete' : 'permissions.delete',
+        ]}
+      >
+        <DeleteDialog
+          target={deleteTarget}
+          error={deleteError}
+          isDeleting={isDeleting}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      </PermissionBoundary>
     </>
   )
 }
@@ -422,33 +441,44 @@ function RolesTable({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => onPermissions(role)}>
-                      <KeyRound /> {role.permissions.length} quyền
-                    </Button>
+                    <PermissionBoundary
+                      requiredPermissions={['roles.assign']}
+                      fallback={<span>{role.permissions.length} quyền</span>}
+                    >
+                      <Button variant="outline" size="sm" onClick={() => onPermissions(role)}>
+                        <KeyRound /> {role.permissions.length} quyền
+                      </Button>
+                    </PermissionBoundary>
                   </TableCell>
                   <TableCell>{formatDate(role.createdAtUtc)}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Chỉnh sửa ${role.name}`}
-                        title="Chỉnh sửa"
-                        onClick={() => onEdit(role)}
-                      >
-                        <Pencil />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive hover:text-destructive"
-                        aria-label={`Xóa ${role.name}`}
-                        title={role.isSystemRole ? 'Không thể xóa vai trò hệ thống' : 'Xóa vai trò'}
-                        disabled={role.isSystemRole}
-                        onClick={() => onDelete(role)}
-                      >
-                        <Trash2 />
-                      </Button>
+                      <PermissionBoundary requiredPermissions={['roles.update']}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Chỉnh sửa ${role.name}`}
+                          title="Chỉnh sửa"
+                          onClick={() => onEdit(role)}
+                        >
+                          <Pencil />
+                        </Button>
+                      </PermissionBoundary>
+                      <PermissionBoundary requiredPermissions={['roles.delete']}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive"
+                          aria-label={`Xóa ${role.name}`}
+                          title={
+                            role.isSystemRole ? 'Không thể xóa vai trò hệ thống' : 'Xóa vai trò'
+                          }
+                          disabled={role.isSystemRole}
+                          onClick={() => onDelete(role)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </PermissionBoundary>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -557,26 +587,30 @@ function PermissionsTable({
                     <TableCell>{formatDate(permission.createdAtUtc)}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Chỉnh sửa ${permission.name}`}
-                          title="Chỉnh sửa"
-                          onClick={() => onEdit(permission)}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                          aria-label={`Xóa ${permission.name}`}
-                          title={systemPermission ? 'Không thể xóa quyền hệ thống' : 'Xóa quyền'}
-                          disabled={systemPermission}
-                          onClick={() => onDelete(permission)}
-                        >
-                          <Trash2 />
-                        </Button>
+                        <PermissionBoundary requiredPermissions={['permissions.update']}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Chỉnh sửa ${permission.name}`}
+                            title="Chỉnh sửa"
+                            onClick={() => onEdit(permission)}
+                          >
+                            <Pencil />
+                          </Button>
+                        </PermissionBoundary>
+                        <PermissionBoundary requiredPermissions={['permissions.delete']}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive"
+                            aria-label={`Xóa ${permission.name}`}
+                            title={systemPermission ? 'Không thể xóa quyền hệ thống' : 'Xóa quyền'}
+                            disabled={systemPermission}
+                            onClick={() => onDelete(permission)}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </PermissionBoundary>
                       </div>
                     </TableCell>
                   </TableRow>

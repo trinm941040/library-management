@@ -34,7 +34,7 @@ public sealed class UserManagementService(
             var normalizedRole = userManager.NormalizeName(query.Role.Trim());
             usersQuery = usersQuery.Where(user => db.UserRoles.Any(userRole =>
                 userRole.UserId == user.Id &&
-                db.Roles.Any(role => role.Id == userRole.RoleId && role.NormalizedName == normalizedRole)));
+                db.Roles.Any(role => role.Id == userRole.RoleId && role.IsActive && role.NormalizedName == normalizedRole)));
         }
 
         var totalCount = await usersQuery.CountAsync(cancellationToken);
@@ -214,7 +214,7 @@ public sealed class UserManagementService(
         var memberships = await (
             from userRole in db.UserRoles.AsNoTracking()
             join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
-            where userIds.Contains(userRole.UserId)
+            where userIds.Contains(userRole.UserId) && role.IsActive
             select new { userRole.UserId, Role = role.Name! })
             .ToListAsync(cancellationToken);
 

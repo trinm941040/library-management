@@ -11,6 +11,7 @@ import {
   type SortDirection,
 } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
 import { BookFormDialog, type BookFormData } from './components/BookFormDialog'
@@ -186,28 +187,32 @@ export function BooksPage() {
         className: 'text-right',
         cell: (book) => (
           <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Sửa ${book.title}`}
-              onClick={() => {
-                setEditingBook(book)
-                setFormOpen(true)
-              }}
-            >
-              <Pencil />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Xóa ${book.title}`}
-              onClick={() => {
-                setDeleteError('')
-                setDeletingBook(book)
-              }}
-            >
-              <Trash2 />
-            </Button>
+            <PermissionBoundary requiredPermissions={['books.update']}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Sửa ${book.title}`}
+                onClick={() => {
+                  setEditingBook(book)
+                  setFormOpen(true)
+                }}
+              >
+                <Pencil />
+              </Button>
+            </PermissionBoundary>
+            <PermissionBoundary requiredPermissions={['books.delete']}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Xóa ${book.title}`}
+                onClick={() => {
+                  setDeleteError('')
+                  setDeletingBook(book)
+                }}
+              >
+                <Trash2 />
+              </Button>
+            </PermissionBoundary>
           </div>
         ),
       },
@@ -232,14 +237,16 @@ export function BooksPage() {
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button
-              onClick={() => {
-                setEditingBook(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus /> Thêm sách
-            </Button>
+            <PermissionBoundary requiredPermissions={['books.create']}>
+              <Button
+                onClick={() => {
+                  setEditingBook(null)
+                  setFormOpen(true)
+                }}
+              >
+                <Plus /> Thêm sách
+              </Button>
+            </PermissionBoundary>
           </>
         }
       >
@@ -325,28 +332,32 @@ export function BooksPage() {
         </Card>
       </PageShell>
 
-      <BookFormDialog
-        open={formOpen}
-        book={editingBook}
-        onOpenChange={setFormOpen}
-        onSave={handleSave}
-      />
+      <PermissionBoundary requiredPermissions={[editingBook ? 'books.update' : 'books.create']}>
+        <BookFormDialog
+          open={formOpen}
+          book={editingBook}
+          onOpenChange={setFormOpen}
+          onSave={handleSave}
+        />
+      </PermissionBoundary>
 
-      <ConfirmDialog
-        open={deletingBook !== null}
-        title="Xóa sách?"
-        description={
-          deletingBook
-            ? `Sách "${deletingBook.title}" sẽ bị xóa khỏi kho. Thao tác này không thể hoàn tác.`
-            : ''
-        }
-        confirmLabel="Xóa sách"
-        destructive
-        isPending={isDeleting}
-        error={deleteError}
-        onConfirm={confirmDelete}
-        onOpenChange={(open) => !open && setDeletingBook(null)}
-      />
+      <PermissionBoundary requiredPermissions={['books.delete']}>
+        <ConfirmDialog
+          open={deletingBook !== null}
+          title="Xóa sách?"
+          description={
+            deletingBook
+              ? `Sách "${deletingBook.title}" sẽ bị xóa khỏi kho. Thao tác này không thể hoàn tác.`
+              : ''
+          }
+          confirmLabel="Xóa sách"
+          destructive
+          isPending={isDeleting}
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onOpenChange={(open) => !open && setDeletingBook(null)}
+        />
+      </PermissionBoundary>
     </>
   )
 }

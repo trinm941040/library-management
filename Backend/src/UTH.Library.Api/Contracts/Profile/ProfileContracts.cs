@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using UTH.Library.Application.Abstractions.Identity;
 
 namespace UTH.Library.Api.Contracts.Profile;
 
@@ -21,6 +22,30 @@ public sealed record CurrentProfileResponse(
     IReadOnlyCollection<string> Roles,
     IReadOnlyCollection<string> Permissions,
     Guid? RowVersion);
+
+public static class CurrentProfileResponseMapper
+{
+    public static CurrentProfileResponse Map(CurrentProfile value) => new(
+        value.UserId,
+        value.EmployeeId,
+        value.DisplayName,
+        value.LoginIdentifier,
+        value.LastLoginAtUtc,
+        value.EmployeeCode,
+        value.FullName,
+        value.PhoneNumber,
+        value.DateOfBirth,
+        value.Address,
+        value.Position,
+        value.Department,
+        value.EmploymentStatus,
+        value.Branch is null
+            ? null
+            : new BranchResponse(value.Branch.Id, value.Branch.Code, value.Branch.Name),
+        value.Roles,
+        value.Permissions,
+        value.RowVersion);
+}
 
 public sealed record UpdateCurrentProfileRequest(
     [Required, StringLength(150, MinimumLength = 2)] string FullName,

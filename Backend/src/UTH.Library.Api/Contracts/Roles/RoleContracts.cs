@@ -8,7 +8,8 @@ public sealed record CreateRoleRequest(
 
 public sealed record UpdateRoleRequest(
     [Required, StringLength(100, MinimumLength = 2)] string Name,
-    [StringLength(500)] string Description = "");
+    [StringLength(500)] string Description = "",
+    bool? IsActive = null);
 
 public sealed record ReplaceRolePermissionsRequest(
     [Required] IReadOnlyCollection<Guid> PermissionIds);
@@ -22,7 +23,8 @@ public sealed record RoleResponse(
     string Description,
     bool IsSystemRole,
     DateTime CreatedAtUtc,
-    IReadOnlyCollection<PermissionSummaryResponse> Permissions);
+    IReadOnlyCollection<PermissionSummaryResponse> Permissions,
+    bool IsActive = true);
 
 public sealed record PermissionSummaryResponse(
     Guid Id,
