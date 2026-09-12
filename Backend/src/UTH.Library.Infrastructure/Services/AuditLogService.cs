@@ -238,14 +238,14 @@ public sealed class AuditLogService(LibraryDbContext db) : IAuditLogService
     {
         if (retentionDays < 30) retentionDays = 30; // Ngưỡng an toàn tối thiểu 30 ngày
         var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
-        var expiredLogs = await dbContext.AuditLogs
+        var expiredLogs = await db.AuditLogs
             .Where(x => x.CreatedAtUtc < cutoff)
             .ToListAsync(cancellationToken);
 
         if (expiredLogs.Count > 0)
         {
-            dbContext.AuditLogs.RemoveRange(expiredLogs);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            db.AuditLogs.RemoveRange(expiredLogs);
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         return expiredLogs.Count;

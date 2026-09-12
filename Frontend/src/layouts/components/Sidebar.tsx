@@ -42,10 +42,10 @@ const navigationAdmin: { groupName: string; items: NavigationItem[] }[] = [
   {
     groupName: 'Quản lý hệ thống',
     items: [
-      { label: 'Cấu hình', icon: Layers, to: '/system/config' },
-      { label: 'Nhật ký hoạt động', icon: RefreshCw, to: '/system/activity-log' },
-      { label: 'Thông tin', icon: Clock, to: '/system/info' },
-      { label: 'Thiết lập khác', icon: Settings, to: '/system/other-settings' },
+      { label: 'Cấu hình', icon: Layers, to: '/system/config', requiredRole: 'Administrator' },
+      { label: 'Nhật ký hoạt động', icon: RefreshCw, to: '/system/activity-log', requiredRole: 'Administrator' },
+      { label: 'Thông tin', icon: Clock, to: '/system/info', requiredRole: 'Administrator' },
+      { label: 'Thiết lập khác', icon: Settings, to: '/system/other-settings', requiredRole: 'Administrator' },
     ],
   },
 ]

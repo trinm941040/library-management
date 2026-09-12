@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using UTH.Library.Api.Infrastructure;
+using UTH.Library.Application.Abstractions;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Infrastructure.Identity;
 
@@ -16,6 +18,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApi(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<IRequestContext, HttpRequestContext>();
+
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddProblemDetails();

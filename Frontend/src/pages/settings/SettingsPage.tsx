@@ -40,6 +40,23 @@ export function SettingsPage() {
             />
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Thiết lập hệ thống &amp; Gói cấu hình</CardTitle>
+            <CardDescription>
+              Quản trị viên có thể tinh chỉnh tham số lưu thông, thông tin thư viện, SMTP và nạp/xuất gói cấu hình JSON.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a
+              href="/system/config"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+            >
+              Mở trang Cấu hình hệ thống
+            </a>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

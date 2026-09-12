@@ -15,11 +15,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<LibraryDbContext>(options =>
+        services.AddScoped<AuditSaveChangesInterceptor>();
+        services.AddDbContext<LibraryDbContext>((sp, options) =>
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
             options.UseNpgsql(connectionString);
+            options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
         services.AddOptions<JwtOptions>()
@@ -60,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         services.AddScoped<UTH.Library.Application.Features.AuditLogs.IAuditLogService, UTH.Library.Infrastructure.Services.AuditLogService>();
+        services.AddScoped<UTH.Library.Application.Features.SystemSettings.ISystemSettingService, UTH.Library.Infrastructure.Services.SystemSettingService>();
         return services;
     }
 }
