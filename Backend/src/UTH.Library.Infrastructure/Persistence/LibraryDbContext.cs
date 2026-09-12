@@ -27,6 +27,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<RefreshTokenSession> RefreshTokenSessions => Set<RefreshTokenSession>();
     public DbSet<CirculationPolicy> CirculationPolicies => Set<CirculationPolicy>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<ConfigurationPackage> ConfigurationPackages => Set<ConfigurationPackage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -148,5 +150,32 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
         modelBuilder.ApplyConfiguration(new PermissionSeedConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorPermissionSeedConfiguration());
         modelBuilder.ApplyConfiguration(new AdministratorUserRoleSeedConfiguration());
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.ToTable("system_settings");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Key).HasMaxLength(150).IsRequired();
+            entity.Property(s => s.Value).HasColumnType("text").IsRequired();
+            entity.Property(s => s.ValueType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(s => s.Description).HasMaxLength(1000);
+            entity.Property(s => s.UpdatedByUserId).IsRequired();
+            entity.Property(s => s.UpdatedAtUtc).IsRequired();
+            entity.Property(s => s.ConcurrencyToken).HasDefaultValueSql("gen_random_uuid()");
+            entity.HasIndex(s => s.Key).IsUnique();
+            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(s => s.UpdatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ConfigurationPackage>(entity =>
+        {
+            entity.ToTable("configuration_packages");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Version).HasMaxLength(20).IsRequired();
+            entity.Property(p => p.Data).HasColumnType("text").IsRequired();
+            entity.Property(p => p.Checksum).HasMaxLength(100).IsRequired();
+            entity.Property(p => p.CreatedByUserId).IsRequired();
+            entity.Property(p => p.CreatedAtUtc).IsRequired();
+            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

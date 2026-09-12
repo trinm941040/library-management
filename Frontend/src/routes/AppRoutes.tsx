@@ -58,11 +58,54 @@ export function AppRoutes() {
         />
         <Route path="/settings" element={<SettingsPage />} />
         {/* System Management Routes */}
-        <Route path="/system/config" element={<ConfigPage />} />
-        <Route path="/system/activity-log" element={<ActivityLogPage />} />
-        <Route path="/audit-log" element={<ActivityLogPage />} />
-        <Route path="/system/info" element={<InfoPage />} />
-        <Route path="/system/other-settings" element={<OtherSettingsPage />} />
+        <Route
+          path="/system/config"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <ConfigPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/configuration"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <ConfigPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/system/activity-log"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <ActivityLogPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit-log"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <ActivityLogPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/system/info"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <InfoPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/system/other-settings"
+          element={
+            <ProtectedRoute requiredRole="Administrator">
+              <OtherSettingsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
