@@ -1,4 +1,6 @@
+using System.Text.Json;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Borrowings;
@@ -7,6 +9,7 @@ public sealed class BorrowingService(
     IBorrowingRepository borrowings,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<BorrowingPageModel> GetAsync(BorrowingListQuery query, CancellationToken cancellationToken)
@@ -50,17 +53,22 @@ public sealed class BorrowingService(
         if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an active borrowing restriction.");
         var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
-        if (history.Borrowings.Count(x => !x.IsReturned) >= borrower.BorrowingLimit)
+        var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
+        var maxLoans = Math.Min(borrower.BorrowingLimit, policy.MaxLoanBooks);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing limit has been reached.");
+        if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an overdue loan.");
 
         if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "This borrower already has this book on loan.");
 
         try
         {
-            var loanDays = command.LoanDays <= 0 ? borrower.LoanPeriodDays : command.LoanDays;
-            if (loanDays > borrower.LoanPeriodDays)
-                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the member's allowed duration.");
+            var maximumLoanDays = Math.Min(borrower.LoanPeriodDays, policy.LoanPeriodDays);
+            var loanDays = command.LoanDays <= 0 ? maximumLoanDays : command.LoanDays;
+            if (loanDays > maximumLoanDays)
+                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the applicable policy.");
             book.Checkout(now);
             var borrowing = Borrowing.Create(
                 book.Id,
@@ -68,7 +76,10 @@ public sealed class BorrowingService(
                 borrower.FullName,
                 borrower.Email,
                 now,
-                loanDays);
+                loanDays,
+                policy.PolicyId,
+                policy.Version,
+                JsonSerializer.Serialize(policy));
             await borrowings.AddAsync(borrowing, cancellationToken);
             await borrowings.SaveChangesAsync(cancellationToken);
             return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
@@ -80,6 +91,48 @@ public sealed class BorrowingService(
         catch (ArgumentException exception)
         {
             return BorrowingResult.Fail(BorrowingFailure.Validation, exception.Message);
+        }
+    }
+
+    public async Task<BorrowingResult> RenewAsync(Guid id, RenewBorrowingCommand command, CancellationToken cancellationToken)
+    {
+        var borrowing = await borrowings.GetByIdAsync(id, cancellationToken);
+        if (borrowing is null)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrowing was not found.");
+        if (borrowing.ConcurrencyToken != command.ConcurrencyToken)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing has changed. Reload and try again.");
+
+        var member = await members.GetByIdAsync(borrowing.BorrowerId, cancellationToken);
+        var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
+        if (member is null || book is null)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Member or book was not found.");
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (borrowing.IsOverdue(now))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Overdue borrowing cannot be renewed.");
+
+        var policy = await policyResolver.ResolveAsync(member.MemberGroup, book.Category, null, now, cancellationToken);
+        var previousDue = borrowing.DueAtUtc;
+        try
+        {
+            borrowing.Renew(policy.RenewalPeriodDays, policy.MaxRenewals);
+            await borrowings.AddRenewalAsync(
+                Renewal.Create(
+                    borrowing.Id,
+                    previousDue,
+                    borrowing.DueAtUtc,
+                    command.ActorUserId,
+                    now,
+                    policy.PolicyId,
+                    policy.Version,
+                    JsonSerializer.Serialize(policy)),
+                cancellationToken);
+            await borrowings.SaveChangesAsync(cancellationToken);
+            return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, exception.Message);
         }
     }
 
@@ -131,6 +184,9 @@ public sealed class BorrowingService(
             borrowing.BorrowedAtUtc,
             borrowing.DueAtUtc,
             borrowing.ReturnedAtUtc,
-            status);
+            status,
+            borrowing.RenewalCount,
+            borrowing.AppliedPolicyId,
+            borrowing.AppliedPolicyVersion);
     }
 }

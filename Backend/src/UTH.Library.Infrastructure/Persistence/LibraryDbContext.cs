@@ -99,6 +99,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(borrowing => borrowing.BorrowerEmail).HasMaxLength(256).IsRequired();
             entity.Property(borrowing => borrowing.BorrowedAtUtc).IsRequired();
             entity.Property(borrowing => borrowing.DueAtUtc).IsRequired();
+            entity.Property(borrowing => borrowing.AppliedPolicySnapshot).HasColumnType("jsonb").IsRequired();
+            entity.HasOne<CirculationPolicy>().WithMany().HasForeignKey(borrowing => borrowing.AppliedPolicyId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
             entity.HasIndex(borrowing => borrowing.DueAtUtc);
             entity.Ignore(borrowing => borrowing.IsReturned);
@@ -113,6 +115,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(reservation => reservation.ReserverEmail).HasMaxLength(256).IsRequired();
             entity.Property(reservation => reservation.ReservedAtUtc).IsRequired();
             entity.Property(reservation => reservation.ExpiresAtUtc).IsRequired();
+            entity.Property(reservation => reservation.AppliedPolicySnapshot).HasColumnType("jsonb").IsRequired();
+            entity.HasOne<CirculationPolicy>().WithMany().HasForeignKey(reservation => reservation.AppliedPolicyId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(reservation => new { reservation.BookId, reservation.ReserverId, reservation.FulfilledAtUtc, reservation.CancelledAtUtc });
             entity.HasIndex(reservation => reservation.ExpiresAtUtc);
             entity.Ignore(reservation => reservation.IsFulfilled);
@@ -133,6 +137,8 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(violation => violation.FineAmount).HasPrecision(18, 2).IsRequired();
             entity.Property(violation => violation.RecordedAtUtc).IsRequired();
             entity.Property(violation => violation.Resolution).HasMaxLength(20);
+            entity.Property(violation => violation.AppliedPolicySnapshot).HasColumnType("jsonb").IsRequired();
+            entity.HasOne<CirculationPolicy>().WithMany().HasForeignKey(violation => violation.AppliedPolicyId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(violation => new { violation.BorrowerId, violation.ResolvedAtUtc });
             entity.HasIndex(violation => violation.RecordedAtUtc);
             entity.Ignore(violation => violation.IsOpen);

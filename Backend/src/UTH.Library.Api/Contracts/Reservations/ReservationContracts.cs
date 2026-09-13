@@ -17,7 +17,7 @@ public sealed class ReservationFilterRequest
 public sealed record CreateReservationRequest(
     [Required] Guid BookId,
     [Required] Guid ReserverId,
-    [Range(1, 365)] int HoldDays = 7);
+    [Range(0, 365)] int HoldDays = 0);
 
 public sealed record ReservationResponse(
     Guid Id,
@@ -30,7 +30,9 @@ public sealed record ReservationResponse(
     DateTime ExpiresAtUtc,
     DateTime? FulfilledAtUtc,
     DateTime? CancelledAtUtc,
-    string Status);
+    string Status,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record ReservationPageResponse(
     IReadOnlyCollection<ReservationResponse> Items,

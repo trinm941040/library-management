@@ -14,7 +14,10 @@ public sealed class Violation
         string type,
         string note,
         decimal fineAmount,
-        DateTime recordedAtUtc)
+        DateTime recordedAtUtc,
+        Guid? appliedPolicyId,
+        int appliedPolicyVersion,
+        string appliedPolicySnapshot)
     {
         Id = id;
         BorrowerId = borrowerId;
@@ -26,6 +29,9 @@ public sealed class Violation
         Note = note;
         FineAmount = fineAmount;
         RecordedAtUtc = recordedAtUtc;
+        AppliedPolicyId = appliedPolicyId;
+        AppliedPolicyVersion = appliedPolicyVersion;
+        AppliedPolicySnapshot = appliedPolicySnapshot;
         ConcurrencyToken = Guid.NewGuid();
     }
 
@@ -36,6 +42,7 @@ public sealed class Violation
         BookTitle = string.Empty;
         Type = "other";
         Note = string.Empty;
+        AppliedPolicySnapshot = string.Empty;
     }
 
     public Guid Id { get; private set; }
@@ -51,6 +58,9 @@ public sealed class Violation
     public DateTime? ResolvedAtUtc { get; private set; }
     public string? Resolution { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
+    public Guid? AppliedPolicyId { get; private set; }
+    public int AppliedPolicyVersion { get; private set; }
+    public string AppliedPolicySnapshot { get; private set; }
 
     public bool IsOpen => ResolvedAtUtc is null;
 
@@ -63,7 +73,10 @@ public sealed class Violation
         string type,
         string note,
         decimal fineAmount,
-        DateTime recordedAtUtc)
+        DateTime recordedAtUtc,
+        Guid? appliedPolicyId = null,
+        int appliedPolicyVersion = 1,
+        string appliedPolicySnapshot = "{}")
     {
         if (borrowerId == Guid.Empty)
             throw new ArgumentException("Borrower is required.", nameof(borrowerId));
@@ -86,7 +99,10 @@ public sealed class Violation
             type.Trim().ToLowerInvariant(),
             note.Trim(),
             fineAmount,
-            recordedAtUtc);
+            recordedAtUtc,
+            appliedPolicyId,
+            appliedPolicyVersion,
+            string.IsNullOrWhiteSpace(appliedPolicySnapshot) ? "{}" : appliedPolicySnapshot);
     }
 
     public void MarkPaid(DateTime resolvedAtUtc) => Resolve(resolvedAtUtc, "paid");

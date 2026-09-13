@@ -11,7 +11,9 @@ public sealed record ReservationModel(
     DateTime ExpiresAtUtc,
     DateTime? FulfilledAtUtc,
     DateTime? CancelledAtUtc,
-    string Status);
+    string Status,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record ReservationListQuery(string? Search, string? Status, int PageNumber, int PageSize);
 

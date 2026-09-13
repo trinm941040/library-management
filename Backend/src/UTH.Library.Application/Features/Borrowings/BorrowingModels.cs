@@ -10,7 +10,10 @@ public sealed record BorrowingModel(
     DateTime BorrowedAtUtc,
     DateTime DueAtUtc,
     DateTime? ReturnedAtUtc,
-    string Status);
+    string Status,
+    int RenewalCount,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record BorrowingListQuery(string? Search, string? Status, int PageNumber, int PageSize);
 
@@ -21,6 +24,7 @@ public sealed record BorrowingPageModel(
     int TotalCount);
 
 public sealed record CreateBorrowingCommand(Guid BookId, Guid BorrowerId, int LoanDays);
+public sealed record RenewBorrowingCommand(Guid ActorUserId, Guid ConcurrencyToken);
 
 public enum BorrowingFailure
 {

@@ -19,6 +19,8 @@ public sealed record CreateBorrowingRequest(
     [Required] Guid BorrowerId,
     [Range(1, 365)] int LoanDays = 14);
 
+public sealed record RenewBorrowingRequest([Required] Guid ConcurrencyToken);
+
 public sealed record BorrowingResponse(
     Guid Id,
     Guid BookId,
@@ -29,7 +31,10 @@ public sealed record BorrowingResponse(
     DateTime BorrowedAtUtc,
     DateTime DueAtUtc,
     DateTime? ReturnedAtUtc,
-    string Status);
+    string Status,
+    int RenewalCount,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record BorrowingPageResponse(
     IReadOnlyCollection<BorrowingResponse> Items,

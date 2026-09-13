@@ -9,6 +9,9 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
     public Task AddAsync(Borrowing borrowing, CancellationToken cancellationToken) =>
         dbContext.Borrowings.AddAsync(borrowing, cancellationToken).AsTask();
 
+    public Task AddRenewalAsync(Renewal renewal, CancellationToken cancellationToken) =>
+        dbContext.Renewals.AddAsync(renewal, cancellationToken).AsTask();
+
     public Task<Borrowing?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Borrowings.SingleOrDefaultAsync(borrowing => borrowing.Id == id, cancellationToken);
 
