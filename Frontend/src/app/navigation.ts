@@ -82,7 +82,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
         path: '/system/config',
         label: 'Cấu hình',
         icon: Layers,
-        requiredPermissions: ['settings.read'],
+        requiredPermissions: ['circulation-policies.read'],
       },
       {
         path: '/system/activity-log',

@@ -12,7 +12,9 @@ public sealed record ViolationModel(
     decimal FineAmount,
     DateTime RecordedAtUtc,
     DateTime? ResolvedAtUtc,
-    string Status);
+    string Status,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record ViolationListQuery(string? Search, string? Status, int PageNumber, int PageSize);
 
@@ -27,7 +29,9 @@ public sealed record CreateViolationCommand(
     Guid? BookId,
     string Type,
     string Note,
-    decimal FineAmount);
+    decimal FineAmount,
+    int OverdueDays = 0,
+    decimal BookPrice = 0);
 
 public enum ViolationFailure
 {

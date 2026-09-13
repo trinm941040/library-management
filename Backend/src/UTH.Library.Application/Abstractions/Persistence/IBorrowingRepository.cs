@@ -5,6 +5,7 @@ namespace UTH.Library.Application.Abstractions.Persistence;
 public interface IBorrowingRepository
 {
     Task AddAsync(Borrowing borrowing, CancellationToken cancellationToken);
+    Task AddRenewalAsync(Renewal renewal, CancellationToken cancellationToken);
     Task<Borrowing?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<(IReadOnlyList<Borrowing> Items, int TotalCount)> GetPageAsync(
         string? search,

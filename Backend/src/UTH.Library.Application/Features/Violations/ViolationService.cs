@@ -1,4 +1,6 @@
+using System.Text.Json;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Violations;
@@ -7,6 +9,7 @@ public sealed class ViolationService(
     IViolationRepository violations,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<ViolationPageModel> GetAsync(ViolationListQuery query, CancellationToken cancellationToken)
@@ -30,6 +33,7 @@ public sealed class ViolationService(
             return ViolationResult.Fail(ViolationFailure.NotFound, "Borrower was not found.");
 
         string bookTitle = string.Empty;
+        string? documentType = null;
         Guid? bookId = command.BookId is Guid id && id != Guid.Empty ? id : null;
         if (bookId is not null)
         {
@@ -37,10 +41,21 @@ public sealed class ViolationService(
             if (book is null)
                 return ViolationResult.Fail(ViolationFailure.NotFound, "Book was not found.");
             bookTitle = book.Title;
+            documentType = book.Category;
         }
 
         try
         {
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, documentType, null, now, cancellationToken);
+            var fineAmount = command.Type.Trim().ToLowerInvariant() switch
+            {
+                "overdue" => policyResolver.CalculateFine(policy, command.OverdueDays),
+                "lost" => policyResolver.CalculateLostPenalty(policy, command.BookPrice),
+                _ when command.FineAmount > 0 && policy.MaxFineAmount > 0 => Math.Min(command.FineAmount, policy.MaxFineAmount),
+                _ when command.FineAmount > 0 => command.FineAmount,
+                _ => policy.FixedFineAmount
+            };
             var violation = Violation.Create(
                 borrower.Id,
                 borrower.FullName,
@@ -49,8 +64,11 @@ public sealed class ViolationService(
                 bookTitle,
                 command.Type,
                 command.Note,
-                command.FineAmount,
-                timeProvider.GetUtcNow().UtcDateTime);
+                fineAmount,
+                now,
+                policy.PolicyId,
+                policy.Version,
+                JsonSerializer.Serialize(policy));
             await violations.AddAsync(violation, cancellationToken);
             await violations.SaveChangesAsync(cancellationToken);
             return ViolationResult.Success(Map(violation));
@@ -101,5 +119,7 @@ public sealed class ViolationService(
             violation.FineAmount,
             violation.RecordedAtUtc,
             violation.ResolvedAtUtc,
-            violation.IsOpen ? "open" : violation.Resolution ?? "resolved");
+            violation.IsOpen ? "open" : violation.Resolution ?? "resolved",
+            violation.AppliedPolicyId,
+            violation.AppliedPolicyVersion);
 }

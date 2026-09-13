@@ -53,6 +53,8 @@ public static class Permissions
     public const string AuditLogsExport = "audit-logs.export";
     public const string SettingsRead = "settings.read";
     public const string SettingsUpdate = "settings.update";
+    public const string CirculationPoliciesRead = "circulation-policies.read";
+    public const string CirculationPoliciesManage = "circulation-policies.manage";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -67,7 +69,8 @@ public static class Permissions
         ViolationsRead, ViolationsCreate, ViolationsResolve,
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
-        SettingsRead, SettingsUpdate
+        SettingsRead, SettingsUpdate,
+        CirculationPoliciesRead, CirculationPoliciesManage
     ];
 }
 

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UTH.Library.Api.Contracts.Borrowings;
@@ -65,6 +66,27 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
             : MapFailure(result);
     }
 
+    [HttpPost("{id:guid}/renew")]
+    [Authorize(Policy = Permissions.BorrowingsCreate)]
+    [ProducesResponseType(typeof(BorrowingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<BorrowingResponse>> Renew(
+        Guid id,
+        [FromBody] RenewBorrowingRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var actorId))
+            return Unauthorized();
+
+        var result = await borrowingService.RenewAsync(
+            id,
+            new RenewBorrowingCommand(actorId, request.ConcurrencyToken),
+            cancellationToken);
+        return result.Succeeded && result.Borrowing is not null
+            ? Ok(ToResponse(result.Borrowing))
+            : MapFailure(result);
+    }
+
     private ActionResult MapFailure(BorrowingResult result) => result.Failure switch
     {
         BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Borrowing was not found.")),
@@ -85,5 +107,8 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
             borrowing.BorrowedAtUtc,
             borrowing.DueAtUtc,
             borrowing.ReturnedAtUtc,
-            borrowing.Status);
+            borrowing.Status,
+            borrowing.RenewalCount,
+            borrowing.AppliedPolicyId,
+            borrowing.AppliedPolicyVersion);
 }

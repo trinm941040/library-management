@@ -395,6 +395,16 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AppliedPolicyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedPolicySnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("AppliedPolicyVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
 
@@ -423,10 +433,15 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("DueAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("RenewalCount")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ReturnedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppliedPolicyId");
 
                     b.HasIndex("DueAtUtc");
 
@@ -561,29 +576,96 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("BlockIfOverdue")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ConcurrencyToken")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<DateTime>("EffectiveFromUtc")
+                    b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("EffectiveToUtc")
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DocumentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("EffectiveFrom")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("FinePerDay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FixedFineAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("HoldDays")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("LoanPeriodDays")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("LostBookPenaltyRatio")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("MaxFineAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("MaxLoanBooks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxRenewals")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MemberGroup")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("RenewalPeriodDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsActive");
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("Name", "Version");
+
+                    b.HasIndex("IsActive", "EffectiveFrom", "EffectiveTo");
+
+                    b.HasIndex("MemberGroup", "DocumentType", "BranchId");
 
                     b.ToTable("circulation_policies", (string)null);
                 });
@@ -1254,6 +1336,16 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AppliedPolicyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedPolicySnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("AppliedPolicyVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("BorrowingId")
                         .HasColumnType("uuid");
 
@@ -1270,6 +1362,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppliedPolicyId");
 
                     b.HasIndex("RenewedByUserId");
 
@@ -1331,6 +1425,16 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AppliedPolicyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedPolicySnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("AppliedPolicyVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
 
@@ -1366,6 +1470,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppliedPolicyId");
 
                     b.HasIndex("ExpiresAtUtc");
 
@@ -1664,6 +1770,16 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AppliedPolicyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedPolicySnapshot")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("AppliedPolicyVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("BookId")
                         .HasColumnType("uuid");
 
@@ -1716,6 +1832,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppliedPolicyId");
 
                     b.HasIndex("RecordedAtUtc");
 
@@ -2237,6 +2355,22 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                             Description = "Cập nhật cài đặt hệ thống.",
                             Module = "settings",
                             Name = "settings.update"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000042"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Xem chính sách lưu thông.",
+                            Module = "circulation-policies",
+                            Name = "circulation-policies.read"
+                        },
+                        new
+                        {
+                            Id = new Guid("30000000-0000-0000-0000-000000000043"),
+                            CreatedAtUtc = new DateTime(2026, 8, 26, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Quản lý chính sách lưu thông.",
+                            Module = "circulation-policies",
+                            Name = "circulation-policies.manage"
                         });
                 });
 
@@ -2527,6 +2661,16 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         {
                             RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
                             PermissionId = new Guid("30000000-0000-0000-0000-000000000041")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000042")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("20000000-0000-0000-0000-000000000001"),
+                            PermissionId = new Guid("30000000-0000-0000-0000-000000000043")
                         });
                 });
 
@@ -2694,6 +2838,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
+                {
+                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedPolicyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("UTH.Library.Domain.Entities.BorrowingLimitPolicy", b =>
                 {
                     b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
@@ -2701,6 +2853,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CirculationPolicyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.CirculationPolicy", b =>
+                {
+                    b.HasOne("UTH.Library.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.ConfigurationPackage", b =>
@@ -2845,6 +3005,11 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Renewal", b =>
                 {
+                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedPolicyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("UTH.Library.Domain.Entities.Borrowing", null)
                         .WithMany()
                         .HasForeignKey("BorrowingId")
@@ -2865,6 +3030,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Reservation", b =>
+                {
+                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedPolicyId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.SavedFilter", b =>
@@ -2928,6 +3101,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UpdatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Violation", b =>
+                {
+                    b.HasOne("UTH.Library.Domain.Entities.CirculationPolicy", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedPolicyId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("UTH.Library.Infrastructure.Identity.RefreshTokenSession", b =>

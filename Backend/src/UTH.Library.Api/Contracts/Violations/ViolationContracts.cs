@@ -19,7 +19,9 @@ public sealed record CreateViolationRequest(
     Guid? BookId,
     [Required, StringLength(20, MinimumLength = 1)] string Type,
     [StringLength(500)] string Note,
-    [Range(0, 100_000_000)] decimal FineAmount);
+    [Range(0, 100_000_000)] decimal FineAmount,
+    [Range(0, 10000)] int OverdueDays = 0,
+    [Range(0, 1_000_000_000)] decimal BookPrice = 0);
 
 public sealed record ViolationResponse(
     Guid Id,
@@ -33,7 +35,9 @@ public sealed record ViolationResponse(
     decimal FineAmount,
     DateTime RecordedAtUtc,
     DateTime? ResolvedAtUtc,
-    string Status);
+    string Status,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
 
 public sealed record ViolationPageResponse(
     IReadOnlyCollection<ViolationResponse> Items,

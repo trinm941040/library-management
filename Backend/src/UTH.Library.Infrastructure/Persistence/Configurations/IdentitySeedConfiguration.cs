@@ -56,7 +56,9 @@ internal static class IdentitySeedData
         new(new Guid("30000000-0000-0000-0000-000000000038"), "audit-logs.read", "Xem nhật ký hoạt động hệ thống.", "audit-logs"),
         new(new Guid("30000000-0000-0000-0000-000000000039"), "audit-logs.export", "Xuất nhật ký hoạt động hệ thống.", "audit-logs"),
         new(new Guid("30000000-0000-0000-0000-000000000040"), "settings.read", "Xem cài đặt hệ thống.", "settings"),
-        new(new Guid("30000000-0000-0000-0000-000000000041"), "settings.update", "Cập nhật cài đặt hệ thống.", "settings")
+        new(new Guid("30000000-0000-0000-0000-000000000041"), "settings.update", "Cập nhật cài đặt hệ thống.", "settings"),
+        new(new Guid("30000000-0000-0000-0000-000000000042"), "circulation-policies.read", "Xem chính sách lưu thông.", "circulation-policies"),
+        new(new Guid("30000000-0000-0000-0000-000000000043"), "circulation-policies.manage", "Quản lý chính sách lưu thông.", "circulation-policies")
     ];
 
     internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);

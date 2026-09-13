@@ -11,7 +11,10 @@ public sealed class Reservation
         string reserverName,
         string reserverEmail,
         DateTime reservedAtUtc,
-        DateTime expiresAtUtc)
+        DateTime expiresAtUtc,
+        Guid? appliedPolicyId,
+        int appliedPolicyVersion,
+        string appliedPolicySnapshot)
     {
         Id = id;
         BookId = bookId;
@@ -20,6 +23,9 @@ public sealed class Reservation
         ReserverEmail = reserverEmail;
         ReservedAtUtc = reservedAtUtc;
         ExpiresAtUtc = expiresAtUtc;
+        AppliedPolicyId = appliedPolicyId;
+        AppliedPolicyVersion = appliedPolicyVersion;
+        AppliedPolicySnapshot = appliedPolicySnapshot;
         ConcurrencyToken = Guid.NewGuid();
     }
 
@@ -27,6 +33,7 @@ public sealed class Reservation
     {
         ReserverName = string.Empty;
         ReserverEmail = string.Empty;
+        AppliedPolicySnapshot = string.Empty;
     }
 
     public Guid Id { get; private set; }
@@ -38,6 +45,9 @@ public sealed class Reservation
     public DateTime ExpiresAtUtc { get; private set; }
     public DateTime? FulfilledAtUtc { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
+    public Guid? AppliedPolicyId { get; private set; }
+    public int AppliedPolicyVersion { get; private set; }
+    public string AppliedPolicySnapshot { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
 
     public bool IsFulfilled => FulfilledAtUtc is not null;
@@ -50,7 +60,10 @@ public sealed class Reservation
         string reserverName,
         string reserverEmail,
         DateTime reservedAtUtc,
-        int holdDays)
+        int holdDays,
+        Guid? appliedPolicyId = null,
+        int appliedPolicyVersion = 1,
+        string appliedPolicySnapshot = "{}")
     {
         if (bookId == Guid.Empty)
             throw new ArgumentException("Book is required.", nameof(bookId));
@@ -70,7 +83,10 @@ public sealed class Reservation
             reserverName.Trim(),
             reserverEmail.Trim(),
             reservedAtUtc,
-            reservedAtUtc.AddDays(holdDays));
+            reservedAtUtc.AddDays(holdDays),
+            appliedPolicyId,
+            appliedPolicyVersion,
+            string.IsNullOrWhiteSpace(appliedPolicySnapshot) ? "{}" : appliedPolicySnapshot);
     }
 
     public void MarkCancelled(DateTime cancelledAtUtc)

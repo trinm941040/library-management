@@ -98,5 +98,7 @@ public sealed class ReservationsController(ReservationService reservationService
             reservation.ExpiresAtUtc,
             reservation.FulfilledAtUtc,
             reservation.CancelledAtUtc,
-            reservation.Status);
+            reservation.Status,
+            reservation.AppliedPolicyId,
+            reservation.AppliedPolicyVersion);
 }

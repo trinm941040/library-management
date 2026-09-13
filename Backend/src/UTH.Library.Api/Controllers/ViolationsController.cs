@@ -43,7 +43,7 @@ public sealed class ViolationsController(ViolationService violationService) : Co
         CancellationToken cancellationToken)
     {
         var result = await violationService.CreateAsync(
-            new CreateViolationCommand(request.BorrowerId, request.BookId, request.Type, request.Note ?? string.Empty, request.FineAmount),
+            new CreateViolationCommand(request.BorrowerId, request.BookId, request.Type, request.Note ?? string.Empty, request.FineAmount, request.OverdueDays, request.BookPrice),
             cancellationToken);
 
         if (!result.Succeeded || result.Violation is null)
@@ -97,5 +97,7 @@ public sealed class ViolationsController(ViolationService violationService) : Co
             violation.FineAmount,
             violation.RecordedAtUtc,
             violation.ResolvedAtUtc,
-            violation.Status);
+            violation.Status,
+            violation.AppliedPolicyId,
+            violation.AppliedPolicyVersion);
 }

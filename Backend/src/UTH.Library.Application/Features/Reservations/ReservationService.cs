@@ -1,4 +1,6 @@
+using System.Text.Json;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Reservations;
@@ -8,6 +10,7 @@ public sealed class ReservationService(
     IBorrowingRepository borrowings,
     IBookRepository books,
     IMemberRepository members,
+    ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider)
 {
     public async Task<ReservationPageModel> GetAsync(ReservationListQuery query, CancellationToken cancellationToken)
@@ -53,13 +56,18 @@ public sealed class ReservationService(
 
         try
         {
+            var policy = await policyResolver.ResolveAsync(reserver.MemberGroup, book.Category, null, now, cancellationToken);
+            var holdDays = command.HoldDays <= 0 ? policy.HoldDays : Math.Min(command.HoldDays, policy.HoldDays);
             var reservation = Reservation.Create(
                 book.Id,
                 reserver.Id,
                 reserver.FullName,
                 reserver.Email,
                 now,
-                command.HoldDays <= 0 ? Reservation.DefaultHoldDays : command.HoldDays);
+                holdDays,
+                policy.PolicyId,
+                policy.Version,
+                JsonSerializer.Serialize(policy));
             await reservations.AddAsync(reservation, cancellationToken);
             await reservations.SaveChangesAsync(cancellationToken);
             return ReservationResult.Success(ToModel(reservation, book.Title, book.Quantity, now));
@@ -107,8 +115,11 @@ public sealed class ReservationService(
         if (member is null || member.Status != MemberStatus.Active || member.MembershipCard?.Status != MembershipCardStatus.Active)
             return ReservationResult.Fail(ReservationFailure.Conflict, "Member or membership card is not active.");
         var history = await members.GetHistoryAsync(member.Id, cancellationToken);
-        if (history.Borrowings.Count(x => !x.IsReturned) >= member.BorrowingLimit)
+        var policy = await policyResolver.ResolveAsync(member.MemberGroup, book.Category, null, now, cancellationToken);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= Math.Min(member.BorrowingLimit, policy.MaxLoanBooks))
             return ReservationResult.Fail(ReservationFailure.Conflict, "Borrowing limit has been reached.");
+        if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Member has an overdue loan.");
 
         if (await borrowings.HasActiveBorrowingAsync(reservation.BookId, reservation.ReserverId, cancellationToken))
             return ReservationResult.Fail(ReservationFailure.Conflict, "This user already has this book on loan.");
@@ -123,7 +134,10 @@ public sealed class ReservationService(
                 reservation.ReserverName,
                 reservation.ReserverEmail,
                 now,
-                member.LoanPeriodDays);
+                Math.Min(member.LoanPeriodDays, policy.LoanPeriodDays),
+                policy.PolicyId,
+                policy.Version,
+                JsonSerializer.Serialize(policy));
             await borrowings.AddAsync(borrowing, cancellationToken);
             await reservations.SaveChangesAsync(cancellationToken);
             return ReservationResult.Success(ToModel(reservation, book.Title, book.Quantity, now));
@@ -167,6 +181,8 @@ public sealed class ReservationService(
             reservation.ExpiresAtUtc,
             reservation.FulfilledAtUtc,
             reservation.CancelledAtUtc,
-            status);
+            status,
+            reservation.AppliedPolicyId,
+            reservation.AppliedPolicyVersion);
     }
 }

@@ -6,6 +6,7 @@ using UTH.Library.Application.Features.Employees;
 using UTH.Library.Application.Features.Violations;
 using UTH.Library.Application.Features.Members;
 using UTH.Library.Application.Common;
+using UTH.Library.Application.Features.CirculationPolicies;
 
 namespace UTH.Library.Application;
 
@@ -23,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<ReservationService>();
         services.AddScoped<ViolationService>();
         services.AddScoped<MemberService>();
+        services.AddScoped<CirculationPolicyService>();
+        services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();
         return services;
     }
 }
