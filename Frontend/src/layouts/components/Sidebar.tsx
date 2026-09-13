@@ -48,15 +48,17 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="sidebar-bottom">
-          <NavLink
-            to={settingsNavigationItem.path}
-            className={({ isActive }) => `nav-item sidebar-settings ${isActive ? 'active' : ''}`}
-          >
-            <Settings aria-hidden="true" />
-            <span>{settingsNavigationItem.label}</span>
-          </NavLink>
-        </div>
+        {canAll(permissions, settingsNavigationItem.requiredPermissions) ? (
+          <div className="sidebar-bottom">
+            <NavLink
+              to={settingsNavigationItem.path}
+              className={({ isActive }) => `nav-item sidebar-settings ${isActive ? 'active' : ''}`}
+            >
+              <Settings aria-hidden="true" />
+              <span>{settingsNavigationItem.label}</span>
+            </NavLink>
+          </div>
+        ) : null}
       </aside>
 
       {isVisible && (

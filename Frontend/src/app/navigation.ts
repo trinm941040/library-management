@@ -92,8 +92,8 @@ export const navigationGroups: readonly NavigationGroup[] = [
       },
       { path: '/system/info', label: 'Thông tin', icon: Clock, requiredPermissions: [] },
       {
-        path: '/system/other-settings',
-        label: 'Thiết lập khác',
+        path: '/configuration',
+        label: 'Gói cấu hình',
         icon: Settings,
         requiredPermissions: ['settings.read'],
       },
@@ -104,7 +104,7 @@ export const settingsNavigationItem: NavigationItem = {
   path: '/settings',
   label: 'Cài đặt',
   icon: Settings,
-  requiredPermissions: [],
+  requiredPermissions: ['settings.read'],
 }
 export const routePermissions = new Map([
   ...navigationGroups.flatMap((group) =>

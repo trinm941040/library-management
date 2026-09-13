@@ -138,11 +138,19 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'settings',
-    title: 'Cài đặt thanh bên',
-    description: 'Cố định thanh bên để trình đơn luôn hiển thị.',
+    title: 'Thiết lập hệ thống',
+    description: 'Quản lý cấu hình hệ thống, thông báo và vận hành.',
     category: 'Cài đặt',
     path: '/settings',
-    keywords: 'setting cấu hình ghim pin menu thanh bên',
+    keywords: 'setting cấu hình hệ thống thông báo smtp sao lưu',
+  },
+  {
+    id: 'configuration-package',
+    title: 'Gói cấu hình',
+    description: 'Xuất, kiểm tra và nhập gói cấu hình hệ thống.',
+    category: 'Cài đặt',
+    path: '/configuration',
+    keywords: 'configuration package export import checksum khôi phục',
   },
 ]
 
