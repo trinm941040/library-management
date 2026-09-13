@@ -116,7 +116,11 @@ export function AppRoutes() {
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/employee" element={page('/employee', <EmployeePage />)} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
-        <Route path="/roles" element={page('/roles', <RolePermissionPage />)} />
+        <Route path="/roles" element={page('/roles', <RolePermissionPage initialView="roles" />)} />
+        <Route
+          path="/permissions"
+          element={page('/permissions', <RolePermissionPage initialView="permissions" />)}
+        />
         <Route path="/settings" element={page('/settings', <SettingsPage />)} />
         <Route
           path="/profile"

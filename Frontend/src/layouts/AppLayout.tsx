@@ -57,7 +57,7 @@ export function AppLayout() {
         }}
       />
 
-      <main id="main-content" className="main-content" tabIndex={-1}>
+      <div className="main-content">
         {user ? (
           <Header
             user={user}
@@ -71,8 +71,10 @@ export function AppLayout() {
             isLoggingOut={isLoggingOut}
           />
         ) : null}
-        <Outlet />
-      </main>
+        <div id="main-content" className="content-scroll-region" tabIndex={-1}>
+          <Outlet />
+        </div>
+      </div>
     </div>
   )
 }

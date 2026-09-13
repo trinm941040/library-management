@@ -36,6 +36,7 @@ import {
 import { EmployeeDetailsDialog } from './components/EmployeeDetailsDialog'
 import { EmploymentStatusBadge } from './components/EmploymentStatusBadge'
 import { EmployeeFormDialog } from './components/EmployeeFormDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   createEmployee,
   employmentStatusLabels,
@@ -50,7 +51,6 @@ import {
   type SaveEmployeeInput,
 } from './employee-api'
 
-const EMPLOYEES_PER_PAGE = 20
 type StatusFilter = 'all' | EmploymentStatus
 
 export function EmployeePage() {
@@ -64,6 +64,7 @@ export function EmployeePage() {
   const [position, setPosition] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -94,7 +95,7 @@ export function EmployeePage() {
         position: position || undefined,
         status: status === 'all' ? undefined : status,
         pageNumber: currentPage,
-        pageSize: EMPLOYEES_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -113,7 +114,7 @@ export function EmployeePage() {
         if (!controller.signal.aborted) setIsLoading(false)
       })
     return () => controller.abort()
-  }, [currentPage, department, position, reloadKey, search, status])
+  }, [currentPage, department, pageSize, position, reloadKey, search, status])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -193,9 +194,11 @@ export function EmployeePage() {
             <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
               <RefreshCw className={isLoading ? 'animate-spin' : ''} /> Làm mới
             </Button>
-            <Button onClick={openCreateForm}>
-              <Plus /> Tạo hồ sơ
-            </Button>
+            <PermissionBoundary requiredPermissions={['employees.create']}>
+              <Button onClick={openCreateForm}>
+                <Plus /> Tạo hồ sơ
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -366,14 +369,16 @@ export function EmployeePage() {
                           >
                             <Eye />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Cập nhật ${employee.fullName}`}
-                            onClick={() => openEditForm(employee)}
-                          >
-                            <Pencil />
-                          </Button>
+                          <PermissionBoundary requiredPermissions={['employees.update']}>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Cập nhật ${employee.fullName}`}
+                              onClick={() => openEditForm(employee)}
+                            >
+                              <Pencil />
+                            </Button>
+                          </PermissionBoundary>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -393,6 +398,11 @@ export function EmployeePage() {
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               ) : null}
             </div>
@@ -400,12 +410,16 @@ export function EmployeePage() {
         </Card>
       </div>
 
-      <EmployeeFormDialog
-        open={formOpen}
-        employee={editingEmployee}
-        onOpenChange={setFormOpen}
-        onSave={handleSave}
-      />
+      <PermissionBoundary
+        requiredPermissions={[editingEmployee ? 'employees.update' : 'employees.create']}
+      >
+        <EmployeeFormDialog
+          open={formOpen}
+          employee={editingEmployee}
+          onOpenChange={setFormOpen}
+          onSave={handleSave}
+        />
+      </PermissionBoundary>
       <EmployeeDetailsDialog
         open={detailsOpen}
         employee={selectedEmployee}

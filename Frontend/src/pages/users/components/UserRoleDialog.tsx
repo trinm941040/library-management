@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
-import { getRoles, replaceUserRoles, type Role } from '@/pages/roles/role-permission-api'
+import { getAllRoles, replaceUserRoles, type Role } from '@/pages/roles/role-permission-api'
 import type { SystemUser } from '../user-api'
 
 export function UserRoleDialog({
@@ -26,13 +26,15 @@ export function UserRoleDialog({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [isConfirming, setIsConfirming] = useState(false)
 
   useEffect(() => {
     if (!user) return
     const controller = new AbortController()
     setLoading(true)
     setError('')
-    getRoles(undefined, controller.signal)
+    setIsConfirming(false)
+    getAllRoles(controller.signal)
       .then((items) => {
         setRoles(items.filter((role) => role.isActive))
         setSelected(
@@ -55,6 +57,18 @@ export function UserRoleDialog({
 
   const save = async () => {
     if (!user || selected.size === 0) return setError('Người dùng phải có ít nhất một vai trò.')
+    const originalNames = new Set(user.roles)
+    const selectedNames = new Set(
+      roles.filter((role) => selected.has(role.id)).map((role) => role.name),
+    )
+    const changed =
+      originalNames.size !== selectedNames.size ||
+      [...selectedNames].some((name) => !originalNames.has(name))
+    if (!changed) return onOpenChange(false)
+    if (!isConfirming) {
+      setIsConfirming(true)
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -89,14 +103,15 @@ export function UserRoleDialog({
                   type="checkbox"
                   checked={selected.has(role.id)}
                   disabled={saving}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    setIsConfirming(false)
                     setSelected((current) => {
                       const next = new Set(current)
                       if (event.target.checked) next.add(role.id)
                       else next.delete(role.id)
                       return next
                     })
-                  }
+                  }}
                 />
                 <span>
                   <strong className="flex items-center gap-2">
@@ -119,12 +134,21 @@ export function UserRoleDialog({
             {error}
           </p>
         ) : null}
+        {isConfirming ? (
+          <p
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+            role="alert"
+          >
+            Vai trò mới sẽ thay thế toàn bộ vai trò hiện tại của tài khoản. Nhấn xác nhận để áp
+            dụng.
+          </p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
           <Button disabled={loading || saving || selected.size === 0} onClick={save}>
-            {saving ? 'Đang lưu...' : 'Lưu vai trò'}
+            {saving ? 'Đang lưu...' : isConfirming ? 'Xác nhận thay đổi' : 'Lưu vai trò'}
           </Button>
         </DialogFooter>
       </DialogContent>

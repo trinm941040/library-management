@@ -1,7 +1,10 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using UTH.Library.Application.Abstractions;
 using UTH.Library.Application.Abstractions.Identity;
+using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Persistence;
 
 namespace UTH.Library.Infrastructure.Identity;
@@ -10,14 +13,25 @@ public sealed class RolePermissionManagementService(
     RoleManager<ApplicationRole> roleManager,
     UserManager<ApplicationUser> userManager,
     LibraryDbContext db,
-    TimeProvider timeProvider) : IRolePermissionManagementService
+    TimeProvider timeProvider,
+    IRequestContext requestContext) : IRolePermissionManagementService
 {
+    private static readonly string[] RequiredAdministratorPermissions =
+    [
+        Permissions.RolesRead,
+        Permissions.RolesUpdate,
+        Permissions.RolesAssign,
+        Permissions.PermissionsRead,
+        Permissions.PermissionsUpdate
+    ];
     private static readonly Regex PermissionNamePattern = new(
         "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public async Task<IReadOnlyCollection<ManagedRole>> GetRolesAsync(
+    public async Task<ManagedPage<ManagedRole>> GetRolesAsync(
         string? search,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var query = db.Roles.AsNoTracking();
@@ -29,8 +43,17 @@ public sealed class RolePermissionManagementService(
                 role.Description.ToUpper().Contains(value));
         }
 
-        var roles = await query.OrderBy(role => role.Name).ToListAsync(cancellationToken);
-        return await MapRolesAsync(roles, cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken);
+        var roles = await query
+            .OrderBy(role => role.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new ManagedPage<ManagedRole>(
+            await MapRolesAsync(roles, cancellationToken),
+            pageNumber,
+            pageSize,
+            totalCount);
     }
 
     public async Task<ManagedRole?> GetRoleByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -48,7 +71,7 @@ public sealed class RolePermissionManagementService(
     {
         var name = command.Name.Trim();
         if (await roleManager.FindByNameAsync(name) is not null)
-            return RoleFailure(RolePermissionManagementFailure.Conflict, "A role with this name already exists.");
+            return RoleFailure(RolePermissionManagementFailure.Conflict, "Tên vai trò đã tồn tại.");
 
         var role = new ApplicationRole
         {
@@ -59,9 +82,14 @@ public sealed class RolePermissionManagementService(
             IsActive = true,
             CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
         };
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var result = await roleManager.CreateAsync(role);
         if (!result.Succeeded)
             return RoleFailure(result);
+
+        AddAudit("role.created", nameof(ApplicationRole), role.Id, null, RoleSnapshot(role));
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return RolePermissionManagementResult<ManagedRole>.Success(MapRole(role, []));
     }
@@ -73,24 +101,30 @@ public sealed class RolePermissionManagementService(
     {
         var role = await roleManager.FindByIdAsync(id.ToString());
         if (role is null)
-            return RoleFailure(RolePermissionManagementFailure.NotFound, "Role was not found.");
+            return RoleFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy vai trò.");
 
         var name = command.Name.Trim();
         if (role.IsSystemRole && !string.Equals(role.Name, name, StringComparison.OrdinalIgnoreCase))
-            return RoleFailure(RolePermissionManagementFailure.ProtectedResource, "A system role cannot be renamed.");
+            return RoleFailure(RolePermissionManagementFailure.ProtectedResource, "Không thể đổi tên vai trò hệ thống.");
         if (role.IsSystemRole && command.IsActive == false)
             return RoleFailure(RolePermissionManagementFailure.ProtectedResource, "Vai trò hệ thống không thể bị vô hiệu hóa.");
 
         var duplicate = await roleManager.FindByNameAsync(name);
         if (duplicate is not null && duplicate.Id != id)
-            return RoleFailure(RolePermissionManagementFailure.Conflict, "A role with this name already exists.");
+            return RoleFailure(RolePermissionManagementFailure.Conflict, "Tên vai trò đã tồn tại.");
 
+        var before = RoleSnapshot(role);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         role.Name = name;
         role.IsActive = command.IsActive ?? role.IsActive;
         role.Description = command.Description.Trim();
         var result = await roleManager.UpdateAsync(role);
         if (!result.Succeeded)
             return RoleFailure(result);
+
+        AddAudit("role.updated", nameof(ApplicationRole), role.Id, before, RoleSnapshot(role));
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         var mapped = await GetRoleByIdAsync(role.Id, cancellationToken);
         return RolePermissionManagementResult<ManagedRole>.Success(mapped!);
@@ -100,14 +134,20 @@ public sealed class RolePermissionManagementService(
     {
         var role = await roleManager.FindByIdAsync(id.ToString());
         if (role is null)
-            return OperationFailure(RolePermissionManagementFailure.NotFound, "Role was not found.");
+            return OperationFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy vai trò.");
         if (role.IsSystemRole)
-            return OperationFailure(RolePermissionManagementFailure.ProtectedResource, "A system role cannot be deleted.");
+            return OperationFailure(RolePermissionManagementFailure.ProtectedResource, "Không thể xóa vai trò hệ thống.");
         if (await db.UserRoles.AnyAsync(value => value.RoleId == id, cancellationToken))
-            return OperationFailure(RolePermissionManagementFailure.Conflict, "The role is assigned to one or more users.");
+            return OperationFailure(RolePermissionManagementFailure.Conflict, "Vai trò đang được gán cho ít nhất một tài khoản.");
 
+        var before = RoleSnapshot(role);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var result = await roleManager.DeleteAsync(role);
-        return result.Succeeded ? RolePermissionOperationResult.Success() : OperationFailure(result);
+        if (!result.Succeeded) return OperationFailure(result);
+        AddAudit("role.deleted", nameof(ApplicationRole), role.Id, before, null);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return RolePermissionOperationResult.Success();
     }
 
     public async Task<RolePermissionManagementResult<ManagedRole>> ReplaceRolePermissionsAsync(
@@ -115,9 +155,11 @@ public sealed class RolePermissionManagementService(
         IReadOnlyCollection<Guid> permissionIds,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await SessionLock.AcquireAsync(db, roleId, cancellationToken);
         var role = await db.Roles.SingleOrDefaultAsync(value => value.Id == roleId, cancellationToken);
         if (role is null)
-            return RoleFailure(RolePermissionManagementFailure.NotFound, "Role was not found.");
+            return RoleFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy vai trò.");
 
         var requestedIds = permissionIds.Distinct().ToArray();
         var permissions = await db.Permissions
@@ -125,13 +167,20 @@ public sealed class RolePermissionManagementService(
             .OrderBy(permission => permission.Name)
             .ToListAsync(cancellationToken);
         if (permissions.Count != requestedIds.Length)
-            return RoleFailure(RolePermissionManagementFailure.Validation, "One or more permissions do not exist.");
+            return RoleFailure(RolePermissionManagementFailure.Validation, "Một hoặc nhiều quyền không tồn tại.");
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var requestedNames = permissions.Select(permission => permission.Name).ToHashSet(StringComparer.Ordinal);
+        if (role.IsSystemRole && string.Equals(role.Name, RoleNames.Administrator, StringComparison.OrdinalIgnoreCase) &&
+            RequiredAdministratorPermissions.Any(permission => !requestedNames.Contains(permission)))
+            return RoleFailure(
+                RolePermissionManagementFailure.ProtectedResource,
+                "Vai trò quản trị hệ thống phải giữ các quyền quản lý vai trò và quyền hạn bắt buộc.");
+
         var existing = await db.RolePermissions
             .Where(value => value.RoleId == roleId)
             .ToListAsync(cancellationToken);
         var existingIds = existing.Select(value => value.PermissionId).ToHashSet();
+        var before = JsonSerializer.Serialize(existing.Select(value => value.PermissionId).Order().ToArray());
         var requestedIdSet = requestedIds.ToHashSet();
         db.RolePermissions.RemoveRange(existing.Where(value => !requestedIdSet.Contains(value.PermissionId)));
         db.RolePermissions.AddRange(requestedIds.Where(permissionId => !existingIds.Contains(permissionId)).Select(permissionId => new RolePermission
@@ -139,6 +188,12 @@ public sealed class RolePermissionManagementService(
             RoleId = roleId,
             PermissionId = permissionId
         }));
+        AddAudit(
+            "role.permissions-replaced",
+            nameof(RolePermission),
+            roleId,
+            before,
+            JsonSerializer.Serialize(requestedIds.Order().ToArray()));
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -152,28 +207,46 @@ public sealed class RolePermissionManagementService(
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
-            return OperationFailure(RolePermissionManagementFailure.NotFound, "User was not found.");
+            return OperationFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy tài khoản.");
 
         var requestedIds = roleIds.Distinct().ToArray();
         if (requestedIds.Length == 0)
-            return OperationFailure(RolePermissionManagementFailure.Validation, "At least one role is required.");
+            return OperationFailure(RolePermissionManagementFailure.Validation, "Tài khoản phải có ít nhất một vai trò.");
 
         var requestedRoles = await db.Roles
             .Where(role => requestedIds.Contains(role.Id) && role.IsActive)
             .OrderBy(role => role.Name)
             .ToListAsync(cancellationToken);
         if (requestedRoles.Count != requestedIds.Length)
-            return OperationFailure(RolePermissionManagementFailure.Validation, "One or more roles do not exist.");
-
-        var currentRoles = await userManager.GetRolesAsync(user);
-        if (currentRoles.Contains(RoleNames.Administrator, StringComparer.OrdinalIgnoreCase))
-            return OperationFailure(
-                RolePermissionManagementFailure.ProtectedResource,
-                "Administrator accounts cannot have their roles changed.");
-
-        var requestedNames = requestedRoles.Select(role => role.Name!).ToArray();
+            return OperationFailure(RolePermissionManagementFailure.Validation, "Một hoặc nhiều vai trò không tồn tại hoặc đã ngừng sử dụng.");
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var currentRoleIds = await db.UserRoles
+            .Where(assignment => assignment.UserId == userId)
+            .Select(assignment => assignment.RoleId)
+            .ToArrayAsync(cancellationToken);
+        var administratorRole = await db.Roles.SingleOrDefaultAsync(
+            role => role.NormalizedName == RoleNames.Administrator.ToUpper(), cancellationToken);
+        if (administratorRole is not null)
+            await SessionLock.AcquireAsync(db, administratorRole.Id, cancellationToken);
+        if (administratorRole is not null &&
+            currentRoleIds.Contains(administratorRole.Id) &&
+            !requestedIds.Contains(administratorRole.Id))
+        {
+            var otherActiveAdministrators = await db.UserRoles.CountAsync(
+                assignment => assignment.RoleId == administratorRole.Id &&
+                    assignment.UserId != userId &&
+                    db.Users.Any(account => account.Id == assignment.UserId && account.IsActive),
+                cancellationToken);
+            if (otherActiveAdministrators == 0)
+                return OperationFailure(
+                    RolePermissionManagementFailure.ProtectedResource,
+                    "Không thể gỡ vai trò của quản trị viên hoạt động cuối cùng.");
+        }
+
+        var requestedNames = requestedRoles.Select(role => role.Name!).ToArray();
+        var currentRoles = await userManager.GetRolesAsync(user);
+
         var rolesToRemove = currentRoles.Except(requestedNames, StringComparer.OrdinalIgnoreCase).ToArray();
         var rolesToAdd = requestedNames.Except(currentRoles, StringComparer.OrdinalIgnoreCase).ToArray();
 
@@ -195,15 +268,25 @@ public sealed class RolePermissionManagementService(
             var stampResult = await userManager.UpdateSecurityStampAsync(user);
             if (!stampResult.Succeeded)
                 return OperationFailure(stampResult);
+
+            AddAudit(
+                "user.roles-replaced",
+                nameof(IdentityUserRole<Guid>),
+                userId,
+                JsonSerializer.Serialize(currentRoleIds.Order().ToArray()),
+                JsonSerializer.Serialize(requestedIds.Order().ToArray()));
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         await transaction.CommitAsync(cancellationToken);
         return RolePermissionOperationResult.Success();
     }
 
-    public async Task<IReadOnlyCollection<ManagedPermission>> GetPermissionsAsync(
+    public async Task<ManagedPage<ManagedPermission>> GetPermissionsAsync(
         string? search,
         string? module,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var query = db.Permissions.AsNoTracking();
@@ -220,12 +303,26 @@ public sealed class RolePermissionManagementService(
             query = query.Where(permission => permission.Module.ToUpper() == value);
         }
 
-        return await query
+        var totalCount = await query.CountAsync(cancellationToken);
+        var permissions = await query
             .OrderBy(permission => permission.Module)
             .ThenBy(permission => permission.Name)
-            .Select(permission => MapPermission(permission))
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+        return new ManagedPage<ManagedPermission>(
+            permissions.Select(MapPermission).ToArray(),
+            pageNumber,
+            pageSize,
+            totalCount);
     }
+
+    public async Task<IReadOnlyCollection<string>> GetPermissionModulesAsync(CancellationToken cancellationToken) =>
+        await db.Permissions.AsNoTracking()
+            .Select(permission => permission.Module)
+            .Distinct()
+            .OrderBy(module => module)
+            .ToArrayAsync(cancellationToken);
 
     public async Task<ManagedPermission?> GetPermissionByIdAsync(Guid id, CancellationToken cancellationToken) =>
         await db.Permissions.AsNoTracking()
@@ -235,7 +332,8 @@ public sealed class RolePermissionManagementService(
                 permission.Name,
                 permission.Description,
                 permission.Module,
-                permission.CreatedAtUtc))
+                permission.CreatedAtUtc,
+                Permissions.All.Contains(permission.Name)))
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<RolePermissionManagementResult<ManagedPermission>> CreatePermissionAsync(
@@ -246,7 +344,7 @@ public sealed class RolePermissionManagementService(
         if (normalized.Error is not null)
             return PermissionFailure(RolePermissionManagementFailure.Validation, normalized.Error);
         if (await db.Permissions.AnyAsync(value => value.Name == normalized.Name, cancellationToken))
-            return PermissionFailure(RolePermissionManagementFailure.Conflict, "A permission with this name already exists.");
+            return PermissionFailure(RolePermissionManagementFailure.Conflict, "Tên quyền đã tồn tại.");
 
         var permission = new Permission
         {
@@ -256,8 +354,11 @@ public sealed class RolePermissionManagementService(
             Module = normalized.Module,
             CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
         };
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         db.Permissions.Add(permission);
+        AddAudit("permission.created", nameof(Permission), permission.Id, null, PermissionSnapshot(permission));
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return RolePermissionManagementResult<ManagedPermission>.Success(MapPermission(permission));
     }
 
@@ -268,7 +369,7 @@ public sealed class RolePermissionManagementService(
     {
         var permission = await db.Permissions.SingleOrDefaultAsync(value => value.Id == id, cancellationToken);
         if (permission is null)
-            return PermissionFailure(RolePermissionManagementFailure.NotFound, "Permission was not found.");
+            return PermissionFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy quyền.");
 
         var normalized = NormalizePermission(command.Name, command.Module);
         if (normalized.Error is not null)
@@ -276,14 +377,18 @@ public sealed class RolePermissionManagementService(
         if (Permissions.All.Contains(permission.Name) &&
             (!string.Equals(permission.Name, normalized.Name, StringComparison.Ordinal) ||
              !string.Equals(permission.Module, normalized.Module, StringComparison.Ordinal)))
-            return PermissionFailure(RolePermissionManagementFailure.ProtectedResource, "A system permission cannot be renamed or moved to another module.");
+            return PermissionFailure(RolePermissionManagementFailure.ProtectedResource, "Không thể đổi tên hoặc chuyển phân hệ của quyền hệ thống.");
         if (await db.Permissions.AnyAsync(value => value.Id != id && value.Name == normalized.Name, cancellationToken))
-            return PermissionFailure(RolePermissionManagementFailure.Conflict, "A permission with this name already exists.");
+            return PermissionFailure(RolePermissionManagementFailure.Conflict, "Tên quyền đã tồn tại.");
 
+        var before = PermissionSnapshot(permission);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         permission.Name = normalized.Name;
         permission.Module = normalized.Module;
         permission.Description = command.Description.Trim();
+        AddAudit("permission.updated", nameof(Permission), permission.Id, before, PermissionSnapshot(permission));
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return RolePermissionManagementResult<ManagedPermission>.Success(MapPermission(permission));
     }
 
@@ -291,12 +396,16 @@ public sealed class RolePermissionManagementService(
     {
         var permission = await db.Permissions.SingleOrDefaultAsync(value => value.Id == id, cancellationToken);
         if (permission is null)
-            return OperationFailure(RolePermissionManagementFailure.NotFound, "Permission was not found.");
+            return OperationFailure(RolePermissionManagementFailure.NotFound, "Không tìm thấy quyền.");
         if (Permissions.All.Contains(permission.Name))
-            return OperationFailure(RolePermissionManagementFailure.ProtectedResource, "A system permission cannot be deleted.");
+            return OperationFailure(RolePermissionManagementFailure.ProtectedResource, "Không thể xóa quyền hệ thống.");
 
+        var before = PermissionSnapshot(permission);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         db.Permissions.Remove(permission);
+        AddAudit("permission.deleted", nameof(Permission), permission.Id, before, null);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return RolePermissionOperationResult.Success();
     }
 
@@ -329,16 +438,22 @@ public sealed class RolePermissionManagementService(
             role.IsActive);
 
     private static ManagedPermission MapPermission(Permission permission) =>
-        new(permission.Id, permission.Name, permission.Description, permission.Module, permission.CreatedAtUtc);
+        new(
+            permission.Id,
+            permission.Name,
+            permission.Description,
+            permission.Module,
+            permission.CreatedAtUtc,
+            Permissions.All.Contains(permission.Name));
 
     private static (string Name, string Module, string? Error) NormalizePermission(string name, string module)
     {
         var normalizedName = name.Trim().ToLowerInvariant();
         var normalizedModule = module.Trim().ToLowerInvariant();
         if (!PermissionNamePattern.IsMatch(normalizedName))
-            return (normalizedName, normalizedModule, "Permission name must use the 'module.action' format with lowercase letters, numbers, or hyphens.");
+            return (normalizedName, normalizedModule, "Tên quyền phải theo dạng 'phân-hệ.hành-động' với chữ thường, chữ số hoặc dấu gạch ngang.");
         if (!normalizedName.StartsWith($"{normalizedModule}.", StringComparison.Ordinal))
-            return (normalizedName, normalizedModule, "Permission module must match the module prefix in the permission name.");
+            return (normalizedName, normalizedModule, "Phân hệ phải trùng với tiền tố trong tên quyền.");
         return (normalizedName, normalizedModule, null);
     }
 
@@ -365,4 +480,37 @@ public sealed class RolePermissionManagementService(
         RolePermissionOperationResult.Failed(
             RolePermissionManagementFailure.Validation,
             result.Errors.Select(error => error.Description).Distinct().ToArray());
+
+    private void AddAudit(
+        string action,
+        string entityType,
+        Guid entityId,
+        string? beforeJson,
+        string? afterJson) =>
+        db.AuditLogs.Add(AuditLog.Create(
+            requestContext.UserId,
+            action,
+            entityType,
+            entityId,
+            beforeJson,
+            afterJson,
+            timeProvider.GetUtcNow().UtcDateTime,
+            requestContext.CorrelationId));
+
+    private static string RoleSnapshot(ApplicationRole role) => JsonSerializer.Serialize(new
+    {
+        role.Id,
+        role.Name,
+        role.Description,
+        role.IsSystemRole,
+        role.IsActive
+    });
+
+    private static string PermissionSnapshot(Permission permission) => JsonSerializer.Serialize(new
+    {
+        permission.Id,
+        permission.Name,
+        permission.Description,
+        permission.Module
+    });
 }

@@ -37,11 +37,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setForm(
-      user
-        ? { displayName: user.displayName, email: user.email, password: '' }
-        : emptyForm,
-    )
+    setForm(user ? { displayName: user.displayName, email: user.email, password: '' } : emptyForm)
     setError('')
   }, [open, user])
 
@@ -106,7 +102,8 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
               />
               {user && form.email.trim().toLowerCase() !== user.email.toLowerCase() ? (
                 <p className="text-xs text-muted-foreground">
-                  Đổi email sẽ hủy trạng thái xác nhận email và thu hồi các phiên đăng nhập hiện tại.
+                  Đổi email sẽ hủy trạng thái xác nhận email và thu hồi các phiên đăng nhập hiện
+                  tại.
                 </p>
               ) : null}
             </div>
@@ -130,7 +127,10 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
             ) : null}
 
             {error ? (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              <p
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
                 {error}
               </p>
             ) : null}

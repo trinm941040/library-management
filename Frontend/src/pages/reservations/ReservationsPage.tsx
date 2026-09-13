@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { ReservationFormDialog, type ReservationFormData } from './components/ReservationFormDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   cancelReservation,
   createReservation,
@@ -28,8 +29,6 @@ import {
   getReservations,
   type ReservationPageResponse,
 } from './reservation-api'
-
-const ITEMS_PER_PAGE = 20
 
 const statusLabels: Record<string, string> = {
   waiting: 'Chờ sách',
@@ -45,6 +44,7 @@ export function ReservationsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -71,7 +71,7 @@ export function ReservationsPage() {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
         pageNumber: currentPage,
-        pageSize: ITEMS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -90,7 +90,7 @@ export function ReservationsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -128,7 +128,11 @@ export function ReservationsPage() {
   }
 
   const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    new Date(value).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
 
   return (
     <>
@@ -148,9 +152,11 @@ export function ReservationsPage() {
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button onClick={() => setFormOpen(true)}>
-              <Plus /> Tạo phiếu đặt trước
-            </Button>
+            <PermissionBoundary requiredPermissions={['reservations.create']}>
+              <Button onClick={() => setFormOpen(true)}>
+                <Plus /> Tạo phiếu đặt trước
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -272,33 +278,43 @@ export function ReservationsPage() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {item.status === 'ready' ? (
-                            <Button
-                              size="sm"
-                              disabled={busyId === item.id}
-                              onClick={() =>
-                                runAction(
-                                  item.id,
-                                  () => fulfillReservation(item.id),
-                                  'Đã chuyển đặt trước thành phiếu mượn.',
-                                )
-                              }
-                            >
-                              <BookOpen />
-                              Nhận sách
-                            </Button>
+                            <PermissionBoundary requiredPermissions={['reservations.fulfill']}>
+                              <Button
+                                size="sm"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  runAction(
+                                    item.id,
+                                    () => fulfillReservation(item.id),
+                                    'Đã chuyển đặt trước thành phiếu mượn.',
+                                  )
+                                }
+                              >
+                                <BookOpen />
+                                Nhận sách
+                              </Button>
+                            </PermissionBoundary>
                           ) : null}
-                          {item.status === 'waiting' || item.status === 'ready' || item.status === 'expired' ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={busyId === item.id}
-                              onClick={() =>
-                                runAction(item.id, () => cancelReservation(item.id), 'Đã hủy phiếu đặt trước.')
-                              }
-                            >
-                              <X />
-                              Hủy
-                            </Button>
+                          {item.status === 'waiting' ||
+                          item.status === 'ready' ||
+                          item.status === 'expired' ? (
+                            <PermissionBoundary requiredPermissions={['reservations.cancel']}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  runAction(
+                                    item.id,
+                                    () => cancelReservation(item.id),
+                                    'Đã hủy phiếu đặt trước.',
+                                  )
+                                }
+                              >
+                                <X />
+                                Hủy
+                              </Button>
+                            </PermissionBoundary>
                           ) : null}
                         </div>
                       </TableCell>
@@ -308,12 +324,17 @@ export function ReservationsPage() {
               </Table>
             </div>
 
-            {page && page.totalPages > 1 ? (
+            {page && page.totalCount > 0 ? (
               <div className="mt-4 flex justify-end">
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               </div>
             ) : null}
@@ -321,7 +342,9 @@ export function ReservationsPage() {
         </Card>
       </div>
 
-      <ReservationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      <PermissionBoundary requiredPermissions={['reservations.create']}>
+        <ReservationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      </PermissionBoundary>
     </>
   )
 }
