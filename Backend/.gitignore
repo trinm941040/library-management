@@ -1,15 +1,11 @@
 ## .NET build output
-# Standard .NET output (Git normalizes Windows path separators to `/`).
-**/[Bb]in/
-**/[Oo]bj/
-
-# Some .NET/EF tooling can emit literal Windows-style directory names on Unix.
-# `?` matches the literal backslash character, but does not cross `/` boundaries.
-**/[Bb]in?[Dd]ebug/
-**/[Bb]in?[Rr]elease/
-**/[Oo]bj?[Dd]ebug/
-**/[Oo]bj?[Rr]elease/
+**/bin/
+**/obj/
 **/TestResults/
+# Một số công cụ MSBuild/Roslyn có thể tạo tên thư mục chứa dấu `\` của Windows
+# khi chạy trên Unix. Các pattern này hỗ trợ cả artefact dạng `bin\Debug`/`obj\Debug`.
+**/bin[\\]*/
+**/obj[\\]*/
 
 ## IDE
 .vs/
