@@ -12,6 +12,7 @@ import {
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
+import { Switch } from '@/common/components/ui/switch'
 import type { Permission, PermissionInput, Role, RoleInput } from '../role-permission-api'
 
 type AsyncSave<T> = (data: T) => Promise<string | null>
@@ -26,12 +27,14 @@ type RoleFormDialogProps = {
 export function RoleFormDialog({ open, role, onOpenChange, onSave }: RoleFormDialogProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [isActive, setIsActive] = useState(true)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setName(role?.name ?? '')
     setDescription(role?.description ?? '')
+    setIsActive(role?.isActive ?? true)
     setError('')
   }, [open, role])
 
@@ -40,7 +43,11 @@ export function RoleFormDialog({ open, role, onOpenChange, onSave }: RoleFormDia
     setError('')
     setIsSubmitting(true)
     try {
-      const saveError = await onSave({ name: name.trim(), description: description.trim() })
+      const saveError = await onSave({
+        name: name.trim(),
+        description: description.trim(),
+        isActive,
+      })
       if (saveError) return setError(saveError)
       onOpenChange(false)
     } finally {
@@ -73,6 +80,22 @@ export function RoleFormDialog({ open, role, onOpenChange, onSave }: RoleFormDia
                 required
               />
             </div>
+            {role ? (
+              <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                <span>
+                  <Label htmlFor="role-active">Đang sử dụng</Label>
+                  <small className="mt-1 block text-muted-foreground">
+                    Vai trò ngừng sử dụng không còn đóng góp quyền hiệu lực.
+                  </small>
+                </span>
+                <Switch
+                  id="role-active"
+                  checked={isActive}
+                  disabled={isSubmitting || role.isSystemRole}
+                  onCheckedChange={setIsActive}
+                />
+              </div>
+            ) : null}
             <div className="grid gap-2">
               <Label htmlFor="role-description">Mô tả</Label>
               <textarea
@@ -247,12 +270,14 @@ export function PermissionAssignmentDialog({
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
 
   useEffect(() => {
     setSelectedIds(new Set(role?.permissions.map((permission) => permission.id) ?? []))
     setExpandedModules(new Set(permissions.map((permission) => permission.module)))
     setSearch('')
     setError('')
+    setIsConfirming(false)
   }, [open, permissions, role])
 
   const groups = useMemo(() => {
@@ -275,6 +300,7 @@ export function PermissionAssignmentDialog({
   }, [permissions, search])
 
   const togglePermission = (permissionId: string) => {
+    setIsConfirming(false)
     setSelectedIds((current) => {
       const next = new Set(current)
       if (next.has(permissionId)) next.delete(permissionId)
@@ -293,6 +319,7 @@ export function PermissionAssignmentDialog({
   }
 
   const toggleModulePermissions = (modulePermissions: Permission[]) => {
+    setIsConfirming(false)
     setSelectedIds((current) => {
       const next = new Set(current)
       const allSelected = modulePermissions.every((permission) => next.has(permission.id))
@@ -305,6 +332,14 @@ export function PermissionAssignmentDialog({
   }
 
   const save = async () => {
+    const originalIds = new Set(role?.permissions.map((permission) => permission.id) ?? [])
+    const changed =
+      originalIds.size !== selectedIds.size || [...selectedIds].some((id) => !originalIds.has(id))
+    if (!changed) return onOpenChange(false)
+    if (!isConfirming) {
+      setIsConfirming(true)
+      return
+    }
     setError('')
     setIsSubmitting(true)
     try {
@@ -445,6 +480,15 @@ export function PermissionAssignmentDialog({
           ) : null}
         </div>
         {error ? <DialogError>{error}</DialogError> : null}
+        {isConfirming ? (
+          <p
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+            role="alert"
+          >
+            Thay đổi này ảnh hưởng quyền của mọi tài khoản đang giữ vai trò. Nhấn xác nhận để áp
+            dụng.
+          </p>
+        ) : null}
         <DialogFooter>
           <Button
             type="button"
@@ -455,7 +499,11 @@ export function PermissionAssignmentDialog({
             Hủy
           </Button>
           <Button type="button" disabled={isSubmitting} onClick={save}>
-            {isSubmitting ? 'Đang lưu...' : `Lưu ${selectedIds.size} quyền`}
+            {isSubmitting
+              ? 'Đang lưu...'
+              : isConfirming
+                ? `Xác nhận ${selectedIds.size} quyền`
+                : `Lưu ${selectedIds.size} quyền`}
           </Button>
         </DialogFooter>
       </DialogContent>

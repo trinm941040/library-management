@@ -1,4 +1,5 @@
-import { authenticatedFetch, authorizationChanged } from '@/auth/auth-api'
+import { authenticatedFetch, authorizationChanged, guidSchema } from '@/auth/auth-api'
+import { z } from 'zod'
 
 const ROLES_URL = '/api/v1/roles'
 const PERMISSIONS_URL = '/api/v1/permissions'
@@ -9,6 +10,7 @@ export type Permission = {
   description: string
   module: string
   createdAtUtc: string
+  isSystem: boolean
 }
 
 export type PermissionSummary = Omit<Permission, 'createdAtUtc'>
@@ -26,6 +28,7 @@ export type Role = {
 export type RoleInput = {
   name: string
   description: string
+  isActive?: boolean
 }
 
 export type PermissionInput = {
@@ -33,6 +36,42 @@ export type PermissionInput = {
   description: string
   module: string
 }
+
+export type PageResult<T> = {
+  items: T[]
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+const permissionSummarySchema = z.object({
+  id: guidSchema,
+  name: z.string(),
+  description: z.string(),
+  module: z.string(),
+  isSystem: z.boolean(),
+})
+const permissionSchema = permissionSummarySchema.extend({ createdAtUtc: z.string() })
+const roleSchema = z.object({
+  id: guidSchema,
+  name: z.string(),
+  description: z.string(),
+  isSystemRole: z.boolean(),
+  isActive: z.boolean(),
+  createdAtUtc: z.string(),
+  permissions: z.array(permissionSummarySchema),
+})
+const createPageSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    items: z.array(itemSchema),
+    pageNumber: z.number().int().positive(),
+    pageSize: z.number().int().positive(),
+    totalCount: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+  })
+const rolePageSchema = createPageSchema(roleSchema)
+const permissionPageSchema = createPageSchema(permissionSchema)
 
 type ProblemDetails = {
   title?: string
@@ -50,10 +89,16 @@ export class RolePermissionApiError extends Error {
   }
 }
 
-async function readResponse<T>(response: Response): Promise<T> {
+async function readResponse<T>(response: Response, schema?: z.ZodType<T>): Promise<T> {
   if (response.ok) {
     if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
+    const payload = (await response.json()) as unknown
+    if (!schema) return payload as T
+    const parsed = schema.safeParse(payload)
+    if (!parsed.success) {
+      throw new RolePermissionApiError('Phản hồi máy chủ không hợp lệ.', 502)
+    }
+    return parsed.data
   }
 
   const problem = (await response.json().catch(() => null)) as ProblemDetails | null
@@ -67,24 +112,37 @@ async function readResponse<T>(response: Response): Promise<T> {
   )
 }
 
-async function readMutation<T>(response: Response): Promise<T> {
-  const result = await readResponse<T>(response)
+async function readMutation<T>(response: Response, schema?: z.ZodType<T>): Promise<T> {
+  const result = await readResponse<T>(response, schema)
   await authorizationChanged()
   return result
 }
 
-function withQuery(url: string, values: Record<string, string | undefined>) {
+function withQuery(url: string, values: Record<string, string | number | undefined>) {
   const query = new URLSearchParams()
   Object.entries(values).forEach(([key, value]) => {
-    if (value) query.set(key, value)
+    if (value !== undefined && value !== '') query.set(key, String(value))
   })
   const suffix = query.toString()
   return suffix ? `${url}?${suffix}` : url
 }
 
-export async function getRoles(search?: string, signal?: AbortSignal): Promise<Role[]> {
-  const response = await authenticatedFetch(withQuery(ROLES_URL, { search }), { signal })
-  return readResponse<Role[]>(response)
+export async function getRoles(
+  filters: { search?: string; pageNumber?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+): Promise<PageResult<Role>> {
+  const response = await authenticatedFetch(withQuery(ROLES_URL, filters), { signal })
+  return readResponse<PageResult<Role>>(response, rolePageSchema)
+}
+
+export async function getAllRoles(signal?: AbortSignal): Promise<Role[]> {
+  const firstPage = await getRoles({ pageNumber: 1, pageSize: 100 }, signal)
+  const roles = [...firstPage.items]
+  for (let pageNumber = 2; pageNumber <= firstPage.totalPages; pageNumber += 1) {
+    const page = await getRoles({ pageNumber, pageSize: 100 }, signal)
+    roles.push(...page.items)
+  }
+  return roles
 }
 
 export async function createRole(input: RoleInput): Promise<Role> {
@@ -93,7 +151,7 @@ export async function createRole(input: RoleInput): Promise<Role> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<Role>(response)
+  return readMutation<Role>(response, roleSchema)
 }
 
 export async function updateRole(id: string, input: RoleInput): Promise<Role> {
@@ -102,7 +160,7 @@ export async function updateRole(id: string, input: RoleInput): Promise<Role> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readMutation<Role>(response)
+  return readMutation<Role>(response, roleSchema)
 }
 
 export async function deleteRole(id: string): Promise<void> {
@@ -119,7 +177,7 @@ export async function replaceRolePermissions(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ permissionIds }),
   })
-  return readMutation<Role>(response)
+  return readMutation<Role>(response, roleSchema)
 }
 
 export async function replaceUserRoles(userId: string, roleIds: string[]): Promise<void> {
@@ -132,11 +190,26 @@ export async function replaceUserRoles(userId: string, roleIds: string[]): Promi
 }
 
 export async function getPermissions(
-  filters: { search?: string; module?: string } = {},
+  filters: { search?: string; module?: string; pageNumber?: number; pageSize?: number } = {},
   signal?: AbortSignal,
-): Promise<Permission[]> {
+): Promise<PageResult<Permission>> {
   const response = await authenticatedFetch(withQuery(PERMISSIONS_URL, filters), { signal })
-  return readResponse<Permission[]>(response)
+  return readResponse<PageResult<Permission>>(response, permissionPageSchema)
+}
+
+export async function getAllPermissions(signal?: AbortSignal): Promise<Permission[]> {
+  const firstPage = await getPermissions({ pageNumber: 1, pageSize: 100 }, signal)
+  const permissions = [...firstPage.items]
+  for (let pageNumber = 2; pageNumber <= firstPage.totalPages; pageNumber += 1) {
+    const page = await getPermissions({ pageNumber, pageSize: 100 }, signal)
+    permissions.push(...page.items)
+  }
+  return permissions
+}
+
+export async function getPermissionModules(signal?: AbortSignal): Promise<string[]> {
+  const response = await authenticatedFetch(`${PERMISSIONS_URL}/modules`, { signal })
+  return readResponse<string[]>(response, z.array(z.string()))
 }
 
 export async function createPermission(input: PermissionInput): Promise<Permission> {
@@ -145,7 +218,7 @@ export async function createPermission(input: PermissionInput): Promise<Permissi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<Permission>(response)
+  return readMutation<Permission>(response, permissionSchema)
 }
 
 export async function updatePermission(id: string, input: PermissionInput): Promise<Permission> {
@@ -154,7 +227,7 @@ export async function updatePermission(id: string, input: PermissionInput): Prom
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readMutation<Permission>(response)
+  return readMutation<Permission>(response, permissionSchema)
 }
 
 export async function deletePermission(id: string): Promise<void> {
@@ -162,26 +235,6 @@ export async function deletePermission(id: string): Promise<void> {
   await readMutation<void>(response)
 }
 
-const systemPermissionNames = new Set([
-  'users.read',
-  'users.create',
-  'users.update',
-  'users.deactivate',
-  'roles.read',
-  'roles.create',
-  'roles.update',
-  'roles.delete',
-  'roles.assign',
-  'permissions.read',
-  'permissions.create',
-  'permissions.update',
-  'permissions.delete',
-  'todos.read',
-  'todos.create',
-  'todos.update',
-  'todos.delete',
-])
-
 export function isSystemPermission(permission: Permission) {
-  return systemPermissionNames.has(permission.name)
+  return permission.isSystem
 }

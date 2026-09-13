@@ -12,15 +12,26 @@ public sealed class PermissionsController(IRolePermissionManagementService manag
 {
     [HttpGet]
     [Authorize(Policy = Permissions.PermissionsRead)]
-    [ProducesResponseType(typeof(IReadOnlyCollection<PermissionResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyCollection<PermissionResponse>>> Get(
-        [FromQuery] string? search,
-        [FromQuery] string? module,
+    [ProducesResponseType(typeof(PermissionPageResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PermissionPageResponse>> Get(
+        [FromQuery] PermissionFilterRequest request,
         CancellationToken cancellationToken)
     {
-        var permissions = await managementService.GetPermissionsAsync(search, module, cancellationToken);
-        return Ok(permissions.Select(ToResponse).ToArray());
+        var page = await managementService.GetPermissionsAsync(
+            request.Search, request.Module, request.PageNumber, request.PageSize, cancellationToken);
+        return Ok(new PermissionPageResponse(
+            page.Items.Select(ToResponse).ToArray(),
+            page.PageNumber,
+            page.PageSize,
+            page.TotalCount,
+            (int)Math.Ceiling(page.TotalCount / (double)page.PageSize)));
     }
+
+    [HttpGet("modules")]
+    [Authorize(Policy = Permissions.PermissionsRead)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<string>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<string>>> GetModules(CancellationToken cancellationToken) =>
+        Ok(await managementService.GetPermissionModulesAsync(cancellationToken));
 
     [HttpGet("{id:guid}")]
     [Authorize(Policy = Permissions.PermissionsRead)]
@@ -29,7 +40,7 @@ public sealed class PermissionsController(IRolePermissionManagementService manag
     public async Task<ActionResult<PermissionResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var permission = await managementService.GetPermissionByIdAsync(id, cancellationToken);
-        return permission is null ? NotFound(Problem("Permission was not found.")) : Ok(ToResponse(permission));
+        return permission is null ? NotFound(Problem("Không tìm thấy quyền.")) : Ok(ToResponse(permission));
     }
 
     [HttpPost]
@@ -79,7 +90,7 @@ public sealed class PermissionsController(IRolePermissionManagementService manag
         RolePermissionManagementFailure failure,
         IReadOnlyCollection<string> errors)
     {
-        var detail = errors.FirstOrDefault() ?? "Permission management operation failed.";
+        var detail = errors.FirstOrDefault() ?? "Không thể thực hiện thao tác quản lý quyền.";
         return failure switch
         {
             RolePermissionManagementFailure.NotFound => NotFound(Problem(detail)),
@@ -96,5 +107,6 @@ public sealed class PermissionsController(IRolePermissionManagementService manag
             permission.Name,
             permission.Description,
             permission.Module,
-            permission.CreatedAtUtc);
+            permission.CreatedAtUtc,
+            permission.IsSystem);
 }

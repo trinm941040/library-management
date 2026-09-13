@@ -41,6 +41,8 @@ export function DataTable<Row>({
   totalPages,
   totalCount,
   onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: {
   caption: string
   rows: readonly Row[]
@@ -61,6 +63,8 @@ export function DataTable<Row>({
   totalPages?: number
   totalCount?: number
   onPageChange?: (page: number) => void
+  pageSize?: number
+  onPageSizeChange?: (pageSize: number) => void
 }) {
   const selectable = Boolean(onSelectionChange)
   const visibleIds = rows.map(getRowId)
@@ -212,7 +216,13 @@ export function DataTable<Row>({
           <p className="text-sm text-muted-foreground">
             {typeof totalCount === 'number' ? `${totalCount} kết quả` : ''}
           </p>
-          <Pagination currentPage={page} totalPages={totalPages} onPageChange={onPageChange} />
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            pageSize={pageSize}
+            onPageSizeChange={onPageSizeChange}
+          />
         </div>
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import { RefreshCw, Search, Download } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { Badge } from '@/common/components/ui/badge'
+import { Pagination } from '@/common/components/ui/pagination'
 import { useState, useMemo } from 'react'
 
 const mockLogs = [
@@ -53,6 +55,8 @@ export function ActivityLogPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   // Filter logs based on search query
   const filteredLogs = useMemo(() => {
@@ -60,9 +64,11 @@ export function ActivityLogPage() {
       (log) =>
         log.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.admin.toLowerCase().includes(searchQuery.toLowerCase())
+        log.admin.toLowerCase().includes(searchQuery.toLowerCase()),
     )
   }, [searchQuery])
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize))
+  const visibleLogs = filteredLogs.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const handleRefresh = () => {
     setIsRefreshing(true)
@@ -75,14 +81,22 @@ export function ActivityLogPage() {
     setIsExporting(true)
     setTimeout(() => {
       setIsExporting(false)
-      
+
       // Tạo nội dung file CSV (dùng dấu chấm phẩy để Excel VN tự chia cột)
-      const headers = ['Quản trị viên', 'Email', 'Hành động', 'Địa chỉ IP', 'Thời gian', 'Trạng thái']
+      const headers = [
+        'Quản trị viên',
+        'Email',
+        'Hành động',
+        'Địa chỉ IP',
+        'Thời gian',
+        'Trạng thái',
+      ]
       const csvContent = [
         headers.join(';'),
-        ...filteredLogs.map(log => 
-          `"${log.admin}";"${log.email}";"${log.action}";"${log.ip}";"${log.time}";"${log.status}"`
-        )
+        ...filteredLogs.map(
+          (log) =>
+            `"${log.admin}";"${log.email}";"${log.action}";"${log.ip}";"${log.time}";"${log.status}"`,
+        ),
       ].join('\n')
 
       // Dùng BOM để Excel hiển thị đúng tiếng Việt
@@ -113,13 +127,15 @@ export function ActivityLogPage() {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing || isExporting}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> 
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Đang tải...' : 'Làm mới'}
           </Button>
-          <Button onClick={handleExport} disabled={isExporting || isRefreshing}>
-            <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} /> 
-            {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
-          </Button>
+          <PermissionBoundary requiredPermissions={['audit-logs.export']}>
+            <Button onClick={handleExport} disabled={isExporting || isRefreshing}>
+              <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} />
+              {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
+            </Button>
+          </PermissionBoundary>
         </div>
       </div>
 
@@ -128,9 +144,7 @@ export function ActivityLogPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Danh sách lịch sử</CardTitle>
-              <CardDescription>
-                {filteredLogs.length} bản ghi phù hợp với bộ lọc.
-              </CardDescription>
+              <CardDescription>{filteredLogs.length} bản ghi phù hợp với bộ lọc.</CardDescription>
             </div>
             <div className="relative w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -139,7 +153,10 @@ export function ActivityLogPage() {
                 placeholder="Tìm theo email hoặc hành động..."
                 className="pl-8"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
               />
             </div>
           </CardHeader>
@@ -162,7 +179,7 @@ export function ActivityLogPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLogs.map((log) => (
+                  visibleLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>
                         <p className="font-medium">{log.admin}</p>
@@ -181,6 +198,19 @@ export function ActivityLogPage() {
                 )}
               </TableBody>
             </Table>
+            {filteredLogs.length > 0 ? (
+              <Pagination
+                className="mt-4"
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => {
+                  setCurrentPage(1)
+                  setPageSize(size)
+                }}
+              />
+            ) : null}
           </CardContent>
         </Card>
       </div>

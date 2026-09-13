@@ -53,16 +53,10 @@ import {
   type SystemUser,
   type UserPageResponse,
 } from './user-api'
-
-const USERS_PER_PAGE = 20
-
-const roleLabels: Record<string, string> = {
-  Administrator: 'Quản trị viên',
-  User: 'Người dùng',
-}
+import { getAllRoles, type Role } from '@/pages/roles/role-permission-api'
 
 type StatusFilter = 'all' | 'active' | 'inactive'
-type RoleFilter = 'all' | 'Administrator' | 'User'
+type RoleFilter = 'all' | string
 
 type UserSummary = {
   total: number
@@ -78,7 +72,9 @@ export function UserPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [role, setRole] = useState<RoleFilter>('all')
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -110,7 +106,7 @@ export function UserPage() {
         isActive: status === 'all' ? undefined : status === 'active',
         role: role === 'all' ? undefined : role,
         pageNumber: currentPage,
-        pageSize: USERS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -129,7 +125,7 @@ export function UserPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, role, search, status])
+  }, [currentPage, pageSize, reloadKey, role, search, status])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -151,6 +147,21 @@ export function UserPage() {
 
     return () => controller.abort()
   }, [reloadKey])
+
+  useEffect(() => {
+    if (!can(currentUser?.permissions ?? [], 'roles.read')) {
+      setAvailableRoles([])
+      setRole('all')
+      return
+    }
+    const controller = new AbortController()
+    getAllRoles(controller.signal)
+      .then((items) => setAvailableRoles(items.filter((item) => item.isActive)))
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setAvailableRoles([])
+      })
+    return () => controller.abort()
+  }, [currentUser?.permissions, reloadKey])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -310,22 +321,27 @@ export function UserPage() {
                   <SelectItem value="inactive">Đã vô hiệu hóa</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={role}
-                onValueChange={(value) => {
-                  setRole(value as RoleFilter)
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-48" aria-label="Lọc theo vai trò">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả vai trò</SelectItem>
-                  <SelectItem value="Administrator">Quản trị viên</SelectItem>
-                  <SelectItem value="User">Người dùng</SelectItem>
-                </SelectContent>
-              </Select>
+              <PermissionBoundary requiredPermissions={['roles.read']}>
+                <Select
+                  value={role}
+                  onValueChange={(value) => {
+                    setRole(value)
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-48" aria-label="Lọc theo vai trò">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả vai trò</SelectItem>
+                    {availableRoles.map((availableRole) => (
+                      <SelectItem key={availableRole.id} value={availableRole.name}>
+                        {availableRole.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PermissionBoundary>
             </div>
           </CardHeader>
           <CardContent>
@@ -405,8 +421,7 @@ export function UserPage() {
                             {user.roles.length > 0 ? (
                               user.roles.map((userRole) => (
                                 <Badge key={userRole} variant="outline">
-                                  {userRole === 'Administrator' ? <ShieldCheck /> : null}
-                                  {roleLabels[userRole] ?? userRole}
+                                  <ShieldCheck /> {userRole}
                                 </Badge>
                               ))
                             ) : (
@@ -482,6 +497,11 @@ export function UserPage() {
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               ) : null}
             </div>

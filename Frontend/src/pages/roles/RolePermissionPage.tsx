@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   CircleAlert,
   KeyRound,
@@ -15,6 +16,8 @@ import {
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { useAuth } from '@/auth/AuthProvider'
+import { canAll } from '@/shared/auth/permissions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import {
   Dialog,
@@ -25,6 +28,7 @@ import {
   DialogTitle,
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
+import { Pagination } from '@/common/components/ui/pagination'
 import {
   Select,
   SelectContent,
@@ -50,6 +54,8 @@ import {
   createRole,
   deletePermission,
   deleteRole,
+  getAllPermissions,
+  getPermissionModules,
   getPermissions,
   getRoles,
   isSystemPermission,
@@ -62,13 +68,26 @@ import {
   type RoleInput,
 } from './role-permission-api'
 
-type View = 'roles' | 'permissions'
+export type RolePermissionView = 'roles' | 'permissions'
 type DeleteTarget = { type: 'role'; value: Role } | { type: 'permission'; value: Permission }
 
-export function RolePermissionPage() {
-  const [view, setView] = useState<View>('roles')
+export function RolePermissionPage({ initialView }: { initialView: RolePermissionView }) {
+  const view = initialView
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const canManageMatrix = canAll(user?.permissions ?? [], ['roles.assign', 'permissions.read'])
   const [roles, setRoles] = useState<Role[]>([])
   const [permissions, setPermissions] = useState<Permission[]>([])
+  const [permissionCatalog, setPermissionCatalog] = useState<Permission[]>([])
+  const [modules, setModules] = useState<string[]>([])
+  const [rolePage, setRolePage] = useState(1)
+  const [rolePageSize, setRolePageSize] = useState(10)
+  const [roleTotalCount, setRoleTotalCount] = useState(0)
+  const [roleTotalPages, setRoleTotalPages] = useState(0)
+  const [permissionPage, setPermissionPage] = useState(1)
+  const [permissionPageSize, setPermissionPageSize] = useState(10)
+  const [permissionTotalCount, setPermissionTotalCount] = useState(0)
+  const [permissionTotalPages, setPermissionTotalPages] = useState(0)
   const [roleSearchInput, setRoleSearchInput] = useState('')
   const [roleSearch, setRoleSearch] = useState('')
   const [permissionSearchInput, setPermissionSearchInput] = useState('')
@@ -88,12 +107,18 @@ export function RolePermissionPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setRoleSearch(roleSearchInput.trim()), 300)
+    const timeout = window.setTimeout(() => {
+      setRolePage(1)
+      setRoleSearch(roleSearchInput.trim())
+    }, 300)
     return () => window.clearTimeout(timeout)
   }, [roleSearchInput])
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setPermissionSearch(permissionSearchInput.trim()), 300)
+    const timeout = window.setTimeout(() => {
+      setPermissionPage(1)
+      setPermissionSearch(permissionSearchInput.trim())
+    }, 300)
     return () => window.clearTimeout(timeout)
   }, [permissionSearchInput])
 
@@ -102,13 +127,49 @@ export function RolePermissionPage() {
     setIsLoading(true)
     setError('')
 
+    const roleRequest =
+      view === 'roles'
+        ? getRoles(
+            { search: roleSearch || undefined, pageNumber: rolePage, pageSize: rolePageSize },
+            controller.signal,
+          )
+        : Promise.resolve(null)
+    const permissionRequest =
+      view === 'permissions'
+        ? getPermissions(
+            {
+              search: permissionSearch || undefined,
+              module: moduleFilter === 'all' ? undefined : moduleFilter,
+              pageNumber: permissionPage,
+              pageSize: permissionPageSize,
+            },
+            controller.signal,
+          )
+        : Promise.resolve(null)
+
     Promise.all([
-      getRoles(roleSearch || undefined, controller.signal),
-      getPermissions({}, controller.signal),
+      roleRequest,
+      permissionRequest,
+      canManageMatrix ? getAllPermissions(controller.signal) : Promise.resolve([]),
+      view === 'permissions' ? getPermissionModules(controller.signal) : Promise.resolve([]),
     ])
-      .then(([roleItems, permissionItems]) => {
-        setRoles(roleItems)
-        setPermissions(permissionItems)
+      .then(([roleResult, permissionResult, allPermissions, moduleItems]) => {
+        if (roleResult) {
+          setRoles(roleResult.items)
+          setRoleTotalCount(roleResult.totalCount)
+          setRoleTotalPages(roleResult.totalPages)
+          if (roleResult.totalPages > 0 && rolePage > roleResult.totalPages)
+            setRolePage(roleResult.totalPages)
+        }
+        if (permissionResult) {
+          setPermissions(permissionResult.items)
+          setPermissionTotalCount(permissionResult.totalCount)
+          setPermissionTotalPages(permissionResult.totalPages)
+          if (permissionResult.totalPages > 0 && permissionPage > permissionResult.totalPages)
+            setPermissionPage(permissionResult.totalPages)
+        }
+        setPermissionCatalog(allPermissions)
+        if (view === 'permissions') setModules(moduleItems)
       })
       .catch((loadError: unknown) => {
         if (loadError instanceof DOMException && loadError.name === 'AbortError') return
@@ -123,25 +184,18 @@ export function RolePermissionPage() {
       })
 
     return () => controller.abort()
-  }, [reloadKey, roleSearch])
-
-  const filteredPermissions = useMemo(() => {
-    const keyword = permissionSearch.toLowerCase()
-    return permissions.filter((permission) => {
-      const matchesModule = moduleFilter === 'all' || permission.module === moduleFilter
-      const matchesSearch =
-        !keyword ||
-        `${permission.name} ${permission.description} ${permission.module}`
-          .toLowerCase()
-          .includes(keyword)
-      return matchesModule && matchesSearch
-    })
-  }, [moduleFilter, permissionSearch, permissions])
-
-  const modules = useMemo(
-    () => [...new Set(permissions.map((permission) => permission.module))].sort(),
-    [permissions],
-  )
+  }, [
+    canManageMatrix,
+    moduleFilter,
+    permissionPage,
+    permissionPageSize,
+    permissionSearch,
+    reloadKey,
+    rolePage,
+    rolePageSize,
+    roleSearch,
+    view,
+  ])
 
   const refresh = (message?: string) => {
     if (message) setNotice(message)
@@ -265,13 +319,21 @@ export function RolePermissionPage() {
         ) : null}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard title="Tổng vai trò" value={roles.length} icon={ShieldCheck} />
           <SummaryCard
-            title="Vai trò hệ thống"
+            title="Tổng vai trò"
+            value={view === 'roles' ? roleTotalCount : '—'}
+            icon={ShieldCheck}
+          />
+          <SummaryCard
+            title="Vai trò hệ thống trên trang"
             value={roles.filter((role) => role.isSystemRole).length}
             icon={ShieldPlus}
           />
-          <SummaryCard title="Tổng quyền hạn" value={permissions.length} icon={KeyRound} />
+          <SummaryCard
+            title="Tổng quyền hạn"
+            value={view === 'permissions' ? permissionTotalCount : permissionCatalog.length}
+            icon={KeyRound}
+          />
           <SummaryCard title="Phân hệ" value={modules.length} icon={Layers3} />
         </div>
 
@@ -279,20 +341,24 @@ export function RolePermissionPage() {
           className="mb-5 inline-flex rounded-lg border bg-muted/30 p-1"
           aria-label="Chọn dữ liệu phân quyền"
         >
-          <Button
-            variant={view === 'roles' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setView('roles')}
-          >
-            <ShieldCheck /> Vai trò
-          </Button>
-          <Button
-            variant={view === 'permissions' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setView('permissions')}
-          >
-            <KeyRound /> Quyền hạn
-          </Button>
+          <PermissionBoundary requiredPermissions={['roles.read']}>
+            <Button
+              variant={view === 'roles' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/roles')}
+            >
+              <ShieldCheck /> Vai trò
+            </Button>
+          </PermissionBoundary>
+          <PermissionBoundary requiredPermissions={['permissions.read']}>
+            <Button
+              variant={view === 'permissions' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/permissions')}
+            >
+              <KeyRound /> Quyền hạn
+            </Button>
+          </PermissionBoundary>
         </div>
 
         {error ? <LoadError message={error} onRetry={() => refresh()} /> : null}
@@ -302,6 +368,15 @@ export function RolePermissionPage() {
             search={roleSearchInput}
             isLoading={isLoading}
             onSearchChange={setRoleSearchInput}
+            currentPage={rolePage}
+            pageSize={rolePageSize}
+            totalCount={roleTotalCount}
+            totalPages={roleTotalPages}
+            onPageChange={setRolePage}
+            onPageSizeChange={(size) => {
+              setRolePage(1)
+              setRolePageSize(size)
+            }}
             onEdit={(role) => {
               setEditingRole(role)
               setRoleFormOpen(true)
@@ -314,13 +389,25 @@ export function RolePermissionPage() {
           />
         ) : (
           <PermissionsTable
-            permissions={filteredPermissions}
+            permissions={permissions}
             modules={modules}
             search={permissionSearchInput}
             moduleFilter={moduleFilter}
             isLoading={isLoading}
             onSearchChange={setPermissionSearchInput}
-            onModuleChange={setModuleFilter}
+            currentPage={permissionPage}
+            pageSize={permissionPageSize}
+            totalCount={permissionTotalCount}
+            totalPages={permissionTotalPages}
+            onPageChange={setPermissionPage}
+            onPageSizeChange={(size) => {
+              setPermissionPage(1)
+              setPermissionPageSize(size)
+            }}
+            onModuleChange={(module) => {
+              setPermissionPage(1)
+              setModuleFilter(module)
+            }}
             onEdit={(permission) => {
               setEditingPermission(permission)
               setPermissionFormOpen(true)
@@ -352,11 +439,11 @@ export function RolePermissionPage() {
           onSave={savePermission}
         />
       </PermissionBoundary>
-      <PermissionBoundary requiredPermissions={['roles.assign']}>
+      <PermissionBoundary requiredPermissions={['roles.assign', 'permissions.read']}>
         <PermissionAssignmentDialog
           open={!!permissionRole}
           role={permissionRole}
-          permissions={permissions}
+          permissions={permissionCatalog}
           onOpenChange={(open) => !open && setPermissionRole(null)}
           onSave={saveRolePermissions}
         />
@@ -383,6 +470,12 @@ type RolesTableProps = {
   search: string
   isLoading: boolean
   onSearchChange: (value: string) => void
+  currentPage: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
   onEdit: (role: Role) => void
   onPermissions: (role: Role) => void
   onDelete: (role: Role) => void
@@ -393,6 +486,12 @@ function RolesTable({
   search,
   isLoading,
   onSearchChange,
+  currentPage,
+  pageSize,
+  totalCount,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
   onEdit,
   onPermissions,
   onDelete,
@@ -402,9 +501,7 @@ function RolesTable({
       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>Danh sách vai trò</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {roles.length} vai trò được tìm thấy.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{totalCount} vai trò được tìm thấy.</p>
         </div>
         <SearchBox value={search} placeholder="Tìm tên hoặc mô tả..." onChange={onSearchChange} />
       </CardHeader>
@@ -415,15 +512,16 @@ function RolesTable({
               <TableRow>
                 <TableHead>Vai trò</TableHead>
                 <TableHead>Loại</TableHead>
+                <TableHead>Trạng thái</TableHead>
                 <TableHead>Quyền hạn</TableHead>
                 <TableHead>Ngày tạo</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && roles.length === 0 ? <LoadingRows columns={5} /> : null}
+              {isLoading && roles.length === 0 ? <LoadingRows columns={6} /> : null}
               {!isLoading && roles.length === 0 ? (
-                <EmptyRow columns={5} message="Không tìm thấy vai trò phù hợp." />
+                <EmptyRow columns={6} message="Không tìm thấy vai trò phù hợp." />
               ) : null}
               {roles.map((role) => (
                 <TableRow key={role.id} className={isLoading ? 'opacity-60' : undefined}>
@@ -438,6 +536,11 @@ function RolesTable({
                   <TableCell>
                     <Badge variant={role.isSystemRole ? 'secondary' : 'outline'}>
                       {role.isSystemRole ? 'Hệ thống' : 'Tùy chỉnh'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={role.isActive ? 'secondary' : 'destructive'}>
+                      {role.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -486,6 +589,16 @@ function RolesTable({
             </TableBody>
           </Table>
         </div>
+        {totalCount > 0 ? (
+          <Pagination
+            className="mt-4"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )
@@ -499,6 +612,12 @@ type PermissionsTableProps = {
   isLoading: boolean
   onSearchChange: (value: string) => void
   onModuleChange: (value: string) => void
+  currentPage: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
   onEdit: (permission: Permission) => void
   onDelete: (permission: Permission) => void
 }
@@ -511,6 +630,12 @@ function PermissionsTable({
   isLoading,
   onSearchChange,
   onModuleChange,
+  currentPage,
+  pageSize,
+  totalCount,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
   onEdit,
   onDelete,
 }: PermissionsTableProps) {
@@ -520,9 +645,7 @@ function PermissionsTable({
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div>
             <CardTitle>Danh sách quyền hạn</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {permissions.length} quyền được tìm thấy.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{totalCount} quyền được tìm thấy.</p>
           </div>
           <SearchBox
             value={search}
@@ -619,6 +742,16 @@ function PermissionsTable({
             </TableBody>
           </Table>
         </div>
+        {totalCount > 0 ? (
+          <Pagination
+            className="mt-4"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )

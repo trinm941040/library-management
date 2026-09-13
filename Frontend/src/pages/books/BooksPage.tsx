@@ -24,13 +24,12 @@ import {
   type LibraryBook,
 } from './book-api'
 
-const BOOKS_PER_PAGE = 20
-
 export function BooksPage() {
   const [page, setPage] = useState<BookPageResponse | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -64,7 +63,7 @@ export function BooksPage() {
       {
         search: search || undefined,
         pageNumber: currentPage,
-        pageSize: BOOKS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -83,7 +82,7 @@ export function BooksPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, search])
+  }, [currentPage, pageSize, reloadKey, search])
 
   const refresh = useCallback(
     (message?: string) => {
@@ -327,6 +326,11 @@ export function BooksPage() {
               totalPages={page?.totalPages}
               totalCount={page?.totalCount}
               onPageChange={setCurrentPage}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setCurrentPage(1)
+                setPageSize(size)
+              }}
             />
           </CardContent>
         </Card>

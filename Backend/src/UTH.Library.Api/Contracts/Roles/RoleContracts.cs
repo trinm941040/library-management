@@ -2,6 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace UTH.Library.Api.Contracts.Roles;
 
+public sealed class RoleFilterRequest
+{
+    public string? Search { get; init; }
+
+    [Range(1, 1_000_000)]
+    public int PageNumber { get; init; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; init; } = 20;
+}
+
 public sealed record CreateRoleRequest(
     [Required, StringLength(100, MinimumLength = 2)] string Name,
     [StringLength(500)] string Description = "");
@@ -30,4 +41,12 @@ public sealed record PermissionSummaryResponse(
     Guid Id,
     string Name,
     string Description,
-    string Module);
+    string Module,
+    bool IsSystem);
+
+public sealed record RolePageResponse(
+    IReadOnlyCollection<RoleResponse> Items,
+    int PageNumber,
+    int PageSize,
+    int TotalCount,
+    int TotalPages);

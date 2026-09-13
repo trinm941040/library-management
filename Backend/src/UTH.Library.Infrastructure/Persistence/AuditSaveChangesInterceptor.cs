@@ -4,7 +4,6 @@ using System.Text.Json;
 using UTH.Library.Application.Abstractions;
 using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
 
 namespace UTH.Library.Infrastructure.Persistence;
 
@@ -18,7 +17,8 @@ internal sealed class AuditSaveChangesInterceptor(IRequestContext requestContext
             .Where(entry => entry.State is EntityState.Added or EntityState.Modified))
             session.Entity.RowVersion = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
         var entries = db.ChangeTracker.Entries()
-            .Where(entry => entry.Entity is Borrowing or Reservation or Violation or ApplicationRole or Permission or RolePermission or IdentityUserRole<Guid> && entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Where(entry => entry.Entity is (Borrowing or Reservation or Violation) &&
+                entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToArray();
         foreach (var entry in entries)
         {

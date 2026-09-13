@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { ViolationFormDialog, type ViolationFormData } from './components/ViolationFormDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   createViolation,
   getViolations,
@@ -28,8 +29,6 @@ import {
   waiveViolation,
   type ViolationPageResponse,
 } from './violation-api'
-
-const ITEMS_PER_PAGE = 20
 
 const statusLabels: Record<string, string> = {
   open: 'Chưa xử lý',
@@ -50,6 +49,7 @@ export function ViolationsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -76,7 +76,7 @@ export function ViolationsPage() {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
         pageNumber: currentPage,
-        pageSize: ITEMS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -95,7 +95,7 @@ export function ViolationsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -135,7 +135,11 @@ export function ViolationsPage() {
   }
 
   const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    new Date(value).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
 
   const formatMoney = (value: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -158,9 +162,11 @@ export function ViolationsPage() {
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button onClick={() => setFormOpen(true)}>
-              <Plus /> Ghi nhận vi phạm
-            </Button>
+            <PermissionBoundary requiredPermissions={['violations.create']}>
+              <Button onClick={() => setFormOpen(true)}>
+                <Plus /> Ghi nhận vi phạm
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -279,27 +285,37 @@ export function ViolationsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {item.status === 'open' ? (
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              disabled={busyId === item.id}
-                              onClick={() =>
-                                runAction(item.id, () => payViolation(item.id), 'Đã ghi nhận nộp phạt.')
-                              }
-                            >
-                              Nộp phạt
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={busyId === item.id}
-                              onClick={() =>
-                                runAction(item.id, () => waiveViolation(item.id), 'Đã miễn vi phạm.')
-                              }
-                            >
-                              Miễn
-                            </Button>
-                          </div>
+                          <PermissionBoundary requiredPermissions={['violations.resolve']}>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  runAction(
+                                    item.id,
+                                    () => payViolation(item.id),
+                                    'Đã ghi nhận nộp phạt.',
+                                  )
+                                }
+                              >
+                                Nộp phạt
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  runAction(
+                                    item.id,
+                                    () => waiveViolation(item.id),
+                                    'Đã miễn vi phạm.',
+                                  )
+                                }
+                              >
+                                Miễn
+                              </Button>
+                            </div>
+                          </PermissionBoundary>
                         ) : null}
                       </TableCell>
                     </TableRow>
@@ -308,12 +324,17 @@ export function ViolationsPage() {
               </Table>
             </div>
 
-            {page && page.totalPages > 1 ? (
+            {page && page.totalCount > 0 ? (
               <div className="mt-4 flex justify-end">
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               </div>
             ) : null}
@@ -321,7 +342,9 @@ export function ViolationsPage() {
         </Card>
       </div>
 
-      <ViolationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      <PermissionBoundary requiredPermissions={['violations.create']}>
+        <ViolationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      </PermissionBoundary>
     </>
   )
 }
