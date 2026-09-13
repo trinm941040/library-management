@@ -8,6 +8,8 @@ using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Infrastructure.Persistence;
 using UTH.Library.Infrastructure.Persistence.Repositories;
 using UTH.Library.Infrastructure.Identity;
+using UTH.Library.Application.Features.Settings;
+using UTH.Library.Infrastructure.Settings;
 
 namespace UTH.Library.Infrastructure;
 
@@ -15,6 +17,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddDataProtection();
         services.AddOptions<AuditRetentionOptions>()
             .Bind(configuration.GetSection(AuditRetentionOptions.SectionName))
             .Validate(options => options.RetentionDays is >= 30 and <= 3650, "Audit:RetentionDays must be between 30 and 3650.")
@@ -66,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }
 }

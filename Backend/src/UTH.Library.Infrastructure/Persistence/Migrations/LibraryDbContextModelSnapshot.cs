@@ -222,17 +222,17 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("RetainUntilUtc");
+
                     b.HasIndex("Action", "CreatedAtUtc");
 
                     b.HasIndex("ActorUserId", "CreatedAtUtc");
 
-                    b.HasIndex("CorrelationId");
-
-                    b.HasIndex("EntityType", "EntityId", "CreatedAtUtc");
-
                     b.HasIndex("IpAddress", "CreatedAtUtc");
 
-                    b.HasIndex("RetainUntilUtc");
+                    b.HasIndex("EntityType", "EntityId", "CreatedAtUtc");
 
                     b.ToTable("audit_logs", (string)null);
                 });
@@ -693,8 +693,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Checksum")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -713,8 +713,9 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Checksum")
-                        .IsUnique();
+                    b.HasIndex("Checksum");
+
+                    b.HasIndex("CreatedAtUtc");
 
                     b.HasIndex("CreatedByUserId");
 
@@ -1719,18 +1720,24 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("ConcurrencyToken")
                         .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<bool>("IsSecret")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1753,6 +1760,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("Scope", "Key");
 
                     b.ToTable("system_settings", (string)null);
                 });

@@ -57,9 +57,9 @@ const ActivityLogPage = lazy(() =>
   import('../pages/activity-logs/ActivityLogPage').then((m) => ({ default: m.ActivityLogPage })),
 )
 const InfoPage = lazy(() => import('../pages/info/InfoPage').then((m) => ({ default: m.InfoPage })))
-const OtherSettingsPage = lazy(() =>
-  import('../pages/other-settings/OtherSettingsPage').then((m) => ({
-    default: m.OtherSettingsPage,
+const ConfigurationPage = lazy(() =>
+  import('../pages/settings/ConfigurationPage').then((m) => ({
+    default: m.ConfigurationPage,
   })),
 )
 
@@ -122,6 +122,7 @@ export function AppRoutes() {
           element={page('/permissions', <RolePermissionPage initialView="permissions" />)}
         />
         <Route path="/settings" element={page('/settings', <SettingsPage />)} />
+        <Route path="/configuration" element={page('/configuration', <ConfigurationPage />)} />
         <Route
           path="/profile"
           element={
@@ -143,10 +144,7 @@ export function AppRoutes() {
         <Route path="/audit-log" element={page('/audit-log', <ActivityLogPage />)} />
         <Route path="/system/activity-log" element={<Navigate to="/audit-log" replace />} />
         <Route path="/system/info" element={page('/system/info', <InfoPage />)} />
-        <Route
-          path="/system/other-settings"
-          element={page('/system/other-settings', <OtherSettingsPage />)}
-        />
+        <Route path="/system/other-settings" element={<Navigate to="/settings" replace />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
