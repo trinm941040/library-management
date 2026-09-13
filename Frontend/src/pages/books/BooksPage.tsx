@@ -15,6 +15,7 @@ import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
 import { BookFormDialog, type BookFormData } from './components/BookFormDialog'
+import { EntityActivityLink } from '@/pages/activity-logs/EntityActivityLink'
 import {
   createBook,
   deleteBook,
@@ -186,6 +187,7 @@ export function BooksPage() {
         className: 'text-right',
         cell: (book) => (
           <div className="flex justify-end">
+            <EntityActivityLink entityType="Book" entityId={book.id} label={book.title} />
             <PermissionBoundary requiredPermissions={['books.update']}>
               <Button
                 variant="ghost"

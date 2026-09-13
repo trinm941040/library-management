@@ -14,13 +14,25 @@ using UTH.Library.Application.Abstractions;
 using UTH.Library.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using System.Threading.RateLimiting;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace UTH.Library.Api;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApi(this IServiceCollection services)
+    public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+            options.RequireHeaderSymmetry = true;
+            options.KnownProxies.Clear();
+            options.KnownIPNetworks.Clear();
+            foreach (var value in configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+                if (IPAddress.TryParse(value, out var address)) options.KnownProxies.Add(address);
+        });
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>

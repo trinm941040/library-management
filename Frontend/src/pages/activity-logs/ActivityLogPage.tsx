@@ -1,219 +1,242 @@
-import { RefreshCw, Search, Download } from 'lucide-react'
-import { Button } from '@/common/components/ui/button'
-import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/common/components/ui/card'
-import { Input } from '@/common/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/common/components/ui/table'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { Download, Eye, RefreshCw, Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { DataTable, FilterPanel, PageShell, type DataTableColumn } from '@/common/components'
 import { Badge } from '@/common/components/ui/badge'
-import { Pagination } from '@/common/components/ui/pagination'
-import { useState, useMemo } from 'react'
+import { Button } from '@/common/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/common/components/ui/dialog'
+import { Input } from '@/common/components/ui/input'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { getAuditLog, getAuditLogs, type AuditLog, type AuditLogFilters } from './audit-log-api'
 
-const mockLogs = [
-  {
-    id: 1,
-    admin: 'Nguyễn Văn A',
-    email: 'admin_a@example.com',
-    action: 'Cập nhật cấu hình hệ thống',
-    ip: '192.168.1.45',
-    time: '29/08/2026 10:30',
-    status: 'Thành công',
-  },
-  {
-    id: 2,
-    admin: 'Trần Thị B',
-    email: 'admin_b@example.com',
-    action: 'Xóa người dùng',
-    ip: '192.168.1.102',
-    time: '29/08/2026 09:15',
-    status: 'Thành công',
-  },
-  {
-    id: 3,
-    admin: 'Lê Văn C',
-    email: 'admin_c@example.com',
-    action: 'Đăng nhập sai mật khẩu',
-    ip: '14.232.12.11',
-    time: '28/08/2026 15:45',
-    status: 'Thất bại',
-  },
-]
+const filterKeys = [
+  'actorUserId', 'action', 'entityType', 'entityId',
+  'correlationId', 'ipAddress', 'fromUtc', 'toUtc',
+] as const
+type FilterKey = (typeof filterKeys)[number]
+type FilterDraft = Record<FilterKey, string>
 
-export function ActivityLogPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+const emptyDraft = (): FilterDraft =>
+  Object.fromEntries(filterKeys.map((key) => [key, ''])) as FilterDraft
+const safePage = (value: string | null, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+const displayDate = (value: string) => new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'short', timeStyle: 'medium',
+}).format(new Date(value))
+const toLocalDateTimeInput = (value: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
 
-  // Filter logs based on search query
-  const filteredLogs = useMemo(() => {
-    return mockLogs.filter(
-      (log) =>
-        log.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.admin.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-  }, [searchQuery])
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize))
-  const visibleLogs = filteredLogs.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    setTimeout(() => {
-      setIsRefreshing(false)
-    }, 600)
+function parseAuditObject(value: string | null): Record<string, unknown> {
+  if (!value) return {}
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>) : { value: parsed }
+  } catch {
+    return { value: '[DỮ LIỆU KHÔNG HỢP LỆ]' }
   }
+}
 
-  const handleExport = () => {
-    setIsExporting(true)
-    setTimeout(() => {
-      setIsExporting(false)
+function displayValue(key: string, value: unknown) {
+  if (/password|token|secret|email|phone|address|dateofbirth|fullname|displayname|username|borrowername|reservername|contactname|contactinfo/i.test(key))
+    return '[ĐÃ ẨN]'
+  if (value === undefined) return '—'
+  if (value === null) return 'null'
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
 
-      // Tạo nội dung file CSV (dùng dấu chấm phẩy để Excel VN tự chia cột)
-      const headers = [
-        'Quản trị viên',
-        'Email',
-        'Hành động',
-        'Địa chỉ IP',
-        'Thời gian',
-        'Trạng thái',
-      ]
-      const csvContent = [
-        headers.join(';'),
-        ...filteredLogs.map(
-          (log) =>
-            `"${log.admin}";"${log.email}";"${log.action}";"${log.ip}";"${log.time}";"${log.status}"`,
-        ),
-      ].join('\n')
+function AuditDiff({ item }: { item: AuditLog }) {
+  const before = parseAuditObject(item.beforeJson)
+  const after = parseAuditObject(item.afterJson)
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+    .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+    .sort()
 
-      // Dùng BOM để Excel hiển thị đúng tiếng Việt
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', 'nhat_ky_hoat_dong.csv')
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }, 1000)
-  }
+  if (keys.length === 0)
+    return <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Không có thuộc tính thay đổi để hiển thị.</p>
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-10 md:px-12">
-      {/* Header section matching the style in the images */}
-      <div className="mb-7 flex items-start justify-between">
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">
-            Quản lý hệ thống
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">Nhật ký hoạt động</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Theo dõi lịch sử thao tác của quản trị viên và người dùng trên hệ thống.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing || isExporting}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Đang tải...' : 'Làm mới'}
-          </Button>
-          <PermissionBoundary requiredPermissions={['audit-logs.export']}>
-            <Button onClick={handleExport} disabled={isExporting || isRefreshing}>
-              <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-bounce' : ''}`} />
-              {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
-            </Button>
-          </PermissionBoundary>
-        </div>
-      </div>
-
-      <div className="grid gap-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Danh sách lịch sử</CardTitle>
-              <CardDescription>{filteredLogs.length} bản ghi phù hợp với bộ lọc.</CardDescription>
-            </div>
-            <div className="relative w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Tìm theo email hoặc hành động..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setCurrentPage(1)
-                }}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quản trị viên</TableHead>
-                  <TableHead>Hành động</TableHead>
-                  <TableHead>Địa chỉ IP</TableHead>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      Không tìm thấy kết quả nào.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  visibleLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>
-                        <p className="font-medium">{log.admin}</p>
-                        <p className="text-xs text-muted-foreground">{log.email}</p>
-                      </TableCell>
-                      <TableCell>{log.action}</TableCell>
-                      <TableCell>{log.ip}</TableCell>
-                      <TableCell>{log.time}</TableCell>
-                      <TableCell>
-                        <Badge variant={log.status === 'Thành công' ? 'default' : 'destructive'}>
-                          {log.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            {filteredLogs.length > 0 ? (
-              <Pagination
-                className="mt-4"
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => {
-                  setCurrentPage(1)
-                  setPageSize(size)
-                }}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+    <div className="max-h-[50vh] overflow-auto rounded-md border">
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <thead className="sticky top-0 bg-background shadow-sm">
+          <tr><th className="p-3">Thuộc tính</th><th className="p-3">Trước</th><th className="p-3">Sau</th></tr>
+        </thead>
+        <tbody>
+          {keys.map((key) => (
+            <tr key={key} className="border-t align-top">
+              <th className="p-3 font-medium">{key}</th>
+              <td className="max-w-64 break-words p-3 font-mono text-xs">{displayValue(key, before[key])}</td>
+              <td className="max-w-64 break-words p-3 font-mono text-xs">{displayValue(key, after[key])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
+  )
+}
+
+export function ActivityLogPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const pageNumber = safePage(searchParams.get('pageNumber'), 1)
+  const pageSize = safePage(searchParams.get('pageSize'), 20)
+  const activeFilters = useMemo(
+    () => Object.fromEntries(filterKeys.map((key) => [key, searchParams.get(key) ?? ''])) as FilterDraft,
+    [searchParams],
+  )
+  const [draft, setDraft] = useState<FilterDraft>(activeFilters)
+  const [items, setItems] = useState<AuditLog[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  const [detail, setDetail] = useState<AuditLog | null>(null)
+  const [detailError, setDetailError] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => setDraft(activeFilters), [activeFilters])
+  useEffect(() => {
+    const controller = new AbortController()
+    setIsLoading(true)
+    setError('')
+    const filters: AuditLogFilters = {
+      ...Object.fromEntries(Object.entries(activeFilters).filter(([, value]) => value)),
+      pageNumber, pageSize,
+    }
+    getAuditLogs(filters, controller.signal)
+      .then((page) => {
+        setItems(page.items)
+        setTotalCount(page.totalCount)
+        setTotalPages(page.totalPages)
+        if (page.totalPages > 0 && pageNumber > page.totalPages)
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current)
+            next.set('pageNumber', String(page.totalPages))
+            return next
+          }, { replace: true })
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === 'AbortError') return
+        setError(reason instanceof Error ? reason.message : 'Không thể tải nhật ký kiểm toán.')
+      })
+      .finally(() => { if (!controller.signal.aborted) setIsLoading(false) })
+    return () => controller.abort()
+  }, [activeFilters, pageNumber, pageSize, reloadKey, setSearchParams])
+
+  const updateParams = useCallback((changes: Record<string, string | number | undefined>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === undefined || value === '') next.delete(key)
+        else next.set(key, String(value))
+      })
+      return next
+    })
+  }, [setSearchParams])
+
+  const submitFilters = (event: FormEvent) => {
+    event.preventDefault()
+    updateParams({ ...draft, pageNumber: 1 })
+  }
+
+  const openDetail = async (item: AuditLog) => {
+    setDetail(item)
+    setDetailError('')
+    setDetailLoading(true)
+    try { setDetail(await getAuditLog(item.id)) }
+    catch (reason) { setDetailError(reason instanceof Error ? reason.message : 'Không thể tải chi tiết.') }
+    finally { setDetailLoading(false) }
+  }
+
+  const exportCurrentPage = () => {
+    const headers = ['Thời gian', 'Người thực hiện', 'Hành động', 'Đối tượng', 'Mã đối tượng', 'IP', 'Correlation ID']
+    const escape = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
+    const csv = [headers, ...items.map((item) => [
+      item.createdAtUtc, item.actorName ?? item.actorUserId ?? 'Hệ thống', item.action,
+      item.entityType, item.entityId, item.ipAddress, item.correlationId,
+    ])].map((row) => row.map(escape).join(';')).join('\n')
+    const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `nhat-ky-kiem-toan-trang-${pageNumber}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
+    { id: 'createdAtUtc', header: 'Thời gian', cell: (item) => <time dateTime={item.createdAtUtc}>{displayDate(item.createdAtUtc)}</time> },
+    { id: 'actor', header: 'Người thực hiện', cell: (item) => <span className="grid gap-0.5"><strong>{item.actorName ?? 'Hệ thống'}</strong><small className="font-mono text-muted-foreground">{item.actorUserId ?? '—'}</small></span> },
+    { id: 'action', header: 'Hành động', cell: (item) => <Badge variant="outline">{item.action}</Badge> },
+    { id: 'entity', header: 'Đối tượng', cell: (item) => <span className="grid gap-0.5"><strong>{item.entityType}</strong><button className="text-left font-mono text-xs text-primary hover:underline" onClick={() => updateParams({ entityType: item.entityType, entityId: item.entityId, pageNumber: 1 })}>{item.entityId}</button></span> },
+    { id: 'ipAddress', header: 'Địa chỉ IP', cell: (item) => <span className="font-mono text-xs">{item.ipAddress ?? '—'}</span> },
+    { id: 'correlationId', header: 'Correlation ID', cell: (item) => item.correlationId ? <button className="max-w-48 truncate font-mono text-xs text-primary hover:underline" title={item.correlationId} onClick={() => updateParams({ correlationId: item.correlationId ?? '', pageNumber: 1 })}>{item.correlationId}</button> : '—' },
+    { id: 'details', header: 'Chi tiết', className: 'text-right', cell: (item) => <Button variant="ghost" size="icon" aria-label={`Xem chi tiết ${item.action}`} onClick={() => void openDetail(item)}><Eye /></Button> },
+  ], [updateParams])
+
+  const hasFilters = Object.values(activeFilters).some(Boolean)
+  return (
+    <PageShell
+      eyebrow="Quản lý hệ thống"
+      title="Nhật ký kiểm toán"
+      description="Tra cứu lịch sử thay đổi bất biến theo người thực hiện, đối tượng và yêu cầu."
+      actions={<><Button variant="outline" disabled={isLoading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={isLoading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={items.length === 0} onClick={exportCurrentPage}><Download />Xuất trang hiện tại</Button></PermissionBoundary></>}
+    >
+      <Card>
+        <CardHeader><CardTitle>Danh sách bản ghi</CardTitle><p className="text-sm text-muted-foreground">{totalCount} bản ghi phù hợp với bộ lọc.</p></CardHeader>
+        <CardContent>
+          <DataTable
+            caption="Danh sách nhật ký kiểm toán"
+            rows={items}
+            columns={columns}
+            getRowId={(item) => item.id}
+            isLoading={isLoading && items.length === 0}
+            error={error || undefined}
+            onRetry={() => setReloadKey((value) => value + 1)}
+            emptyTitle="Không có bản ghi kiểm toán"
+            emptyDescription="Thay đổi bộ lọc hoặc thực hiện một nghiệp vụ có ghi nhận kiểm toán."
+            filters={<FilterPanel hasFilters={hasFilters} onReset={() => { setDraft(emptyDraft()); setSearchParams({}) }} resultCount={totalCount}>
+              <form className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-4" onSubmit={submitFilters}>
+                <Input value={draft.action} onChange={(event) => setDraft((value) => ({ ...value, action: event.target.value }))} placeholder="Hành động" aria-label="Lọc theo hành động" />
+                <Input value={draft.entityType} onChange={(event) => setDraft((value) => ({ ...value, entityType: event.target.value }))} placeholder="Loại đối tượng" aria-label="Lọc theo loại đối tượng" />
+                <Input value={draft.entityId} onChange={(event) => setDraft((value) => ({ ...value, entityId: event.target.value }))} placeholder="Mã đối tượng" aria-label="Lọc theo mã đối tượng" />
+                <Input value={draft.actorUserId} onChange={(event) => setDraft((value) => ({ ...value, actorUserId: event.target.value }))} placeholder="Mã người thực hiện" aria-label="Lọc theo mã người thực hiện" />
+                <Input value={draft.ipAddress} onChange={(event) => setDraft((value) => ({ ...value, ipAddress: event.target.value }))} placeholder="Địa chỉ IP" aria-label="Lọc theo địa chỉ IP" />
+                <Input value={draft.correlationId} onChange={(event) => setDraft((value) => ({ ...value, correlationId: event.target.value }))} placeholder="Correlation ID" aria-label="Lọc theo correlation ID" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.fromUtc)} onChange={(event) => setDraft((value) => ({ ...value, fromUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Từ thời điểm" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.toUtc)} onChange={(event) => setDraft((value) => ({ ...value, toUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Đến thời điểm" />
+                <Button type="submit" className="xl:col-start-4"><Search />Áp dụng bộ lọc</Button>
+              </form>
+            </FilterPanel>}
+            page={pageNumber}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={(page) => updateParams({ pageNumber: page })}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => updateParams({ pageSize: size, pageNumber: 1 })}
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null) }}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader><DialogTitle>Chi tiết thay đổi</DialogTitle><DialogDescription>{detail ? `${detail.action} · ${detail.entityType} · ${detail.entityId}` : ''}</DialogDescription></DialogHeader>
+          {detailError ? <p role="alert" className="text-sm text-destructive">{detailError}</p> : null}
+          {detailLoading ? <p className="text-sm text-muted-foreground">Đang tải chi tiết...</p> : detail ? <><dl className="grid gap-2 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Correlation ID</dt><dd className="break-all font-mono">{detail.correlationId ?? '—'}</dd></div><div><dt className="text-muted-foreground">Địa chỉ IP</dt><dd className="font-mono">{detail.ipAddress ?? '—'}</dd></div></dl><AuditDiff item={detail} /></> : null}
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   )
 }

@@ -129,5 +129,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         public static readonly EmptyRequestContext Instance = new();
         public Guid? UserId => null;
         public string CorrelationId => string.Empty;
+        public string? IpAddress => null;
     }
 }
