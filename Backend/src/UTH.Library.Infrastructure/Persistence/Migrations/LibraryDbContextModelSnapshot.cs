@@ -213,11 +213,26 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("RetainUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Action", "CreatedAtUtc");
 
                     b.HasIndex("ActorUserId", "CreatedAtUtc");
 
+                    b.HasIndex("CorrelationId");
+
                     b.HasIndex("EntityType", "EntityId", "CreatedAtUtc");
+
+                    b.HasIndex("IpAddress", "CreatedAtUtc");
+
+                    b.HasIndex("RetainUntilUtc");
 
                     b.ToTable("audit_logs", (string)null);
                 });

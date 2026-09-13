@@ -85,8 +85,8 @@ export const navigationGroups: readonly NavigationGroup[] = [
         requiredPermissions: ['circulation-policies.read'],
       },
       {
-        path: '/system/activity-log',
-        label: 'Nhật ký hoạt động',
+        path: '/audit-log',
+        label: 'Nhật ký kiểm toán',
         icon: RefreshCw,
         requiredPermissions: ['audit-logs.read'],
       },

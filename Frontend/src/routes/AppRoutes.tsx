@@ -140,10 +140,8 @@ export function AppRoutes() {
         />
         {/* System Management Routes */}
         <Route path="/system/config" element={page('/system/config', <ConfigPage />)} />
-        <Route
-          path="/system/activity-log"
-          element={page('/system/activity-log', <ActivityLogPage />)}
-        />
+        <Route path="/audit-log" element={page('/audit-log', <ActivityLogPage />)} />
+        <Route path="/system/activity-log" element={<Navigate to="/audit-log" replace />} />
         <Route path="/system/info" element={page('/system/info', <InfoPage />)} />
         <Route
           path="/system/other-settings"

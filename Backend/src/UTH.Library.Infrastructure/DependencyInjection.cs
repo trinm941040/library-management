@@ -15,6 +15,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<AuditRetentionOptions>()
+            .Bind(configuration.GetSection(AuditRetentionOptions.SectionName))
+            .Validate(options => options.RetentionDays is >= 30 and <= 3650, "Audit:RetentionDays must be between 30 and 3650.")
+            .ValidateOnStart();
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddDbContext<LibraryDbContext>((provider, options) =>
         {
@@ -52,6 +56,7 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
+        services.AddHostedService<AuditRetentionService>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IBookRepository, BookRepository>();
@@ -60,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IViolationRepository, ViolationRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         return services;
     }
 }
