@@ -309,20 +309,26 @@ export function CirculationPolicyList({ canManage }: CirculationPolicyListProps)
           </TableBody>
         </Table>
           </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Tổng số: <span className="font-semibold">{totalCount}</span> chính sách.
+            </p>
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={pageNumber}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                onPageChange={setPageNumber}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setPageNumber(1)
+                }}
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
-
-      <div className="text-xs text-muted-foreground">
-        Tổng số: <span className="font-semibold">{totalCount}</span> chính sách lưu thông trong hệ thống.
-      </div>
-
-      <Pagination
-        currentPage={pageNumber}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        onPageChange={setPageNumber}
-        onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1) }}
-      />
 
       {canManage && <CirculationPolicyDialog
         open={dialogOpen}
