@@ -53,7 +53,7 @@ const pageItems: SearchItem[] = [
     title: 'Quản lý nhân viên',
     description: 'Quản lý hồ sơ, việc làm và tài khoản truy cập của nhân viên.',
     category: 'Nhân sự',
-    path: '/employee',
+    path: '/staff',
     keywords: 'nhân viên employee hồ sơ chức vụ chi nhánh tài khoản nhân sự',
   },
   {
@@ -69,7 +69,7 @@ const pageItems: SearchItem[] = [
     title: 'Tạo hồ sơ nhân viên',
     description: 'Tạo hồ sơ nhân sự mới và ghi nhận thông tin công tác.',
     category: 'Nhân sự',
-    path: '/employee',
+    path: '/staff',
     keywords: 'thêm tạo nhân viên employee hồ sơ nhân sự',
   },
   {

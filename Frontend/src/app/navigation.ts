@@ -48,8 +48,8 @@ export const navigationGroups: readonly NavigationGroup[] = [
         requiredPermissions: ['permissions.read'],
       },
       {
-        path: '/employee',
-        label: 'Nhân viên',
+        path: '/staff',
+        label: 'Hồ sơ nhân viên',
         icon: UserRoundCog,
         requiredPermissions: ['employees.read'],
       },

@@ -43,11 +43,13 @@ public sealed record UpdateEmployeeRequest(
     DateOnly HireDate,
     EmploymentStatus Status,
     Guid? BranchId = null,
-    Guid? ConcurrencyToken = null);
+    [Required] Guid? ConcurrencyToken = null,
+    bool DeactivateLinkedAccount = false);
 
 public sealed record UpdateEmployeeStatusRequest(
     EmploymentStatus Status,
-    Guid? ConcurrencyToken = null);
+    [Required] Guid? ConcurrencyToken = null,
+    bool DeactivateLinkedAccount = false);
 
 public sealed record EmployeeResponse(
     Guid Id,

@@ -120,7 +120,8 @@ export function AppRoutes() {
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
-        <Route path="/employee" element={page('/employee', <EmployeePage />)} />
+        <Route path="/staff" element={page('/staff', <EmployeePage />)} />
+        <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
         <Route path="/roles" element={page('/roles', <RolePermissionPage initialView="roles" />)} />
         <Route

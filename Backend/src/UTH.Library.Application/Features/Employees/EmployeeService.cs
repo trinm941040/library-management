@@ -1,10 +1,16 @@
 using System.Text.Json;
+using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Employees;
 
-public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider timeProvider)
+public sealed class EmployeeService(
+    IEmployeeRepository repository,
+    IUnitOfWork unitOfWork,
+    IEmployeeAccountLifecycle accountLifecycle,
+    TimeProvider timeProvider)
 {
     public async Task<EmployeePage> GetAsync(EmployeeListQuery query, CancellationToken cancellationToken)
     {
@@ -51,7 +57,7 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         var branchId = command.BranchId ?? Branch.MainBranchId;
         var branch = await repository.GetActiveBranchAsync(branchId, cancellationToken);
         if (branch is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Branch is invalid or inactive.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Chi nhánh không hợp lệ hoặc đã ngừng hoạt động.");
 
         try
         {
@@ -98,47 +104,58 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         if (duplicate is not null)
             return duplicate;
 
-        if (command.ConcurrencyToken is not null && employee.ConcurrencyToken != command.ConcurrencyToken)
+        if (command.ConcurrencyToken is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Concurrency token là bắt buộc.");
+        if (employee.ConcurrencyToken != command.ConcurrencyToken)
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "The employee was modified by another request. Reload the employee and try again.");
+                "Hồ sơ đã được thay đổi bởi yêu cầu khác. Vui lòng tải lại.");
 
         var branchId = command.BranchId ?? employee.BranchId;
-        if (await repository.GetActiveBranchAsync(branchId, cancellationToken) is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Branch is invalid or inactive.");
+        var branch = await repository.GetActiveBranchAsync(branchId, cancellationToken);
+        if (branch is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Chi nhánh không hợp lệ hoặc đã ngừng hoạt động.");
 
         try
         {
             var beforeJson = Serialize(employee);
             var now = timeProvider.GetUtcNow().UtcDateTime;
-            employee.Update(
-                command.EmployeeCode,
-                command.FullName,
-                command.Email,
-                command.PhoneNumber,
-                command.DateOfBirth,
-                command.Address,
-                command.Position,
-                command.Department,
-                command.HireDate,
-                command.Status,
-                now,
-                branchId);
-            await repository.AddAuditLogAsync(
-                AuditLog.Create(actorUserId, "employee.updated", nameof(Employee), employee.Id, beforeJson, Serialize(employee), now),
-                cancellationToken);
-            await repository.SaveChangesAsync(cancellationToken);
-            return EmployeeManagementResult.Success(Map(employee));
+            await unitOfWork.ExecuteAsync(async ct =>
+            {
+                employee.Update(
+                    command.EmployeeCode,
+                    command.FullName,
+                    command.Email,
+                    command.PhoneNumber,
+                    command.DateOfBirth,
+                    command.Address,
+                    command.Position,
+                    command.Department,
+                    command.HireDate,
+                    command.Status,
+                    now,
+                    branchId);
+                await DeactivateLinkedAccountIfRequestedAsync(employee, command.DeactivateLinkedAccount, actorUserId, ct);
+                unitOfWork.AddAuditLog(AuditLog.Create(
+                    actorUserId, "employee.updated", nameof(Employee), employee.Id,
+                    beforeJson, Serialize(employee), now));
+                return true;
+            }, cancellationToken);
+            return EmployeeManagementResult.Success(Map(employee, branch));
         }
         catch (ArgumentException exception)
         {
             return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, exception.Message);
         }
-        catch (EmployeeConcurrencyException)
+        catch (Exception exception) when (exception is EmployeeConcurrencyException or OptimisticConcurrencyException)
         {
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "The employee was modified by another request. Reload the employee and try again.");
+                "Hồ sơ đã được thay đổi bởi yêu cầu khác. Vui lòng tải lại.");
+        }
+        catch (ResourceConflictException exception)
+        {
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Conflict, exception.Message);
         }
     }
 
@@ -178,6 +195,7 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         Guid id,
         EmploymentStatus status,
         Guid? concurrencyToken,
+        bool deactivateLinkedAccount,
         CancellationToken cancellationToken,
         Guid? actorUserId = null)
     {
@@ -188,31 +206,40 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         if (employee is null)
             return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
 
-        if (concurrencyToken is not null && employee.ConcurrencyToken != concurrencyToken)
+        if (concurrencyToken is null)
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Concurrency token là bắt buộc.");
+        if (employee.ConcurrencyToken != concurrencyToken)
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "The employee was modified by another request. Reload the employee and try again.");
+                "Hồ sơ đã được thay đổi bởi yêu cầu khác. Vui lòng tải lại.");
 
         if (employee.Status == status)
             return EmployeeManagementResult.Success(Map(employee));
 
         var beforeJson = Serialize(employee);
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        employee.ChangeStatus(status, now);
-        await repository.AddAuditLogAsync(
-            AuditLog.Create(actorUserId, "employee.status-updated", nameof(Employee), employee.Id, beforeJson, Serialize(employee), now),
-            cancellationToken);
-
         try
         {
-            await repository.SaveChangesAsync(cancellationToken);
+            await unitOfWork.ExecuteAsync(async ct =>
+            {
+                employee.ChangeStatus(status, now);
+                await DeactivateLinkedAccountIfRequestedAsync(employee, deactivateLinkedAccount, actorUserId, ct);
+                unitOfWork.AddAuditLog(AuditLog.Create(
+                    actorUserId, "employee.status-updated", nameof(Employee), employee.Id,
+                    beforeJson, Serialize(employee), now));
+                return true;
+            }, cancellationToken);
             return EmployeeManagementResult.Success(Map(employee));
         }
-        catch (EmployeeConcurrencyException)
+        catch (Exception exception) when (exception is EmployeeConcurrencyException or OptimisticConcurrencyException)
         {
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "The employee was modified by another request. Reload the employee and try again.");
+                "Hồ sơ đã được thay đổi bởi yêu cầu khác. Vui lòng tải lại.");
+        }
+        catch (ResourceConflictException exception)
+        {
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Conflict, exception.Message);
         }
     }
 
@@ -225,21 +252,34 @@ public sealed class EmployeeService(IEmployeeRepository repository, TimeProvider
         if (await repository.EmployeeCodeExistsAsync(employeeCode, excludingId, cancellationToken))
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "An employee with this employee code already exists.");
+                "Mã nhân viên đã tồn tại.");
 
         var email = command.Email.Trim().ToLowerInvariant();
         if (await repository.EmailExistsAsync(email, excludingId, cancellationToken))
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "An employee with this email already exists.");
+                "Email nhân viên đã tồn tại.");
 
         return null;
     }
 
     private static EmployeeManagementResult? Validate(SaveEmployeeCommand command) =>
         new[] { command.EmployeeCode, command.FullName, command.Email, command.Position, command.Department }.Any(string.IsNullOrWhiteSpace)
-            ? EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Required employee fields cannot contain only whitespace.")
+            ? EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Các trường bắt buộc không được chỉ chứa khoảng trắng.")
             : null;
+
+    private async Task DeactivateLinkedAccountIfRequestedAsync(
+        Employee employee,
+        bool requested,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (!requested || employee.Status != EmploymentStatus.Terminated) return;
+        var result = await accountLifecycle.DeactivateAsync(employee.UserId, actorUserId, cancellationToken);
+        if (result == LinkedAccountDeactivationResult.Protected)
+            throw new ResourceConflictException(
+                "Không thể vô hiệu hóa tài khoản quản trị liên kết. Hồ sơ chưa được cập nhật.");
+    }
 
     private static EmployeeModel Map(Employee employee, EmployeeBranch? branch = null) =>
         new(
