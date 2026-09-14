@@ -39,6 +39,7 @@ type EmployeeFormData = {
   hireDate: string
   status: EmploymentStatus
   branchId: string
+  deactivateLinkedAccount: boolean
 }
 
 type EmployeeFormDialogProps = {
@@ -66,6 +67,7 @@ const emptyForm = (): EmployeeFormData => ({
   hireDate: today(),
   status: 'Active',
   branchId: '',
+  deactivateLinkedAccount: false,
 })
 
 export function EmployeeFormDialog({
@@ -83,7 +85,13 @@ export function EmployeeFormDialog({
     if (!open) return
     const controller = new AbortController()
     getEmployeeBranches(controller.signal)
-      .then(setBranches)
+      .then((items) => {
+        setBranches(items)
+        setForm((current) => ({
+          ...current,
+          branchId: current.branchId || items[0]?.id || '',
+        }))
+      })
       .catch((requestError: unknown) => {
         if (!(requestError instanceof DOMException && requestError.name === 'AbortError')) {
           setError(requestError instanceof Error ? requestError.message : 'Không thể tải danh sách chi nhánh.')
@@ -107,6 +115,7 @@ export function EmployeeFormDialog({
             hireDate: employee.hireDate,
             status: employee.status,
             branchId: employee.branchId,
+            deactivateLinkedAccount: false,
           }
         : emptyForm(),
     )
@@ -126,6 +135,10 @@ export function EmployeeFormDialog({
       setError('Ngày sinh phải trước ngày vào làm.')
       return
     }
+    if (!form.branchId) {
+      setError('Vui lòng chọn chi nhánh đang hoạt động.')
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -140,7 +153,8 @@ export function EmployeeFormDialog({
         department: form.department.trim(),
         hireDate: form.hireDate,
         status: form.status,
-        branchId: form.branchId || undefined,
+        branchId: form.branchId,
+        deactivateLinkedAccount: form.deactivateLinkedAccount,
       })
       if (saveError) {
         setError(saveError)
@@ -305,6 +319,36 @@ export function EmployeeFormDialog({
                 disabled={isSubmitting}
               />
             </FormField>
+            {employee && employee.status !== 'Terminated' && form.status === 'Terminated' ? (
+              <div
+                className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 sm:col-span-2"
+                role="alert"
+              >
+                <p className="text-sm font-medium">Xác nhận nhân viên nghỉ việc</p>
+                <p className="text-sm text-muted-foreground">
+                  Hồ sơ và lịch sử nghiệp vụ vẫn được giữ nguyên. Access Account liên kết
+                  không bị thay đổi trừ khi bạn chọn tùy chọn dưới đây.
+                </p>
+                {employee.userId ? (
+                  <label className="flex cursor-pointer items-start gap-3 text-sm">
+                    <input
+                      className="mt-1 size-4"
+                      type="checkbox"
+                      checked={form.deactivateLinkedAccount}
+                      disabled={isSubmitting}
+                      onChange={(event) =>
+                        updateField('deactivateLinkedAccount', event.target.checked)
+                      }
+                    />
+                    Vô hiệu hóa Access Account liên kết và thu hồi các phiên đăng nhập.
+                  </label>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Hồ sơ này chưa có Access Account liên kết.
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {error ? (

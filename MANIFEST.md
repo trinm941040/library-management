@@ -7,8 +7,8 @@
 
 ## Trạng thái
 
-- Đã hoàn thành: MS2-00, MS2-01, MS2-02, MS2-03, MS2-04, MS2-05, MS2-06, MS2-07, MS2-18, MS2-30, MS2-32.
-- Chưa xác nhận: MS2-08 đến MS2-35 ngoại trừ MS2-18, MS2-30, MS2-32.
+- Đã hoàn thành: MS2-00, MS2-01, MS2-02, MS2-03, MS2-04, MS2-05, MS2-06, MS2-07, MS2-08, MS2-18, MS2-30, MS2-32.
+- Chưa xác nhận: MS2-09 đến MS2-35 ngoại trừ MS2-18, MS2-30, MS2-32.
 - Code và acceptance criteria là bằng chứng quyết định; trạng thái trên chỉ là dữ liệu khởi tạo.
 
 ## Quy ước

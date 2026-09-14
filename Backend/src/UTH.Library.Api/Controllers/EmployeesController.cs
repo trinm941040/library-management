@@ -108,6 +108,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             id,
             request.Status,
             request.ConcurrencyToken,
+            request.DeactivateLinkedAccount,
             cancellationToken,
             GetCurrentUserId());
         return result.Succeeded && result.Employee is not null
@@ -163,7 +164,8 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
             request.HireDate,
             request.Status,
             request.BranchId,
-            request.ConcurrencyToken);
+            request.ConcurrencyToken,
+            request.DeactivateLinkedAccount);
 
     private static ProblemDetails Problem(string detail) => new() { Detail = detail };
 

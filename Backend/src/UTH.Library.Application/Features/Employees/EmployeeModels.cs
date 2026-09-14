@@ -49,7 +49,8 @@ public sealed record SaveEmployeeCommand(
     DateOnly HireDate,
     EmploymentStatus Status,
     Guid? BranchId = null,
-    Guid? ConcurrencyToken = null);
+    Guid? ConcurrencyToken = null,
+    bool DeactivateLinkedAccount = false);
 
 public sealed record EmployeeBranchModel(Guid Id, string Code, string Name);
 

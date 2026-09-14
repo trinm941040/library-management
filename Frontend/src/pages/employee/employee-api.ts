@@ -1,4 +1,5 @@
-import { authenticatedFetch } from '@/auth/auth-api'
+import { z } from 'zod'
+import { authenticatedFetch, guidSchema, readResponse } from '@/auth/auth-api'
 
 const EMPLOYEES_URL = '/api/v1/employees'
 
@@ -13,34 +14,38 @@ export const employmentStatusLabels: Record<EmploymentStatus, string> = {
   Terminated: 'Đã nghỉ việc',
 }
 
-export type Employee = {
-  id: string
-  employeeCode: string
-  fullName: string
-  email: string
-  phoneNumber: string | null
-  dateOfBirth: string | null
-  address: string | null
-  position: string
-  department: string
-  branchId: string
-  branchCode: string
-  branchName: string
-  userId: string | null
-  hireDate: string
-  status: EmploymentStatus
-  concurrencyToken: string
-  createdAtUtc: string
-  updatedAtUtc: string
-}
+const employmentStatusSchema = z.enum(employmentStatuses)
+const employeeSchema = z.object({
+  id: guidSchema,
+  employeeCode: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  phoneNumber: z.string().nullable(),
+  dateOfBirth: z.string().nullable(),
+  address: z.string().nullable(),
+  position: z.string(),
+  department: z.string(),
+  branchId: guidSchema,
+  branchCode: z.string(),
+  branchName: z.string(),
+  userId: guidSchema.nullable(),
+  hireDate: z.string(),
+  status: employmentStatusSchema,
+  concurrencyToken: guidSchema,
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
+})
+const employeePageSchema = z.object({
+  items: z.array(employeeSchema),
+  pageNumber: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  totalCount: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+})
+const employeeBranchSchema = z.object({ id: guidSchema, code: z.string(), name: z.string() })
 
-export type EmployeePageResponse = {
-  items: Employee[]
-  pageNumber: number
-  pageSize: number
-  totalCount: number
-  totalPages: number
-}
+export type Employee = z.infer<typeof employeeSchema>
+export type EmployeePageResponse = z.infer<typeof employeePageSchema>
 
 export type EmployeeSummary = {
   total: number
@@ -49,17 +54,14 @@ export type EmployeeSummary = {
   stopped: number
 }
 
-export type EmployeeBranch = {
-  id: string
-  code: string
-  name: string
-}
+export type EmployeeBranch = z.infer<typeof employeeBranchSchema>
 
 export type EmployeeFilters = {
   search?: string
   department?: string
   position?: string
   status?: EmploymentStatus
+  branchId?: string
   pageNumber?: number
   pageSize?: number
 }
@@ -77,39 +79,7 @@ export type SaveEmployeeInput = {
   status: EmploymentStatus
   branchId?: string
   concurrencyToken?: string
-}
-
-type ProblemDetails = {
-  title?: string
-  detail?: string
-  errors?: Record<string, string[]>
-}
-
-export class EmployeeApiError extends Error {
-  readonly status: number
-
-  constructor(message: string, status: number) {
-    super(message)
-    this.name = 'EmployeeApiError'
-    this.status = status
-  }
-}
-
-async function readResponse<T>(response: Response): Promise<T> {
-  if (response.ok) {
-    if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
-  }
-
-  const problem = (await response.json().catch(() => null)) as ProblemDetails | null
-  const validationMessage = problem?.errors
-    ? Object.values(problem.errors).flat().find(Boolean)
-    : undefined
-
-  throw new EmployeeApiError(
-    validationMessage ?? problem?.detail ?? problem?.title ?? 'Không thể xử lý yêu cầu.',
-    response.status,
-  )
+  deactivateLinkedAccount?: boolean
 }
 
 export async function getEmployees(
@@ -121,21 +91,22 @@ export async function getEmployees(
   if (filters.department) query.set('department', filters.department)
   if (filters.position) query.set('position', filters.position)
   if (filters.status) query.set('status', filters.status)
+  if (filters.branchId) query.set('branchId', filters.branchId)
   query.set('pageNumber', String(filters.pageNumber ?? 1))
   query.set('pageSize', String(filters.pageSize ?? 20))
 
   const response = await authenticatedFetch(`${EMPLOYEES_URL}?${query}`, { signal })
-  return readResponse<EmployeePageResponse>(response)
+  return readResponse(response, employeePageSchema)
 }
 
 export async function getEmployeeById(id: string, signal?: AbortSignal): Promise<Employee> {
   const response = await authenticatedFetch(`${EMPLOYEES_URL}/${id}`, { signal })
-  return readResponse<Employee>(response)
+  return readResponse(response, employeeSchema)
 }
 
 export async function getEmployeeBranches(signal?: AbortSignal): Promise<EmployeeBranch[]> {
   const response = await authenticatedFetch(`${EMPLOYEES_URL}/branches`, { signal })
-  return readResponse<EmployeeBranch[]>(response)
+  return readResponse(response, z.array(employeeBranchSchema))
 }
 
 export async function getEmployeeSummary(signal?: AbortSignal): Promise<EmployeeSummary> {
@@ -161,7 +132,7 @@ export async function createEmployee(input: SaveEmployeeInput): Promise<Employee
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<Employee>(response)
+  return readResponse(response, employeeSchema)
 }
 
 export async function updateEmployee(id: string, input: SaveEmployeeInput): Promise<Employee> {
@@ -170,5 +141,19 @@ export async function updateEmployee(id: string, input: SaveEmployeeInput): Prom
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<Employee>(response)
+  return readResponse(response, employeeSchema)
+}
+
+export async function updateEmployeeStatus(
+  id: string,
+  status: EmploymentStatus,
+  concurrencyToken: string,
+  deactivateLinkedAccount = false,
+): Promise<Employee> {
+  const response = await authenticatedFetch(`${EMPLOYEES_URL}/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, concurrencyToken, deactivateLinkedAccount }),
+  })
+  return readResponse(response, employeeSchema)
 }

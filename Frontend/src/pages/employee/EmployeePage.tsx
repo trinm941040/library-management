@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   BriefcaseBusiness,
   Building2,
@@ -42,9 +43,11 @@ import {
   employmentStatusLabels,
   employmentStatuses,
   getEmployees,
+  getEmployeeBranches,
   getEmployeeSummary,
   updateEmployee,
   type Employee,
+  type EmployeeBranch,
   type EmployeePageResponse,
   type EmployeeSummary,
   type EmploymentStatus,
@@ -54,17 +57,25 @@ import {
 type StatusFilter = 'all' | EmploymentStatus
 
 export function EmployeePage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('search')?.trim() ?? ''
+  const department = searchParams.get('department')?.trim() ?? ''
+  const position = searchParams.get('position')?.trim() ?? ''
+  const branchId = searchParams.get('branchId') ?? 'all'
+  const statusParam = searchParams.get('status')
+  const status: StatusFilter = employmentStatuses.includes(statusParam as EmploymentStatus)
+    ? (statusParam as EmploymentStatus)
+    : 'all'
+  const requestedPage = Number(searchParams.get('page'))
+  const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+  const requestedPageSize = Number(searchParams.get('pageSize'))
+  const pageSize = [10, 20, 50, 100].includes(requestedPageSize) ? requestedPageSize : 20
   const [page, setPage] = useState<EmployeePageResponse | null>(null)
   const [summary, setSummary] = useState<EmployeeSummary | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [departmentInput, setDepartmentInput] = useState('')
-  const [department, setDepartment] = useState('')
-  const [positionInput, setPositionInput] = useState('')
-  const [position, setPosition] = useState('')
-  const [status, setStatus] = useState<StatusFilter>('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [branches, setBranches] = useState<EmployeeBranch[]>([])
+  const [searchInput, setSearchInput] = useState(search)
+  const [departmentInput, setDepartmentInput] = useState(department)
+  const [positionInput, setPositionInput] = useState(position)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -74,15 +85,54 @@ export function EmployeePage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
 
+  const updateUrlFilters = useCallback(
+    (changes: Record<string, string | undefined>) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          Object.entries(changes).forEach(([key, value]) => {
+            if (!value || value === 'all') next.delete(key)
+            else next.set(key, value)
+          })
+          return next
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+
+  useEffect(() => {
+    setSearchInput(search)
+    setDepartmentInput(department)
+    setPositionInput(position)
+  }, [department, position, search])
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim())
-      setDepartment(departmentInput.trim())
-      setPosition(positionInput.trim())
-      setCurrentPage(1)
+      const nextSearch = searchInput.trim()
+      const nextDepartment = departmentInput.trim()
+      const nextPosition = positionInput.trim()
+      if (nextSearch !== search || nextDepartment !== department || nextPosition !== position)
+        updateUrlFilters({
+          search: nextSearch || undefined,
+          department: nextDepartment || undefined,
+          position: nextPosition || undefined,
+          page: undefined,
+        })
     }, 350)
     return () => window.clearTimeout(timeout)
-  }, [departmentInput, positionInput, searchInput])
+  }, [department, departmentInput, position, positionInput, search, searchInput, updateUrlFilters])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getEmployeeBranches(controller.signal)
+      .then(setBranches)
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setBranches([])
+      })
+    return () => controller.abort()
+  }, [reloadKey])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -94,6 +144,7 @@ export function EmployeePage() {
         department: department || undefined,
         position: position || undefined,
         status: status === 'all' ? undefined : status,
+        branchId: branchId === 'all' ? undefined : branchId,
         pageNumber: currentPage,
         pageSize,
       },
@@ -102,7 +153,7 @@ export function EmployeePage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages)
-          setCurrentPage(response.totalPages)
+          updateUrlFilters({ page: String(response.totalPages) })
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError'))
@@ -114,7 +165,7 @@ export function EmployeePage() {
         if (!controller.signal.aborted) setIsLoading(false)
       })
     return () => controller.abort()
-  }, [currentPage, department, pageSize, position, reloadKey, search, status])
+  }, [branchId, currentPage, department, pageSize, position, reloadKey, search, status, updateUrlFilters])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -150,14 +201,13 @@ export function EmployeePage() {
       if (editingEmployee) {
         const updated = await updateEmployee(editingEmployee.id, {
           ...data,
-          branchId: editingEmployee.branchId,
           concurrencyToken: editingEmployee.concurrencyToken,
         })
         setSelectedEmployee((current) => (current?.id === updated.id ? updated : current))
         refresh('Đã cập nhật hồ sơ và thông tin việc làm.')
       } else {
         await createEmployee(data)
-        setCurrentPage(1)
+        updateUrlFilters({ page: undefined })
         refresh('Đã tạo hồ sơ nhân viên.')
       }
       return null
@@ -170,12 +220,20 @@ export function EmployeePage() {
     setSearchInput('')
     setDepartmentInput('')
     setPositionInput('')
-    setStatus('all')
-    setCurrentPage(1)
+    updateUrlFilters({
+      search: undefined,
+      department: undefined,
+      position: undefined,
+      branchId: undefined,
+      status: undefined,
+      page: undefined,
+    })
   }
   const displayedFrom = page && page.totalCount > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0
   const displayedTo = page ? Math.min(page.pageNumber * page.pageSize, page.totalCount) : 0
-  const hasFilters = Boolean(searchInput || departmentInput || positionInput || status !== 'all')
+  const hasFilters = Boolean(
+    searchInput || departmentInput || positionInput || status !== 'all' || branchId !== 'all',
+  )
 
   return (
     <>
@@ -185,9 +243,9 @@ export function EmployeePage() {
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
               nhân sự và quyền truy cập
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">Quản lý nhân viên</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Hồ sơ nhân viên (Staff)</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Quản lý hồ sơ, đơn vị công tác, trạng thái việc làm và tài khoản truy cập.
+              Staff là hồ sơ nhân sự, khác Access Account dùng đăng nhập và Member là độc giả.
             </p>
           </div>
           <div className="flex gap-2">
@@ -236,11 +294,11 @@ export function EmployeePage() {
             <CardTitle>Danh sách hồ sơ nhân viên</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(15rem,1fr)_13rem_13rem_12rem_auto]">
-              <div className="relative">
+            <div className="mb-5 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="relative min-w-0">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  className="pl-9"
+                  className="w-full min-w-0 pl-9"
                   aria-label="Tìm nhân viên"
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
@@ -248,12 +306,30 @@ export function EmployeePage() {
                 />
               </div>
               <Input
+                className="w-full min-w-0"
                 value={departmentInput}
                 onChange={(event) => setDepartmentInput(event.target.value)}
-                placeholder="Đơn vị hoặc chi nhánh"
-                aria-label="Lọc theo đơn vị hoặc chi nhánh"
+                placeholder="Đơn vị"
+                aria-label="Lọc theo đơn vị"
               />
+              <Select
+                value={branchId}
+                onValueChange={(value) => updateUrlFilters({ branchId: value, page: undefined })}
+              >
+                <SelectTrigger className="w-full" aria-label="Lọc theo chi nhánh">
+                  <SelectValue placeholder="Tất cả chi nhánh" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả chi nhánh</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.code} - {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
+                className="w-full min-w-0"
                 value={positionInput}
                 onChange={(event) => setPositionInput(event.target.value)}
                 placeholder="Chức vụ"
@@ -262,8 +338,7 @@ export function EmployeePage() {
               <Select
                 value={status}
                 onValueChange={(value) => {
-                  setStatus(value as StatusFilter)
-                  setCurrentPage(1)
+                  updateUrlFilters({ status: value, page: undefined })
                 }}
               >
                 <SelectTrigger className="w-full" aria-label="Lọc theo trạng thái">
@@ -278,7 +353,12 @@ export function EmployeePage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" disabled={!hasFilters} onClick={resetFilters}>
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={!hasFilters}
+                onClick={resetFilters}
+              >
                 Xóa lọc
               </Button>
             </div>
@@ -296,9 +376,9 @@ export function EmployeePage() {
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-lg border">
+            <div className="max-h-[60vh] overflow-auto rounded-lg border">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
                     <TableHead>Nhân viên</TableHead>
                     <TableHead>Việc làm</TableHead>
@@ -397,11 +477,10 @@ export function EmployeePage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={setCurrentPage}
+                  onPageChange={(nextPage) => updateUrlFilters({ page: String(nextPage) })}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    setCurrentPage(1)
-                    setPageSize(size)
+                    updateUrlFilters({ page: undefined, pageSize: String(size) })
                   }}
                 />
               ) : null}

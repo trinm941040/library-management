@@ -17,4 +17,6 @@
 - Phản hồi chỉ gồm file thay đổi, kiểm tra đã chạy, kết quả và blocker.
 
 ## Task sau khi hoàn thành
+- Migrate database nếu có và phải có thể rollback migration nếu có vấn đề
+- Clear tất cả những gì liên quan đến test local. Ví dụ: Postgres tạm, các file factory,...
 - Cập nhật lại trạng thái trong file `MANIFEST.md` về mã task

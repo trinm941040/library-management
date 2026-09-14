@@ -1,7 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { KeyRound, Pencil, ShieldCheck, UserRoundCheck, UserRoundX } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { createUser, getUserById, getUsers, type SystemUser } from '@/pages/users/user-api'
+import {
+  getAccessAccount,
+  type AccessAccount,
+} from '@/pages/access-accounts/access-account-api'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { formatDate, formatDateTime } from '@/common/formatters'
@@ -13,8 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
-import { Input } from '@/common/components/ui/input'
-import { Label } from '@/common/components/ui/label'
 import { employmentStatusLabels, getEmployeeById, type Employee } from '../employee-api'
 import { EmploymentStatusBadge } from './EmploymentStatusBadge'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
@@ -37,14 +38,11 @@ export function EmployeeDetailsDialog({
   const { user } = useAuth()
   const canReadUsers = can(user?.permissions ?? [], 'users.read')
   const [details, setDetails] = useState<Employee | null>(employee)
-  const [account, setAccount] = useState<SystemUser | null>(null)
+  const [account, setAccount] = useState<AccessAccount | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [detailsError, setDetailsError] = useState('')
   const [accountLookupComplete, setAccountLookupComplete] = useState(false)
   const [accountError, setAccountError] = useState('')
-  const [showAccountForm, setShowAccountForm] = useState(false)
-  const [password, setPassword] = useState('')
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
 
   useEffect(() => {
     if (!open || !employee) return
@@ -55,8 +53,6 @@ export function EmployeeDetailsDialog({
     setDetailsError('')
     setAccountError('')
     setAccountLookupComplete(false)
-    setShowAccountForm(false)
-    setPassword('')
     setIsLoading(true)
 
     getEmployeeById(employee.id, controller.signal)
@@ -75,16 +71,14 @@ export function EmployeeDetailsDialog({
       return () => controller.abort()
     }
 
-    const accountRequest = employee.userId
-      ? getUserById(employee.userId, controller.signal).then((account) => ({ items: [account] }))
-      : getUsers({ search: employee.email, pageNumber: 1, pageSize: 20 }, controller.signal)
+    if (!employee.userId) {
+      setAccountLookupComplete(true)
+      return () => controller.abort()
+    }
 
-    accountRequest
+    getAccessAccount(employee.userId, controller.signal)
       .then((response) => {
-        const normalizedEmail = employee.email.toLowerCase()
-        setAccount(
-          response.items.find((user) => user.email.toLowerCase() === normalizedEmail) ?? null,
-        )
+        setAccount(response)
         setAccountLookupComplete(true)
       })
       .catch((error: unknown) => {
@@ -99,31 +93,8 @@ export function EmployeeDetailsDialog({
     return () => controller.abort()
   }, [canReadUsers, employee, open])
 
-  const handleCreateAccount = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!details) return
-    setAccountError('')
-    setIsCreatingAccount(true)
-
-    try {
-      const createdAccount = await createUser({
-        displayName: details.fullName,
-        email: details.email,
-        password,
-        employeeId: details.id,
-      })
-      setAccount(createdAccount)
-      setPassword('')
-      setShowAccountForm(false)
-    } catch (error) {
-      setAccountError(error instanceof Error ? error.message : 'Không thể cấp tài khoản truy cập.')
-    } finally {
-      setIsCreatingAccount(false)
-    }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !isCreatingAccount && onOpenChange(nextOpen)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Hồ sơ nhân viên</DialogTitle>
@@ -202,7 +173,7 @@ export function EmployeeDetailsDialog({
                     Tài khoản truy cập
                   </h3>
                   <Button asChild variant="ghost" size="sm">
-                    <Link to="/users">Quản lý tài khoản</Link>
+                    <Link to="/access-accounts">Quản lý Access Account</Link>
                   </Button>
                 </div>
                 <div className="rounded-xl border p-5">
@@ -253,60 +224,21 @@ export function EmployeeDetailsDialog({
                     </div>
                   ) : null}
                   {accountLookupComplete && !account && !accountError ? (
-                    showAccountForm ? (
-                      <PermissionBoundary requiredPermissions={['users.create']}>
-                        <form className="grid gap-4" onSubmit={handleCreateAccount}>
-                          <div>
-                            <p className="font-medium">Cấp tài khoản cho {details.fullName}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Tài khoản dùng email hồ sơ và được quản lý độc lập với trạng thái việc
-                              làm.
-                            </p>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="employee-account-password">Mật khẩu tạm thời</Label>
-                            <Input
-                              id="employee-account-password"
-                              type="password"
-                              value={password}
-                              minLength={8}
-                              maxLength={256}
-                              autoComplete="new-password"
-                              disabled={isCreatingAccount}
-                              onChange={(event) => setPassword(event.target.value)}
-                              required
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button type="submit" disabled={isCreatingAccount}>
-                              {isCreatingAccount ? 'Đang tạo...' : 'Tạo tài khoản'}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              disabled={isCreatingAccount}
-                              onClick={() => setShowAccountForm(false)}
-                            >
-                              Hủy
-                            </Button>
-                          </div>
-                        </form>
-                      </PermissionBoundary>
-                    ) : (
-                      <div className="flex flex-col items-start gap-3">
-                        <div>
-                          <p className="font-medium">Chưa có tài khoản truy cập</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Hồ sơ nhân viên vẫn hoạt động bình thường khi chưa được cấp tài khoản.
-                          </p>
-                        </div>
-                        <PermissionBoundary requiredPermissions={['users.create']}>
-                          <Button onClick={() => setShowAccountForm(true)}>
-                            <KeyRound /> Cấp tài khoản
-                          </Button>
-                        </PermissionBoundary>
+                    <div className="flex flex-col items-start gap-3">
+                      <div>
+                        <p className="font-medium">Chưa có Access Account</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Staff là hồ sơ nhân sự; Access Account được cấp và quản lý riêng.
+                        </p>
                       </div>
-                    )
+                      <PermissionBoundary requiredPermissions={['users.create']}>
+                        <Button asChild>
+                          <Link to="/access-accounts">
+                            <KeyRound /> Mở quản lý Access Account
+                          </Link>
+                        </Button>
+                      </PermissionBoundary>
+                    </div>
                   ) : null}
                   {accountError ? (
                     <p
