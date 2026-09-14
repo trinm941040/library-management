@@ -2,7 +2,7 @@
 
 ## Phạm vi
 
-Áp dụng cho toàn bộ prompt trong `saved/prompts/milestone-phase-2`.
+Áp dụng cho toàn bộ prompt.
 
 ## Quy tắc thực hiện
 
@@ -15,3 +15,6 @@
 - Không chạy `dotnet test`; backend chỉ cần `dotnet build` không lỗi.
 - Không yêu cầu Docker; frontend chạy build/type-check/lint theo script hiện có.
 - Phản hồi chỉ gồm file thay đổi, kiểm tra đã chạy, kết quả và blocker.
+
+## Task sau khi hoàn thành
+- Cập nhật lại trạng thái trong file `MANIFEST.md` về mã task

@@ -41,8 +41,10 @@ const SettingsPage = lazy(() =>
 const RolePermissionPage = lazy(() =>
   import('../pages/roles/RolePermissionPage').then((m) => ({ default: m.RolePermissionPage })),
 )
-const UserPage = lazy(() =>
-  import('../pages/users/UserPage').then((m) => ({ default: m.UserPage })),
+const AccessAccountsPage = lazy(() =>
+  import('../pages/access-accounts/AccessAccountsPage').then((m) => ({
+    default: m.AccessAccountsPage,
+  })),
 )
 const EmployeePage = lazy(() =>
   import('../pages/employee/EmployeePage').then((m) => ({ default: m.EmployeePage })),
@@ -109,7 +111,11 @@ export function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={page('/dashboard', <DashboardPage />)} />
-        <Route path="/users" element={page('/users', <UserPage />)} />
+        <Route
+          path="/access-accounts"
+          element={page('/access-accounts', <AccessAccountsPage />)}
+        />
+        <Route path="/users" element={<Navigate to="/access-accounts" replace />} />
         <Route path="/books" element={page('/books', <BooksPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
