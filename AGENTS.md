@@ -16,5 +16,5 @@
 - Không yêu cầu Docker; frontend chạy build/type-check/lint theo script hiện có.
 - Phản hồi chỉ gồm file thay đổi, kiểm tra đã chạy, kết quả và blocker.
 
-## Task sao khi hoàn thành
+## Task sau khi hoàn thành
 - Cập nhật lại trạng thái trong file `MANIFEST.md` về mã task
