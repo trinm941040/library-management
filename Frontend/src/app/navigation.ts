@@ -34,7 +34,12 @@ export const navigationGroups: readonly NavigationGroup[] = [
   {
     label: 'Quản lý người dùng',
     items: [
-      { path: '/users', label: 'Tài khoản', icon: Users, requiredPermissions: ['users.read'] },
+      {
+        path: '/access-accounts',
+        label: 'Tài khoản truy cập',
+        icon: Users,
+        requiredPermissions: ['users.read'],
+      },
       { path: '/roles', label: 'Vai trò', icon: ShieldCheck, requiredPermissions: ['roles.read'] },
       {
         path: '/permissions',

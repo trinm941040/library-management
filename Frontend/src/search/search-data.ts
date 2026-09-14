@@ -45,7 +45,7 @@ const pageItems: SearchItem[] = [
     title: 'Quản lý tài khoản',
     description: 'Xem và tìm kiếm toàn bộ tài khoản trong hệ thống.',
     category: 'Người dùng',
-    path: '/users',
+    path: '/access-accounts',
     keywords: 'user người dùng thành viên nhân viên độc giả account',
   },
   {

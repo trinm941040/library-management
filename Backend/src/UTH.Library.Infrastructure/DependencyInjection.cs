@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthorizationStateService, AuthorizationStateService>();
         services.AddScoped<ICurrentProfileService, CurrentProfileService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IAccessAccountService, AccessAccountService>();
         services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddSingleton<RsaJwtKeyProvider>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
