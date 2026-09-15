@@ -4,6 +4,7 @@ import {
   KeyRound,
   LayoutDashboard,
   Layers,
+  MapPinned,
   RefreshCw,
   Settings,
   ShieldCheck,
@@ -49,6 +50,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
         requiredPermissions: ['employees.read'],
       },
       { path: '/members', label: 'Độc giả', icon: Users, requiredPermissions: ['members.read'] },
+      { path: '/branches', label: 'Chi nhánh và kệ', icon: MapPinned, requiredPermissions: ['locations.read'] },
     ],
   },
   {
