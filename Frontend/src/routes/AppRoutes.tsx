@@ -123,6 +123,7 @@ export function AppRoutes() {
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
+        <Route path="/members/:id" element={page('/members', <MemberPage />)} />
         <Route path="/roles" element={page('/roles', <RolePermissionPage initialView="roles" />)} />
         <Route
           path="/permissions"
