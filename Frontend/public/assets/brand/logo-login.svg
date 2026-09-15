@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" role="img" aria-labelledby="title desc">
+  <title id="title">Hệ thống Quản lý Thư viện</title>
+  <desc id="desc">Logo dọc dành cho trang đăng nhập.</desc>
+  <g transform="translate(232 8) scale(.5)">
+    <path d="M132 316V236c0-75 55-134 124-158 69 24 124 83 124 158v80" fill="none" stroke="#0F172A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="176" y="202" width="46" height="116" rx="13" fill="#2563EB"/>
+    <rect x="233" y="178" width="46" height="140" rx="13" fill="#D97706"/>
+    <rect x="290" y="202" width="46" height="116" rx="13" fill="#2563EB"/>
+    <path d="M54 322c79-5 145 17 202 73 57-56 123-78 202-73l-16 76c-69-2-127 19-186 72-59-53-117-74-186-72z" fill="#2563EB"/>
+    <path d="M78 345c67 1 122 21 178 70v35c-55-43-107-63-170-64zm356 0c-67 1-122 21-178 70v35c55-43 107-63 170-64z" fill="#DBEAFE"/>
+  </g>
+  <text x="360" y="304" text-anchor="middle" fill="#64748B" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="5">HỆ THỐNG</text>
+  <text x="360" y="357" text-anchor="middle" fill="#0F172A" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="42" font-weight="800">QUẢN LÝ THƯ VIỆN</text>
+  <rect x="322" y="384" width="76" height="6" rx="3" fill="#D97706"/>
+</svg>

@@ -1,0 +1,186 @@
+<mxfile host="65bd71144e">
+    <diagram id="SzQJmu5lJu2GJa2xTDYA" name="Page-1">
+        <mxGraphModel dx="313" dy="683" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="identity-framework-title" value="SƠ ĐỒ LỚP — ENTITY HỖ TRỢ CỦA ASP.NET CORE IDENTITY" style="text;html=1;align=left;fontSize=24;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="20" width="1700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-user" value="ApplicationUser" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="900" y="120" width="300" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-user-a" value="+ Id: Guid&lt;br&gt;+ UserName: string?&lt;br&gt;+ Email: string?&lt;br&gt;+ DisplayName: string" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-user">
+                    <mxGeometry y="30" width="300" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-user-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-user">
+                    <mxGeometry y="118" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-role" value="ApplicationRole" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1550" y="120" width="300" height="138" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-role-a" value="+ Id: Guid&lt;br&gt;+ Name: string?&lt;br&gt;+ Description: string" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-role">
+                    <mxGeometry y="30" width="300" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-role-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-role">
+                    <mxGeometry y="100" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-claim" value="IdentityUserClaim&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="50" y="450" width="300" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-claim-a" value="+ Id: int {PK}&lt;br&gt;+ UserId: Guid {FK}&lt;br&gt;+ ClaimType: string?&lt;br&gt;+ ClaimValue: string?" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-claim">
+                    <mxGeometry y="30" width="300" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-claim-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-claim">
+                    <mxGeometry y="118" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-login" value="IdentityUserLogin&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="450" width="320" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-login-a" value="+ LoginProvider: string {PK}&lt;br&gt;+ ProviderKey: string {PK}&lt;br&gt;+ ProviderDisplayName: string?&lt;br&gt;+ UserId: Guid {FK}" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-login">
+                    <mxGeometry y="30" width="320" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-login-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-login">
+                    <mxGeometry y="118" width="320" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-roleclaim" value="IdentityRoleClaim&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1800" y="450" width="310" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-roleclaim-a" value="+ Id: int {PK}&lt;br&gt;+ RoleId: Guid {FK}&lt;br&gt;+ ClaimType: string?&lt;br&gt;+ ClaimValue: string?" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-roleclaim">
+                    <mxGeometry y="30" width="310" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-roleclaim-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-roleclaim">
+                    <mxGeometry y="118" width="310" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-token" value="IdentityUserToken&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="750" y="450" width="300" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-token-a" value="+ UserId: Guid {PK, FK}&lt;br&gt;+ LoginProvider: string {PK}&lt;br&gt;+ Name: string {PK}&lt;br&gt;+ Value: string?" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-token">
+                    <mxGeometry y="30" width="300" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-token-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-token">
+                    <mxGeometry y="118" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-passkey" value="IdentityUserPasskey&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1100" y="450" width="320" height="138" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-passkey-a" value="+ UserId: Guid {PK, FK}&lt;br&gt;+ CredentialId: byte[] {PK}&lt;br&gt;+ Data: IdentityPasskeyData" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-passkey">
+                    <mxGeometry y="30" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-passkey-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-passkey">
+                    <mxGeometry y="100" width="320" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-userrole" value="IdentityUserRole&lt;Guid&gt;" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1450" y="450" width="300" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-userrole-a" value="+ UserId: Guid {PK, FK}&lt;br&gt;+ RoleId: Guid {PK, FK}" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-userrole">
+                    <mxGeometry y="30" width="300" height="52" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-userrole-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-userrole">
+                    <mxGeometry y="82" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-db" value="LibraryDbContext" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="820" y="900" width="580" height="246" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-db-a" value="+ Todos: DbSet&lt;TodoItem&gt;&lt;br&gt;+ Books: DbSet&lt;Book&gt;&lt;br&gt;+ Borrowings: DbSet&lt;Borrowing&gt;&lt;br&gt;+ Reservations: DbSet&lt;Reservation&gt;&lt;br&gt;+ Violations: DbSet&lt;Violation&gt;&lt;br&gt;+ Employees: DbSet&lt;Employee&gt;&lt;br&gt;+ Permissions: DbSet&lt;Permission&gt;&lt;br&gt;+ RolePermissions: DbSet&lt;RolePermission&gt;&lt;br&gt;+ RefreshTokenSessions: DbSet&lt;RefreshTokenSession&gt;" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-db">
+                    <mxGeometry y="30" width="580" height="178" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5-db-m" value="# OnModelCreating(builder): void" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p5-db">
+                    <mxGeometry y="208" width="580" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e1" value="claims" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-user" target="p5-claim">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="990" y="380"/>
+                            <mxPoint x="200" y="380"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p5e1-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e1">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e1-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e1">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e2" value="external logins" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-user" target="p5-login">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1020" y="395"/>
+                            <mxPoint x="560" y="395"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p5e2-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e2">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e2-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e2">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e3" value="tokens" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-user" target="p5-token">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e3-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e3">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e3-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e3">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e4" value="passkeys" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-user" target="p5-passkey">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e4-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e4">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e4-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e4">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e5" value="memberships" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-user" target="p5-userrole">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1110" y="395"/>
+                            <mxPoint x="1600" y="395"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p5e5-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e5">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e5-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e5">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e6" value="roles" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-role" target="p5-userrole">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e6-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e6">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e6-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e6">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e7" value="claims" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-role" target="p5-roleclaim">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e7-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e7">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e7-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e7">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e8" value="tracks" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=0;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5-db" target="p5-userrole">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1450" y="1000"/>
+                            <mxPoint x="1600" y="1000"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p5e8-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e8">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5e8-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p5e8">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

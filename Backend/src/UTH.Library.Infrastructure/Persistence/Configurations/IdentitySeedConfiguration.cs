@@ -1,0 +1,138 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using UTH.Library.Infrastructure.Identity;
+
+namespace UTH.Library.Infrastructure.Persistence.Configurations;
+
+internal static class IdentitySeedData
+{
+    public static readonly Guid AdministratorUserId = new("10000000-0000-0000-0000-000000000001");
+    public static readonly Guid AdministratorRoleId = new("20000000-0000-0000-0000-000000000001");
+    public static readonly DateTime CreatedAtUtc = new(2026, 8, 26, 0, 0, 0, DateTimeKind.Utc);
+
+    public const string AdministratorPasswordHash =
+        "$argon2id$v=19$m=65536,t=3,p=2$gbASegqg+aS71bLWtCPomQ==$3AHGi//TyjMTP6Rj34P/L5yNoeZWZoEHMs2qZ+zMHd0=";
+
+    public static readonly IReadOnlyList<SeedPermission> Permissions =
+    [
+        new(new Guid("30000000-0000-0000-0000-000000000001"), "users.read", "Read users.", "users"),
+        new(new Guid("30000000-0000-0000-0000-000000000002"), "users.create", "Create users.", "users"),
+        new(new Guid("30000000-0000-0000-0000-000000000003"), "users.update", "Update users.", "users"),
+        new(new Guid("30000000-0000-0000-0000-000000000004"), "users.deactivate", "Deactivate users.", "users"),
+        new(new Guid("30000000-0000-0000-0000-000000000005"), "roles.read", "Read roles.", "roles"),
+        new(new Guid("30000000-0000-0000-0000-000000000006"), "roles.create", "Create roles.", "roles"),
+        new(new Guid("30000000-0000-0000-0000-000000000007"), "roles.update", "Update roles.", "roles"),
+        new(new Guid("30000000-0000-0000-0000-000000000008"), "roles.assign", "Assign roles and permissions.", "roles"),
+        new(new Guid("30000000-0000-0000-0000-000000000009"), "permissions.read", "Read permissions.", "permissions"),
+        new(new Guid("30000000-0000-0000-0000-000000000010"), "todos.read", "Read todos.", "todos"),
+        new(new Guid("30000000-0000-0000-0000-000000000011"), "todos.create", "Create todos.", "todos"),
+        new(new Guid("30000000-0000-0000-0000-000000000012"), "todos.update", "Update todos.", "todos"),
+        new(new Guid("30000000-0000-0000-0000-000000000013"), "todos.delete", "Delete todos.", "todos"),
+        new(new Guid("30000000-0000-0000-0000-000000000018"), "books.read", "Read books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000019"), "books.create", "Create books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000020"), "books.update", "Update books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000021"), "books.delete", "Delete books.", "books"),
+        new(new Guid("30000000-0000-0000-0000-000000000014"), "employees.read", "Read employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000015"), "employees.create", "Create employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000016"), "employees.update", "Update employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000017"), "employees.delete", "Delete employees.", "employees"),
+        new(new Guid("30000000-0000-0000-0000-000000000022"), "borrowings.read", "Read borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000023"), "borrowings.create", "Create borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000024"), "borrowings.return", "Return borrowings.", "borrowings"),
+        new(new Guid("30000000-0000-0000-0000-000000000025"), "reservations.read", "Read reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000026"), "reservations.create", "Create reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000027"), "reservations.cancel", "Cancel reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000028"), "reservations.fulfill", "Fulfill reservations.", "reservations"),
+        new(new Guid("30000000-0000-0000-0000-000000000029"), "violations.read", "Read violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000030"), "violations.create", "Create violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000031"), "violations.resolve", "Resolve violations.", "violations"),
+        new(new Guid("30000000-0000-0000-0000-000000000032"), "members.read", "Read member profiles and history.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000033"), "members.create", "Create member profiles.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000034"), "members.update", "Update member profiles and limits.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000035"), "members.manage-cards", "Issue and maintain membership cards.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000036"), "members.manage-restrictions", "Manage member transaction restrictions.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000037"), "members.manage-finances", "Record fine payments and adjustments.", "members"),
+        new(new Guid("30000000-0000-0000-0000-000000000038"), "audit-logs.read", "Xem nhật ký hoạt động hệ thống.", "audit-logs"),
+        new(new Guid("30000000-0000-0000-0000-000000000039"), "audit-logs.export", "Xuất nhật ký hoạt động hệ thống.", "audit-logs"),
+        new(new Guid("30000000-0000-0000-0000-000000000040"), "settings.read", "Xem cài đặt hệ thống.", "settings"),
+        new(new Guid("30000000-0000-0000-0000-000000000041"), "settings.update", "Cập nhật cài đặt hệ thống.", "settings"),
+        new(new Guid("30000000-0000-0000-0000-000000000042"), "circulation-policies.read", "Xem chính sách lưu thông.", "circulation-policies"),
+        new(new Guid("30000000-0000-0000-0000-000000000043"), "circulation-policies.manage", "Quản lý chính sách lưu thông.", "circulation-policies")
+    ];
+
+    internal sealed record SeedPermission(Guid Id, string Name, string Description, string Module);
+}
+
+internal sealed class AdministratorUserSeedConfiguration : IEntityTypeConfiguration<ApplicationUser>
+{
+    public void Configure(EntityTypeBuilder<ApplicationUser> builder) =>
+        builder.HasData(new ApplicationUser
+        {
+            Id = IdentitySeedData.AdministratorUserId,
+            UserName = "admin@example.com",
+            NormalizedUserName = "ADMIN@EXAMPLE.COM",
+            Email = "admin@example.com",
+            NormalizedEmail = "ADMIN@EXAMPLE.COM",
+            EmailConfirmed = true,
+            PasswordHash = IdentitySeedData.AdministratorPasswordHash,
+            SecurityStamp = "10000000-0000-0000-0000-000000000002",
+            ConcurrencyStamp = "10000000-0000-0000-0000-000000000003",
+            DisplayName = "System Administrator",
+            IsActive = true,
+            CreatedAtUtc = IdentitySeedData.CreatedAtUtc,
+            PhoneNumberConfirmed = false,
+            TwoFactorEnabled = false,
+            LockoutEnabled = true,
+            AccessFailedCount = 0
+        });
+}
+
+internal sealed class AdministratorRoleSeedConfiguration : IEntityTypeConfiguration<ApplicationRole>
+{
+    public void Configure(EntityTypeBuilder<ApplicationRole> builder) =>
+        builder.HasData(new ApplicationRole
+        {
+            Id = IdentitySeedData.AdministratorRoleId,
+            Name = "Administrator",
+            NormalizedName = "ADMINISTRATOR",
+            ConcurrencyStamp = "20000000-0000-0000-0000-000000000002",
+            Description = "Full system access.",
+            IsSystemRole = true,
+            IsActive = true,
+            CreatedAtUtc = IdentitySeedData.CreatedAtUtc
+        });
+}
+
+internal sealed class PermissionSeedConfiguration : IEntityTypeConfiguration<Permission>
+{
+    public void Configure(EntityTypeBuilder<Permission> builder) =>
+        builder.HasData(IdentitySeedData.Permissions.Select(permission => new Permission
+        {
+            Id = permission.Id,
+            Name = permission.Name,
+            Description = permission.Description,
+            Module = permission.Module,
+            CreatedAtUtc = IdentitySeedData.CreatedAtUtc
+        }));
+}
+
+internal sealed class AdministratorPermissionSeedConfiguration : IEntityTypeConfiguration<RolePermission>
+{
+    public void Configure(EntityTypeBuilder<RolePermission> builder) =>
+        builder.HasData(IdentitySeedData.Permissions.Select(permission => new RolePermission
+        {
+            RoleId = IdentitySeedData.AdministratorRoleId,
+            PermissionId = permission.Id
+        }));
+}
+
+internal sealed class AdministratorUserRoleSeedConfiguration : IEntityTypeConfiguration<IdentityUserRole<Guid>>
+{
+    public void Configure(EntityTypeBuilder<IdentityUserRole<Guid>> builder) =>
+        builder.HasData(new IdentityUserRole<Guid>
+        {
+            UserId = IdentitySeedData.AdministratorUserId,
+            RoleId = IdentitySeedData.AdministratorRoleId
+        });
+}

@@ -1,0 +1,118 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="P1mnHK0YfWhGxZoLh6fK">
+    <mxGraphModel dx="1006" dy="655" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bl-title" parent="1" style="text;html=1;align=left;fontSize=24;fontStyle=1;fontColor=#0f172a;" value="KIẾN TRÚC MÃ NGUỒN BACKEND — MODULAR MONOLITH" vertex="1">
+          <mxGeometry height="40" width="1100" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-sub" parent="1" style="text;html=1;align=left;fontSize=13;fontColor=#64748b;" value="Cấu trúc không phụ thuộc framework • Một API triển khai • Các module nghiệp vụ độc lập" vertex="1">
+          <mxGeometry height="30" width="1000" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-bootstrap" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#eff6ff;strokeColor=#2563eb;fontStyle=1;" value="KHỞI TẠO / GỐC KHỞI TẠO ỨNG DỤNG" vertex="1">
+          <mxGeometry height="120" width="1620" x="40" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-main" parent="bl-bootstrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#60a5fa;" value="main / server&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Khởi động HTTP + tắt an toàn&lt;/font&gt;" vertex="1">
+          <mxGeometry height="55" width="280" x="25" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-config" parent="bl-bootstrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#60a5fa;" value="config&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Kiểm tra biến môi trường&lt;/font&gt;" vertex="1">
+          <mxGeometry height="55" width="280" x="330" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-di" parent="bl-bootstrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#60a5fa;" value="dependency&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Đăng ký module + tiêm phụ thuộc&lt;/font&gt;" vertex="1">
+          <mxGeometry height="55" width="320" x="635" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-route-compose" parent="bl-bootstrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#60a5fa;" value="route composition&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;/api/v1 + health endpoints&lt;/font&gt;" vertex="1">
+          <mxGeometry height="55" width="280" x="980" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-migrate" parent="bl-bootstrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#60a5fa;" value="migration entrypoint&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Chạy riêng trước khi phát hành&lt;/font&gt;" vertex="1">
+          <mxGeometry height="55" width="280" x="1285" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-http" parent="1" style="swimlane;html=1;rounded=1;startSize=32;fillColor=#f0fdf4;strokeColor=#16a34a;fontStyle=1;" value="LỚP GIAO TIẾP / HTTP" vertex="1">
+          <mxGeometry height="540" width="360" x="40" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-routes" parent="bl-http" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4ade80;" value="routes&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;URL, method, middleware chain&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="300" x="30" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-controllers" parent="bl-http" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4ade80;" value="controllers&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;HTTP request → command/query&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="300" x="30" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-dto" parent="bl-http" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4ade80;" value="DTO + validation&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Phân tích input, tuần tự hóa output&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="300" x="30" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-middle" parent="bl-http" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4ade80;" value="middleware&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Phiên, RBAC, mã liên kết, ánh xạ lỗi&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="300" x="30" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-http-rule" parent="bl-http" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontStyle=1;" value="Không chứa logic nghiệp vụ" vertex="1">
+          <mxGeometry height="50" width="220" x="70" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-app" parent="1" style="swimlane;html=1;rounded=1;startSize=32;fillColor=#faf5ff;strokeColor=#9333ea;fontStyle=1;" value="LỚP ỨNG DỤNG" vertex="1">
+          <mxGeometry height="540" width="380" x="440" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-command" parent="bl-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;" value="commands / queries&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Đầu vào use case rõ ràng&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="320" x="30" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-handler" parent="bl-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1;" value="use-case handlers&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Điều phối, giao dịch, audit&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-port" parent="bl-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;" value="ports / interfaces&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Repositories, UnitOfWork, Clock, IdGenerator&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="30" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-map" parent="bl-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;" value="application mapping&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Kết quả domain → response model&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="320" x="30" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-app-rule" parent="bl-app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1;" value="Mỗi use case là một ranh giới giao dịch" vertex="1">
+          <mxGeometry height="50" width="270" x="55" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-domain" parent="1" style="swimlane;html=1;rounded=1;startSize=32;fillColor=#fff7ed;strokeColor=#ea580c;fontStyle=1;" value="LỚP NGHIỆP VỤ" vertex="1">
+          <mxGeometry height="540" width="380" x="860" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-entity" parent="bl-domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fb923c;" value="entities / aggregates&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Member, Loan, PhysicalCopy, Fine…&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-vo" parent="bl-domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fb923c;" value="value objects&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Barcode, ISBN, Money, MemberCode&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-policy" parent="bl-domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontStyle=1;" value="policies / domain services&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Eligibility, renewal, fine calculation&lt;/font&gt;" vertex="1">
+          <mxGeometry height="75" width="320" x="30" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-event" parent="bl-domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fb923c;" value="domain events / errors&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;LoanCreated, CopyUnavailable…&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="320" x="30" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-domain-rule" parent="bl-domain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontStyle=1;" value="Không phụ thuộc framework, HTTP hoặc ORM" vertex="1">
+          <mxGeometry height="50" width="270" x="55" y="445" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-infra" parent="1" style="swimlane;html=1;rounded=1;startSize=32;fillColor=#fffbeb;strokeColor=#d97706;fontStyle=1;" value="LỚP HẠ TẦNG" vertex="1">
+          <mxGeometry height="540" width="380" x="1280" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-repo" parent="bl-infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fbbf24;" value="repository adapters&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;ORM/query builder + domain mapping&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-db-adapter" parent="bl-infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fbbf24;" value="database&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Client, schema, migrations, UnitOfWork&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-sec" parent="bl-infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fbbf24;" value="security adapters&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Hashing, session, permission storage&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="320" x="30" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-log" parent="bl-infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fbbf24;" value="logging / health&lt;br&gt;&lt;font color=&#39;#64748b&#39;&gt;Structured log, diagnostics&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="320" x="30" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-pg" parent="bl-infra" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#fef3c7;strokeColor=#d97706;fontStyle=1;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="65" width="220" x="80" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-e1" edge="1" parent="1" source="bl-http" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#334155;strokeWidth=2;" target="bl-app" value="DTO">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-e2" edge="1" parent="1" source="bl-app" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#334155;strokeWidth=2;" target="bl-domain" value="domain API">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-e3" edge="1" parent="1" source="bl-infra" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#334155;strokeWidth=2;dashed=1;" target="bl-app" value="implements ports">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-rule" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=18;fillColor=#fefce8;strokeColor=#ca8a04;align=left;spacing=10;" value="Chiều phụ thuộc: presentation → application → domain. Infrastructure triển khai các port của application; domain không phụ thuộc thành phần bên ngoài." vertex="1">
+          <mxGeometry height="80" width="1200" x="250" y="865" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

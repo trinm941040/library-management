@@ -1,0 +1,280 @@
+<mxfile host="65bd71144e">
+    <diagram id="7NfRmT57zy6oPJhPPOpB" name="Page-1">
+        <mxGraphModel dx="313" dy="683" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="circulation-title" value="SƠ ĐỒ LỚP — THÀNH VIÊN, MƯỢN TRẢ, ĐẶT TRƯỚC VÀ TIỀN PHẠT" style="text;html=1;align=left;fontSize=24;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="20" width="1700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-member" value="Member" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="50" y="190" width="330" height="278" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-member-a" value="+ Id: Guid&lt;br&gt;+ MemberCode: string {unique}&lt;br&gt;+ FullName: string&lt;br&gt;+ Email: string&lt;br&gt;+ PhoneNumber: string?&lt;br&gt;+ Address: string?&lt;br&gt;+ Status: MemberStatus&lt;br&gt;+ BorrowingLimit: int&lt;br&gt;+ CreatedAtUtc: DateTime" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-member">
+                    <mxGeometry y="30" width="330" height="178" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-member-m" value="+ IsEligible(): bool&lt;br&gt;+ Restrict(reason): void&lt;br&gt;+ Reinstate(): void" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-member">
+                    <mxGeometry y="208" width="330" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-card" value="MembershipCard" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="50" y="650" width="330" height="206" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-card-a" value="+ Id: Guid&lt;br&gt;+ MemberId: Guid&lt;br&gt;+ CardNumber: string {unique}&lt;br&gt;+ IssuedAtUtc: DateTime&lt;br&gt;+ ExpiresAtUtc: DateTime&lt;br&gt;+ Status: CardStatus" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-card">
+                    <mxGeometry y="30" width="330" height="124" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-card-m" value="+ Renew(expiresAt): void&lt;br&gt;+ Block(): void" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-card">
+                    <mxGeometry y="154" width="330" height="52" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-restrict" value="MemberRestriction" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="690" width="320" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-restrict-a" value="+ Id: Guid&lt;br&gt;+ MemberId: Guid&lt;br&gt;+ Type: RestrictionType&lt;br&gt;+ Reason: string&lt;br&gt;+ StartsAtUtc: DateTime&lt;br&gt;+ EndsAtUtc: DateTime?&lt;br&gt;+ IsActive: bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-restrict">
+                    <mxGeometry y="30" width="320" height="142" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-restrict-m" value="+ Lift(at): void" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-restrict">
+                    <mxGeometry y="172" width="320" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-book" value="Book" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="850" y="110" width="280" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-book-a" value="+ Id: Guid&lt;br&gt;+ Title: string&lt;br&gt;+ Isbn: string&lt;br&gt;+ Quantity: int" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-book">
+                    <mxGeometry y="30" width="280" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-book-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-book">
+                    <mxGeometry y="118" width="280" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-copy" value="BookCopy" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1270" y="110" width="300" height="174" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-copy-a" value="+ Id: Guid&lt;br&gt;+ BookId: Guid&lt;br&gt;+ Barcode: string&lt;br&gt;+ Status: CopyStatus&lt;br&gt;+ Condition: CopyCondition" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-copy">
+                    <mxGeometry y="30" width="300" height="106" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-copy-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-copy">
+                    <mxGeometry y="136" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-borrow" value="Borrowing" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="820" y="480" width="350" height="278" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-borrow-a" value="+ Id: Guid&lt;br&gt;+ BookId: Guid&lt;br&gt;+ BorrowerId: Guid&lt;br&gt;+ BorrowerName: string&lt;br&gt;+ BorrowerEmail: string&lt;br&gt;+ BorrowedAtUtc: DateTime&lt;br&gt;+ DueAtUtc: DateTime&lt;br&gt;+ ReturnedAtUtc: DateTime?&lt;br&gt;+ IsReturned: bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-borrow">
+                    <mxGeometry y="30" width="350" height="178" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-borrow-m" value="+ Create(...): Borrowing&lt;br&gt;+ MarkReturned(at): void&lt;br&gt;+ IsOverdue(at): bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-borrow">
+                    <mxGeometry y="208" width="350" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-renew" value="Renewal" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1250" y="550" width="320" height="192" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-renew-a" value="+ Id: Guid&lt;br&gt;+ BorrowingId: Guid&lt;br&gt;+ PreviousDueAtUtc: DateTime&lt;br&gt;+ NewDueAtUtc: DateTime&lt;br&gt;+ RenewedByUserId: Guid&lt;br&gt;+ RenewedAtUtc: DateTime" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-renew">
+                    <mxGeometry y="30" width="320" height="124" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-renew-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-renew">
+                    <mxGeometry y="154" width="320" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-reservation" value="Reservation" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1620" y="420" width="360" height="314" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-reservation-a" value="+ Id: Guid&lt;br&gt;+ BookId: Guid&lt;br&gt;+ ReserverId: Guid&lt;br&gt;+ ReserverName: string&lt;br&gt;+ ReserverEmail: string&lt;br&gt;+ ReservedAtUtc: DateTime&lt;br&gt;+ ExpiresAtUtc: DateTime&lt;br&gt;+ FulfilledAtUtc: DateTime?&lt;br&gt;+ CancelledAtUtc: DateTime?&lt;br&gt;+ IsOpen: bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-reservation">
+                    <mxGeometry y="30" width="360" height="196" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-reservation-m" value="+ Create(...): Reservation&lt;br&gt;+ MarkCancelled(at): void&lt;br&gt;+ MarkFulfilled(at): void&lt;br&gt;+ IsExpired(at): bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-reservation">
+                    <mxGeometry y="226" width="360" height="88" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-violation" value="Violation" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="760" y="1040" width="350" height="314" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-violation-a" value="+ Id: Guid&lt;br&gt;+ BorrowerId: Guid&lt;br&gt;+ BookId: Guid?&lt;br&gt;+ BookTitle: string&lt;br&gt;+ Type: string&lt;br&gt;+ Note: string&lt;br&gt;+ FineAmount: decimal&lt;br&gt;+ RecordedAtUtc: DateTime&lt;br&gt;+ ResolvedAtUtc: DateTime?&lt;br&gt;+ Resolution: string?&lt;br&gt;+ IsOpen: bool" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-violation">
+                    <mxGeometry y="30" width="350" height="214" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-violation-m" value="+ Create(...): Violation&lt;br&gt;+ MarkPaid(at): void&lt;br&gt;+ MarkWaived(at): void" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-violation">
+                    <mxGeometry y="244" width="350" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-payment" value="Payment" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1240" y="1060" width="330" height="228" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-payment-a" value="+ Id: Guid&lt;br&gt;+ ViolationId: Guid&lt;br&gt;+ MemberId: Guid&lt;br&gt;+ Amount: decimal&lt;br&gt;+ Method: PaymentMethod&lt;br&gt;+ Reference: string?&lt;br&gt;+ PaidAtUtc: DateTime&lt;br&gt;+ ReceivedByUserId: Guid" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-payment">
+                    <mxGeometry y="30" width="330" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-payment-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-payment">
+                    <mxGeometry y="190" width="330" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-adjust" value="FineAdjustment" style="swimlane;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="1660" y="1060" width="350" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-adjust-a" value="+ Id: Guid&lt;br&gt;+ ViolationId: Guid&lt;br&gt;+ Type: AdjustmentType&lt;br&gt;+ Amount: decimal&lt;br&gt;+ Reason: string&lt;br&gt;+ ApprovedByUserId: Guid&lt;br&gt;+ CreatedAtUtc: DateTime" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-adjust">
+                    <mxGeometry y="30" width="350" height="142" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3-adjust-m" value="" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=left;verticalAlign=top;spacing=7;overflow=hidden;rotatable=0;fontSize=12;" vertex="1" parent="p3-adjust">
+                    <mxGeometry y="172" width="350" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e1" value="card" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-member" target="p3-card">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e1-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e1">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e1-b" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e1">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e2" value="restrictions" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-member" target="p3-restrict">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="410" y="560"/>
+                            <mxPoint x="610" y="560"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e2-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e2">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e2-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e2">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e3" value="borrows" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-member" target="p3-borrow">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e3-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e3">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e3-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e3">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e4" value="borrowed title" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-book" target="p3-borrow">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e4-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e4">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e4-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e4">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e5" value="physical copy" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-copy" target="p3-borrow">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1420" y="360"/>
+                            <mxPoint x="1200" y="360"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e5-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e5">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e5-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e5">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e6" value="renewals" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-borrow" target="p3-renew">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e6-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e6">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e6-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e6">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e7" value="reserves" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.15;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-member" target="p3-reservation">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="420" y="380"/>
+                            <mxPoint x="1580" y="380"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e7-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e7">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e7-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e7">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e8" value="reserved title" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-book" target="p3-reservation">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="990" y="90"/>
+                            <mxPoint x="1800" y="90"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e8-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e8">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e8-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e8">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e9" value="assigned copy" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-copy" target="p3-reservation">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1600" y="320"/>
+                            <mxPoint x="1800" y="320"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e9-a" value="0..1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e9">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e9-b" value="0..1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e9">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e10" value="violations" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-member" target="p3-violation">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="30" y="520"/>
+                            <mxPoint x="30" y="1000"/>
+                            <mxPoint x="700" y="1000"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e10-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e10">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e10-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e10">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e11" value="related book" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-book" target="p3-violation">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="790" y="320"/>
+                            <mxPoint x="790" y="980"/>
+                            <mxPoint x="935" y="980"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e11-a" value="0..1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e11">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e11-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e11">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e12" value="causes" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=none;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-borrow" target="p3-violation">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e12-a" value="0..1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e12">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e12-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e12">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e13" value="payments" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-violation" target="p3-payment">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e13-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e13">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e13-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e13">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e14" value="adjustments" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;endArrow=none;strokeColor=#000000;labelBackgroundColor=#ffffff;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3-violation" target="p3-adjust">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="935" y="1400"/>
+                            <mxPoint x="1835" y="1400"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="p3e14-a" value="1" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e14">
+                    <mxGeometry x="-0.82" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3e14-b" value="0..*" style="edgeLabel;html=1;resizable=0;points=[];fontSize=11;" connectable="0" vertex="1" parent="p3e14">
+                    <mxGeometry x="0.82" relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
