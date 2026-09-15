@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   UserRoundCog,
   Users,
+  Truck,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -59,6 +60,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
     items: [
       { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
       { path: '/copies', label: 'Bản sao và barcode', icon: Barcode, requiredPermissions: ['copies.read'] },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, requiredPermissions: ['suppliers.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',
