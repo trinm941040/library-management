@@ -42,7 +42,7 @@ public sealed class BookCopy
 
     public void Checkout(DateTime now)
     {
-        if (Status != CopyStatus.Available)
+        if (Status != CopyStatus.Available && Status != CopyStatus.Reserved)
             throw new InvalidOperationException($"Bản sao sách '{Barcode}' không khả dụng (Trạng thái: {Status}).");
 
         Status = CopyStatus.Borrowed;

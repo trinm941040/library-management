@@ -13,7 +13,13 @@ public sealed record ReservationModel(
     DateTime? CancelledAtUtc,
     string Status,
     Guid? AppliedPolicyId,
-    int AppliedPolicyVersion);
+    int AppliedPolicyVersion,
+    int QueuePosition = 0,
+    string? BookAuthor = null,
+    string? BookCategory = null,
+    string? ReserverMemberCode = null,
+    string? ReserverCardNumber = null,
+    Guid ConcurrencyToken = default);
 
 public sealed record ReservationListQuery(string? Search, string? Status, int PageNumber, int PageSize);
 
@@ -23,7 +29,21 @@ public sealed record ReservationPageModel(
     int PageSize,
     int TotalCount);
 
-public sealed record CreateReservationCommand(Guid BookId, Guid ReserverId, int HoldDays);
+public sealed record CreateReservationCommand(Guid BookId, Guid ReserverId, int HoldDays, Guid? ActorUserId = null);
+
+public sealed record CancelReservationCommand(Guid ActorUserId, string? Reason, Guid ConcurrencyToken);
+
+public sealed record FulfillReservationCommand(Guid ActorUserId, string? BookCopyBarcode, Guid ConcurrencyToken);
+
+public sealed record ReservationDetailModel(
+    ReservationModel Reservation,
+    string? BookIsbn,
+    string? ReserverGroup,
+    int AvailableCopiesCount,
+    int TotalActiveReservationsForBook,
+    string? PolicyName,
+    int HoldDays,
+    IReadOnlyList<ReservationModel> BookQueue);
 
 public enum ReservationFailure
 {

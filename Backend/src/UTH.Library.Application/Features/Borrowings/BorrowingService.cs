@@ -261,33 +261,33 @@ public sealed class BorrowingService(
     {
         var book = await books.GetByIdAsync(command.BookId, cancellationToken);
         if (book is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy thông tin sách.");
 
         var borrower = await members.GetByIdAsync(command.BorrowerId, cancellationToken);
         if (borrower is null || borrower.Status != MemberStatus.Active)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrower was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả hoặc tài khoản độc giả không hoạt động.");
         var now = timeProvider.GetUtcNow().UtcDateTime;
         if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active || borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower's membership card is not active.");
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Thẻ độc giả chưa được cấp, chưa kích hoạt hoặc đã hết hạn sử dụng.");
         if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an active borrowing restriction.");
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có giới hạn hoặc bị khóa quyền mượn sách.");
         var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
         var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
         var maxLoans = Math.Min(borrower.BorrowingLimit, policy.MaxLoanBooks);
         if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing limit has been reached.");
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Độc giả đã đạt số lượng sách mượn tối đa cho phép ({maxLoans} cuốn).");
         if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an overdue loan.");
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có sách mượn quá hạn chưa trả, chính sách lưu thông từ chối cho mượn tiếp.");
 
         if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "This borrower already has this book on loan.");
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả này hiện đang mượn một bản của cuốn sách này.");
 
         try
         {
             var maximumLoanDays = Math.Min(borrower.LoanPeriodDays, policy.LoanPeriodDays);
             var loanDays = command.LoanDays <= 0 ? maximumLoanDays : command.LoanDays;
             if (loanDays > maximumLoanDays)
-                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the applicable policy.");
+                return BorrowingResult.Fail(BorrowingFailure.Validation, $"Thời gian mượn ({loanDays} ngày) vượt quá quy định tối đa của chính sách ({maximumLoanDays} ngày).");
             book.Checkout(now);
             var borrowing = Borrowing.Create(
                 book.Id,

@@ -14,6 +14,12 @@ export type LibraryReservation = {
   fulfilledAtUtc: string | null
   cancelledAtUtc: string | null
   status: 'waiting' | 'ready' | 'expired' | 'fulfilled' | 'cancelled' | string
+  queuePosition?: number
+  bookAuthor?: string | null
+  bookCategory?: string | null
+  reserverMemberCode?: string | null
+  reserverCardNumber?: string | null
+  concurrencyToken: string
 }
 
 export type ReservationPageResponse = {
@@ -22,6 +28,17 @@ export type ReservationPageResponse = {
   pageSize: number
   totalCount: number
   totalPages: number
+}
+
+export type ReservationDetailResponse = {
+  reservation: LibraryReservation
+  bookIsbn: string | null
+  reserverGroup: string | null
+  availableCopiesCount: number
+  totalActiveReservationsForBook: number
+  policyName: string | null
+  holdDays: number
+  bookQueue: LibraryReservation[]
 }
 
 export type ReservationFilters = {
@@ -35,6 +52,16 @@ export type CreateReservationInput = {
   bookId: string
   reserverId: string
   holdDays: number
+}
+
+export type CancelReservationInput = {
+  reason?: string
+  concurrencyToken: string
+}
+
+export type FulfillReservationInput = {
+  bookCopyBarcode?: string
+  concurrencyToken: string
 }
 
 type ProblemDetails = {
@@ -71,6 +98,14 @@ export async function getReservations(
   return readResponse<ReservationPageResponse>(response)
 }
 
+export async function getReservationDetail(
+  id: string,
+  signal?: AbortSignal,
+): Promise<ReservationDetailResponse> {
+  const response = await authenticatedFetch(`${RESERVATIONS_URL}/${id}`, { signal })
+  return readResponse<ReservationDetailResponse>(response)
+}
+
 export async function createReservation(input: CreateReservationInput): Promise<LibraryReservation> {
   const response = await authenticatedFetch(RESERVATIONS_URL, {
     method: 'POST',
@@ -80,12 +115,26 @@ export async function createReservation(input: CreateReservationInput): Promise<
   return readResponse<LibraryReservation>(response)
 }
 
-export async function cancelReservation(id: string): Promise<LibraryReservation> {
-  const response = await authenticatedFetch(`${RESERVATIONS_URL}/${id}/cancel`, { method: 'POST' })
+export async function cancelReservation(
+  id: string,
+  input?: CancelReservationInput,
+): Promise<LibraryReservation> {
+  const response = await authenticatedFetch(`${RESERVATIONS_URL}/${id}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: input ? JSON.stringify(input) : undefined,
+  })
   return readResponse<LibraryReservation>(response)
 }
 
-export async function fulfillReservation(id: string): Promise<LibraryReservation> {
-  const response = await authenticatedFetch(`${RESERVATIONS_URL}/${id}/fulfill`, { method: 'POST' })
+export async function fulfillReservation(
+  id: string,
+  input?: FulfillReservationInput,
+): Promise<LibraryReservation> {
+  const response = await authenticatedFetch(`${RESERVATIONS_URL}/${id}/fulfill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: input ? JSON.stringify(input) : undefined,
+  })
   return readResponse<LibraryReservation>(response)
 }
