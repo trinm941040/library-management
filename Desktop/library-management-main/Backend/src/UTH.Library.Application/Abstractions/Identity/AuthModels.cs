@@ -57,6 +57,9 @@ public static class Permissions
     public const string LocationsCreate = "locations.create";
     public const string LocationsUpdate = "locations.update";
     public const string LocationsDeactivate = "locations.deactivate";
+    public const string CopiesRead = "copies.read";
+    public const string CopiesCreate = "copies.create";
+    public const string CopiesUpdate = "copies.update";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -72,7 +75,8 @@ public static class Permissions
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate
-        , LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate
+        , LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
+        CopiesRead, CopiesCreate, CopiesUpdate
     ];
 }
 

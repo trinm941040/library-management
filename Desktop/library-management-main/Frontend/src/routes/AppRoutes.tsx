@@ -53,6 +53,9 @@ const EmployeePage = lazy(() =>
 const BranchesPage = lazy(() =>
   import('../pages/branches/BranchesPage').then((m) => ({ default: m.BranchesPage })),
 )
+const CopiesPage = lazy(() =>
+  import('../pages/copies/CopiesPage').then((m) => ({ default: m.CopiesPage })),
+)
 const MemberPage = lazy(() =>
   import('../pages/members/MemberPage').then((m) => ({ default: m.MemberPage })),
 )
@@ -124,6 +127,7 @@ export function AppRoutes() {
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/employee" element={page('/employee', <EmployeePage />)} />
         <Route path="/branches" element={page('/branches', <BranchesPage />)} />
+        <Route path="/copies" element={page('/copies', <CopiesPage />)} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
         <Route path="/roles" element={page('/roles', <RolePermissionPage initialView="roles" />)} />
         <Route
