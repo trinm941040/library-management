@@ -12,6 +12,7 @@ import {
   UserRoundCog,
   Users,
   Truck,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -61,6 +62,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
       { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
       { path: '/copies', label: 'Bản sao và barcode', icon: Barcode, requiredPermissions: ['copies.read'] },
       { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, requiredPermissions: ['suppliers.read'] },
+      { path: '/stock-receipts', label: 'Phiếu nhập sách', icon: ClipboardList, requiredPermissions: ['stock-receipts.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',
