@@ -1,4 +1,5 @@
 using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.Enums;
 
 namespace UTH.Library.Application.Abstractions.Persistence;
 
@@ -12,6 +13,9 @@ public interface IBookCatalogRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        RecordStatus? status,
+        string sortBy,
+        string sortDirection,
         CancellationToken cancellationToken);
 
     Task<BookCatalogSnapshot> GetCatalogAsync(Guid bookId, CancellationToken cancellationToken);

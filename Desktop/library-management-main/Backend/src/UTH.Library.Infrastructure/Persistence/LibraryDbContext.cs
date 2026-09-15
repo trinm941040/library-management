@@ -86,6 +86,11 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(book => book.Isbn).HasMaxLength(32).IsRequired();
             entity.Property(book => book.Category).HasMaxLength(100).IsRequired();
             entity.Property(book => book.Quantity).IsRequired();
+            entity.Property(book => book.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(book => book.Description).HasMaxLength(4000);
+            entity.Property(book => book.EditionStatement).HasMaxLength(200);
+            entity.HasIndex(book => book.Status);
+            entity.HasOne<Publisher>().WithMany().HasForeignKey(book => book.PublisherId).OnDelete(DeleteBehavior.Restrict);
             entity.Property(book => book.CreatedAtUtc).IsRequired();
             entity.HasIndex(book => book.Isbn).IsUnique();
             entity.HasIndex(book => book.Title);

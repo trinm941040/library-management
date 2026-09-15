@@ -26,6 +26,9 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 query.AuthorIds,
                 query.CategoryIds,
                 query.PublisherId,
+                query.Status,
+                query.SortBy,
+                query.SortDirection,
                 cancellationToken);
 
         var catalogs = catalogRepository is null
@@ -60,6 +63,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Category,
                 command.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
+            book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description, command.PublicationYear);
 
             if (await repository.IsbnExistsAsync(book.Isbn, null, cancellationToken))
                 return BookResult.Fail(BookFailure.Conflict, "A book with this ISBN already exists.");
@@ -88,6 +92,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
             return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
+        if (command.ConcurrencyToken is not null && command.ConcurrencyToken != book.ConcurrencyToken)
+            return BookResult.Fail(BookFailure.Conflict, "The book was modified by another request. Reload it and try again.");
 
         try
         {
@@ -103,6 +109,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Category,
                 command.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
+            book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description, command.PublicationYear);
             return await unitOfWork.ExecuteAsync(async ct =>
             {
                 if (catalogRepository is not null && HasNormalizedReferences(command))
@@ -159,7 +166,12 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
             catalog?.Authors.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),
             catalog?.Categories.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),
             catalog?.Publisher is null ? null : new BookReferenceModel(catalog.Publisher.Id, catalog.Publisher.Name),
-            catalog?.AvailableCopyCount);
+            catalog?.AvailableCopyCount,
+            book.Status,
+            book.ConcurrencyToken,
+            book.Description,
+            book.EditionStatement,
+            book.PublicationYear);
 
     private IBookCatalogRepository? catalogRepository => repository as IBookCatalogRepository;
 

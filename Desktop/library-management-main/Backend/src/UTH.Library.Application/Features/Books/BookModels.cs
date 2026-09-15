@@ -1,4 +1,5 @@
 using UTH.Library.Application.Common;
+using UTH.Library.Domain.Enums;
 namespace UTH.Library.Application.Features.Books;
 
 public sealed record BookModel(
@@ -13,7 +14,12 @@ public sealed record BookModel(
     IReadOnlyCollection<BookReferenceModel>? Authors = null,
     IReadOnlyCollection<BookReferenceModel>? Categories = null,
     BookReferenceModel? Publisher = null,
-    int? AvailableCopyCount = null);
+    int? AvailableCopyCount = null,
+    RecordStatus Status = RecordStatus.Active,
+    Guid ConcurrencyToken = default,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null);
 
 public sealed record BookReferenceModel(Guid Id, string Name);
 
@@ -24,7 +30,10 @@ public sealed record BookListQuery(
     int PageSize,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null) : IQuery<BookPageModel>;
+    Guid? PublisherId = null,
+    RecordStatus? Status = null,
+    string SortBy = "title",
+    string SortDirection = "asc") : IQuery<BookPageModel>;
 
 public sealed record BookPageModel(
     IReadOnlyList<BookModel> Items,
@@ -40,7 +49,10 @@ public sealed record CreateBookCommand(
     int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null) : ICommand<BookResult>;
+    Guid? PublisherId = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null) : ICommand<BookResult>;
 
 public sealed record UpdateBookCommand(
     string Title,
@@ -50,7 +62,11 @@ public sealed record UpdateBookCommand(
     int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null);
+    Guid? PublisherId = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    Guid? ConcurrencyToken = null);
 
 public enum BookFailure
 {

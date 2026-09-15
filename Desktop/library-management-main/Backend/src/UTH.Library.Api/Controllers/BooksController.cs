@@ -23,7 +23,7 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var page = await listHandler.HandleAsync(
-            new BookListQuery(request.Search, request.Category, request.PageNumber, request.PageSize, request.AuthorIds, request.CategoryIds, request.PublisherId),
+            new BookListQuery(request.Search, request.Category, request.PageNumber, request.PageSize, request.AuthorIds, request.CategoryIds, request.PublisherId, request.Status, request.SortBy, request.SortDirection),
             cancellationToken);
 
         var totalPages = page.TotalCount == 0
@@ -57,7 +57,7 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var result = await createHandler.HandleAsync(
-            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId),
+            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId, request.Description, request.EditionStatement, request.PublicationYear),
             cancellationToken);
 
         if (!result.Succeeded || result.Book is null)
@@ -79,7 +79,7 @@ public sealed class BooksController(
     {
         var result = await bookService.UpdateAsync(
             id,
-            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId),
+            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId, request.Description, request.EditionStatement, request.PublicationYear, request.ConcurrencyToken),
             cancellationToken);
 
         return result.Succeeded && result.Book is not null
@@ -119,5 +119,10 @@ public sealed class BooksController(
             book.Authors?.Select(reference => new BookReferenceResponse(reference.Id, reference.Name)).ToArray(),
             book.Categories?.Select(reference => new BookReferenceResponse(reference.Id, reference.Name)).ToArray(),
             book.Publisher is null ? null : new BookReferenceResponse(book.Publisher.Id, book.Publisher.Name),
-            book.AvailableCopyCount);
+            book.AvailableCopyCount,
+            book.Status,
+            book.ConcurrencyToken,
+            book.Description,
+            book.EditionStatement,
+            book.PublicationYear);
 }

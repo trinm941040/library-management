@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using UTH.Library.Domain.Enums;
 
 namespace UTH.Library.Api.Contracts.Books;
 
@@ -9,6 +10,9 @@ public sealed class BookFilterRequest
     public IReadOnlyCollection<Guid>? AuthorIds { get; init; }
     public IReadOnlyCollection<Guid>? CategoryIds { get; init; }
     public Guid? PublisherId { get; init; }
+    public RecordStatus? Status { get; init; }
+    public string SortBy { get; init; } = "title";
+    public string SortDirection { get; init; } = "asc";
 
     [Range(1, 1_000_000)]
     public int PageNumber { get; init; } = 1;
@@ -25,7 +29,10 @@ public sealed record CreateBookRequest(
     [Range(0, 100_000)] int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null);
+    Guid? PublisherId = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null);
 
 public sealed record UpdateBookRequest(
     [Required, StringLength(200, MinimumLength = 1)] string Title,
@@ -35,7 +42,11 @@ public sealed record UpdateBookRequest(
     [Range(0, 100_000)] int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null);
+    Guid? PublisherId = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    Guid? ConcurrencyToken = null);
 
 public sealed record BookResponse(
     Guid Id,
@@ -49,7 +60,12 @@ public sealed record BookResponse(
     IReadOnlyCollection<BookReferenceResponse>? Authors = null,
     IReadOnlyCollection<BookReferenceResponse>? Categories = null,
     BookReferenceResponse? Publisher = null,
-    int? AvailableCopyCount = null);
+    int? AvailableCopyCount = null,
+    RecordStatus Status = RecordStatus.Active,
+    Guid ConcurrencyToken = default,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null);
 
 public sealed record BookReferenceResponse(Guid Id, string Name);
 

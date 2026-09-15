@@ -106,10 +106,13 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        RecordStatus? status,
+        string sortBy,
+        string sortDirection,
         CancellationToken cancellationToken)
     {
         var query = dbContext.Books
-            .Where(book => book.Status == RecordStatus.Active)
+            .Where(book => status == null || book.Status == status)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -136,8 +139,17 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         if (publisherId is not null)
             query = query.Where(book => dbContext.BookPublishers.Any(link => link.BookId == book.Id && link.PublisherId == publisherId));
 
+        var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy.Trim().ToLowerInvariant() switch
+        {
+            "isbn" => descending ? query.OrderByDescending(book => book.Isbn) : query.OrderBy(book => book.Isbn),
+            "createdatutc" => descending ? query.OrderByDescending(book => book.CreatedAtUtc) : query.OrderBy(book => book.CreatedAtUtc),
+            "status" => descending ? query.OrderByDescending(book => book.Status) : query.OrderBy(book => book.Status),
+            _ => descending ? query.OrderByDescending(book => book.Title) : query.OrderBy(book => book.Title)
+        };
+
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query.OrderBy(book => book.Title)
+        var items = await query
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
