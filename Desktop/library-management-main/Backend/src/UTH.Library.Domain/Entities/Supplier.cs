@@ -1,0 +1,2 @@
+namespace UTH.Library.Domain.Entities;
+public sealed class Supplier { public Guid Id { get; private set; } public string Code { get; private set; } = string.Empty; public string Name { get; private set; } = string.Empty; public string? ContactName { get; private set; } public string? Email { get; private set; } public string? PhoneNumber { get; private set; } public string? Address { get; private set; } public Guid ConcurrencyToken { get; private set; } }

@@ -1,0 +1,3 @@
+using UTH.Library.Domain.Enums;
+namespace UTH.Library.Domain.Entities;
+public sealed class Notification { public Guid Id { get; private set; } public Guid TemplateId { get; private set; } public RecipientType RecipientType { get; private set; } public Guid RecipientId { get; private set; } public string Destination { get; private set; } = string.Empty; public string? Subject { get; private set; } public string Body { get; private set; } = string.Empty; public NotificationStatus Status { get; private set; } public DateTime? ScheduledAtUtc { get; private set; } public DateTime? SentAtUtc { get; private set; } public string? FailureReason { get; private set; } public Guid ConcurrencyToken { get; private set; } }

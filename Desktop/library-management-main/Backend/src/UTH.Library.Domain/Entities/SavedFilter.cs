@@ -1,0 +1,2 @@
+namespace UTH.Library.Domain.Entities;
+public sealed class SavedFilter { public Guid Id { get; private set; } public Guid OwnerUserId { get; private set; } public string Name { get; private set; } = string.Empty; public string Scope { get; private set; } = string.Empty; public string Criteria { get; private set; } = "{}"; public string? Sort { get; private set; } public DateTime CreatedAtUtc { get; private set; } }
