@@ -1,0 +1,21 @@
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UTH.Library.Api.Contracts.Copies;
+using UTH.Library.Application.Abstractions.Identity;
+using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.Enums;
+using UTH.Library.Infrastructure.Persistence;
+namespace UTH.Library.Api.Controllers;
+[ApiController, Authorize, Route("api/v1/copies")]
+public sealed class CopyOperationsController(LibraryDbContext db) : ControllerBase
+{
+    [HttpPost("bulk/status"), Authorize(Policy = Permissions.CopiesUpdate)] public Task<ActionResult<IReadOnlyCollection<CopyBulkResult>>> BulkStatus(CopyBulkRequest request, CancellationToken ct) => ApplyRows(request, ct, (copy, row) => { if (row.Status is null) throw new ArgumentException("Status is required."); copy.ChangeStatus(row.Status.Value); return Task.CompletedTask; });
+    [HttpPost("bulk/relocate"), Authorize(Policy = Permissions.CopiesUpdate)] public Task<ActionResult<IReadOnlyCollection<CopyBulkResult>>> BulkRelocate(CopyBulkRequest request, CancellationToken ct) => ApplyRows(request, ct, async (copy, row) => { if (row.ShelfId is null || !await ActiveShelf(row.ShelfId.Value, ct)) throw new ArgumentException("Shelf is invalid or inactive."); copy.Relocate(row.ShelfId.Value); });
+    [HttpPost("bulk/withdraw"), Authorize(Policy = Permissions.CopiesWithdraw)] public Task<ActionResult<IReadOnlyCollection<CopyBulkResult>>> BulkWithdraw(CopyBulkRequest request, CancellationToken ct) => ApplyRows(request, ct, (copy, row) => { if (string.IsNullOrWhiteSpace(row.Reason)) throw new ArgumentException("Withdrawal reason is required."); if (copy.Status == CopyStatus.Borrowed) throw new InvalidOperationException("Borrowed copies cannot be withdrawn."); copy.ChangeStatus(CopyStatus.Withdrawn); return Task.CompletedTask; });
+    [HttpPost("import/preview"), Authorize(Policy = Permissions.CopiesCreate)] public async Task<ActionResult<IReadOnlyCollection<CopyImportPreviewRow>>> ImportPreview(CopyImportPreviewRequest request, CancellationToken ct) { var seen = new HashSet<string>(); var result = new List<CopyImportPreviewRow>(); var index = 0; foreach (var row in request.Rows) { index++; var barcode = row.Barcode.Trim().ToUpperInvariant(); var error = string.IsNullOrWhiteSpace(barcode) ? "Barcode is required." : !seen.Add(barcode) || await db.BookCopies.AnyAsync(x => x.Barcode == barcode, ct) ? "Barcode already exists." : !await db.Books.AnyAsync(x => x.Id == row.BookId, ct) ? "Book was not found." : row.ShelfId is not null && !await ActiveShelf(row.ShelfId.Value, ct) ? "Shelf is invalid or inactive." : null; result.Add(new CopyImportPreviewRow(index, error is null, error, barcode)); } return Ok(result); }
+    [HttpGet("export"), Authorize(Policy = Permissions.CopiesRead)] public async Task<IActionResult> Export(CancellationToken ct) { var rows = await db.BookCopies.AsNoTracking().OrderBy(x => x.Barcode).ToListAsync(ct); var csv = new StringBuilder("Barcode,BookId,ShelfId,Condition,Status\n"); foreach (var row in rows) csv.AppendLine($"{row.Barcode},{row.BookId},{row.ShelfId},{row.Condition},{row.Status}"); return File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "book-copies.csv"); }
+    private async Task<ActionResult<IReadOnlyCollection<CopyBulkResult>>> ApplyRows(CopyBulkRequest request, CancellationToken ct, Func<BookCopy, CopyBulkRow, Task> apply) { var result = new List<CopyBulkResult>(); foreach (var row in request.Rows) { var copy = await db.BookCopies.SingleOrDefaultAsync(x => x.Id == row.CopyId, ct); if (copy is null) { result.Add(new(row.CopyId, false, "Copy was not found.", null)); continue; } if (row.ConcurrencyToken is not null && row.ConcurrencyToken != copy.ConcurrencyToken) { result.Add(new(row.CopyId, false, "Copy was modified by another request.", copy.ConcurrencyToken)); continue; } try { await apply(copy, row); await db.SaveChangesAsync(ct); result.Add(new(copy.Id, true, null, copy.ConcurrencyToken)); } catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { result.Add(new(copy.Id, false, ex.Message, copy.ConcurrencyToken)); } } return Ok(result); }
+    private Task<bool> ActiveShelf(Guid id, CancellationToken ct) => db.Shelves.AnyAsync(x => x.Id == id && x.Status == ShelfStatus.Active, ct);
+}
