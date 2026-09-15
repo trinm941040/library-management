@@ -57,9 +57,6 @@ public sealed class UsersController(IUserManagementService userManagementService
         [FromBody] CreateUserRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.DisplayName))
-            return InvalidWhitespace();
-
         var result = await userManagementService.CreateAsync(
             new CreateManagedUserCommand(
                 request.Email,
@@ -86,8 +83,6 @@ public sealed class UsersController(IUserManagementService userManagementService
         [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.DisplayName))
-            return InvalidWhitespace();
         if (!TryGetCurrentUserId(out var currentUserId))
             return Unauthorized(CreateProblem("The authenticated user identifier is invalid."));
 
@@ -125,12 +120,6 @@ public sealed class UsersController(IUserManagementService userManagementService
             Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "User validation failed."))
     };
-
-    private ActionResult InvalidWhitespace()
-    {
-        ModelState.AddModelError("user", "Email and display name cannot contain only whitespace.");
-        return ValidationProblem(ModelState);
-    }
 
     private bool TryGetCurrentUserId(out Guid id) =>
         Guid.TryParse(

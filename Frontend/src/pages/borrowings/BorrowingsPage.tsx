@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BookOpen, CircleAlert, Plus, RefreshCw, Search, Undo2 } from 'lucide-react'
+import { Barcode, BookOpen, CircleAlert, Plus, RefreshCw, RotateCcw, Search, Undo2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -21,14 +22,13 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { BorrowingFormDialog, type BorrowingFormData } from './components/BorrowingFormDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   createBorrowing,
   getBorrowings,
   returnBorrowing,
   type BorrowingPageResponse,
 } from './borrowing-api'
-
-const ITEMS_PER_PAGE = 20
 
 const statusLabels: Record<string, string> = {
   borrowed: 'Đang mượn',
@@ -42,6 +42,7 @@ export function BorrowingsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -68,7 +69,7 @@ export function BorrowingsPage() {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
         pageNumber: currentPage,
-        pageSize: ITEMS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -87,7 +88,7 @@ export function BorrowingsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -125,7 +126,11 @@ export function BorrowingsPage() {
   }
 
   const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    new Date(value).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
 
   return (
     <>
@@ -145,9 +150,23 @@ export function BorrowingsPage() {
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button onClick={() => setFormOpen(true)}>
-              <Plus /> Tạo phiếu mượn
-            </Button>
+            <PermissionBoundary requiredPermissions={['borrowings.create']}>
+              <Button asChild>
+                <Link to="/circulation/checkout">
+                  <Barcode className="mr-1 h-4 w-4" /> Quét mã lập phiếu
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => setFormOpen(true)}>
+                <Plus /> Tạo thủ công
+              </Button>
+            </PermissionBoundary>
+            <PermissionBoundary requiredPermissions={['borrowings.return']}>
+              <Button asChild variant="outline" className="border-indigo-200 hover:border-indigo-300 text-indigo-700 dark:text-indigo-300">
+                <Link to="/circulation/return">
+                  <RotateCcw className="mr-1 h-4 w-4" /> Quét mã trả sách
+                </Link>
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -266,15 +285,17 @@ export function BorrowingsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {item.status !== 'returned' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={returningId === item.id}
-                            onClick={() => handleReturn(item.id)}
-                          >
-                            <Undo2 />
-                            Trả sách
-                          </Button>
+                          <PermissionBoundary requiredPermissions={['borrowings.return']}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={returningId === item.id}
+                              onClick={() => handleReturn(item.id)}
+                            >
+                              <Undo2 />
+                              Trả sách
+                            </Button>
+                          </PermissionBoundary>
                         ) : null}
                       </TableCell>
                     </TableRow>
@@ -283,12 +304,17 @@ export function BorrowingsPage() {
               </Table>
             </div>
 
-            {page && page.totalPages > 1 ? (
+            {page && page.totalCount > 0 ? (
               <div className="mt-4 flex justify-end">
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               </div>
             ) : null}
@@ -296,7 +322,9 @@ export function BorrowingsPage() {
         </Card>
       </div>
 
-      <BorrowingFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      <PermissionBoundary requiredPermissions={['borrowings.create']}>
+        <BorrowingFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
+      </PermissionBoundary>
     </>
   )
 }

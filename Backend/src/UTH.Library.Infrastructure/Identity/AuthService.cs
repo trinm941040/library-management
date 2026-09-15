@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using UTH.Library.Application.Abstractions.Identity;
+using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Persistence;
 
 namespace UTH.Library.Infrastructure.Identity;
@@ -13,91 +14,350 @@ public sealed class AuthService(
     SignInManager<ApplicationUser> signInManager,
     LibraryDbContext db,
     IJwtTokenService jwtTokenService,
+    IAuthorizationStateService authorizationStateService,
+    ICurrentProfileService currentProfileService,
     IOptions<JwtOptions> options,
     TimeProvider timeProvider) : IAuthService
 {
+    private const string InvalidLogin = "Thông tin đăng nhập không hợp lệ.";
+    private const string InvalidSession = "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.";
     private readonly JwtOptions settings = options.Value;
 
-    public async Task<(bool Succeeded, string? Error, AuthResult? Result)> RegisterAsync(string email, string password, string displayName, string? ipAddress, string? userAgent, CancellationToken cancellationToken)
-    {
-        email = email.Trim().ToUpperInvariant();
-        if (await userManager.FindByEmailAsync(email) is not null)
-            return (false, "Registration could not be completed.", null);
-
-        var user = new ApplicationUser { Id = Guid.NewGuid(), UserName = email, Email = email, DisplayName = displayName.Trim(), CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime };
-        var created = await userManager.CreateAsync(user, password);
-        if (!created.Succeeded)
-            return (false, "Registration could not be completed.", null);
-        await userManager.AddToRoleAsync(user, RoleNames.User);
-        return await IssueAsync(user, ipAddress, userAgent, cancellationToken);
-    }
-
-    public async Task<(bool Succeeded, string? Error, AuthResult? Result)> LoginAsync(string email, string password, string? ipAddress, string? userAgent, CancellationToken cancellationToken)
+    public async Task<(bool Succeeded, string? Error, AuthResult? Result)> LoginAsync(
+        string email,
+        string password,
+        string? ipAddress,
+        string? userAgent,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(email.Trim());
-        var result = user is null ? SignInResult.Failed : await signInManager.CheckPasswordSignInAsync(user, password, true);
-        if (!result.Succeeded || user is null || !user.IsActive || (settings.RequireConfirmedEmail && !user.EmailConfirmed))
-            return (false, "Invalid credentials.", null);
+        var signIn = user is null
+            ? SignInResult.Failed
+            : await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        if (!signIn.Succeeded || user is null ||
+            (settings.RequireConfirmedEmail && !user.EmailConfirmed))
+            return await LoginFailedAsync(correlationId, cancellationToken);
+
+        var authorization = await authorizationStateService.GetAsync(user.Id, cancellationToken);
+        if (authorization is null || !authorization.CanAuthenticate)
+            return await LoginFailedAsync(correlationId, cancellationToken);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await SessionLock.AcquireAsync(db, user.Id, cancellationToken);
         user.LastLoginAtUtc = timeProvider.GetUtcNow().UtcDateTime;
-        await userManager.UpdateAsync(user);
-        return await IssueAsync(user, ipAddress, userAgent, cancellationToken);
+        var update = await userManager.UpdateAsync(user);
+        if (!update.Succeeded) return Failed(InvalidLogin);
+
+        var result = await IssueNewFamilyAsync(
+            user.Id,
+            authorization,
+            ipAddress,
+            userAgent,
+            correlationId,
+            cancellationToken);
+        if (result.Succeeded) await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
-    public async Task<(bool Succeeded, string? Error, AuthResult? Result)> RefreshAsync(string refreshToken, string? ipAddress, string? userAgent, CancellationToken cancellationToken)
+    public async Task<(bool Succeeded, string? Error, AuthResult? Result)> RefreshAsync(
+        string refreshToken,
+        string? ipAddress,
+        string? userAgent,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
-        var hash = Hash(refreshToken);
+        var tokenHash = Hash(refreshToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var session = await db.RefreshTokenSessions.Include(value => value.User).SingleOrDefaultAsync(value => value.TokenHash == hash, cancellationToken);
+        var session = await db.RefreshTokenSessions.AsNoTracking()
+            .SingleOrDefaultAsync(value => value.TokenHash == tokenHash, cancellationToken);
+        if (session is null) return Failed(InvalidSession);
+        await SessionLock.AcquireAsync(db, session.UserId, cancellationToken);
+        session = await db.RefreshTokenSessions.AsNoTracking().SingleAsync(value => value.Id == session.Id, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        if (session is null || session.ExpiresAtUtc <= now || session.RevokedAtUtc is not null || session.UsedAtUtc is not null)
+
+        if (session.UsedAtUtc is not null || session.RevokedAtUtc is not null)
         {
-            if (session is not null)
-            {
-                await db.RefreshTokenSessions.Where(value => value.FamilyId == session.FamilyId && value.RevokedAtUtc == null).ExecuteUpdateAsync(setters => setters.SetProperty(value => value.RevokedAtUtc, now).SetProperty(value => value.RevocationReason, "refresh-reuse"), cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            }
-            return (false, "Invalid refresh token.", null);
+            await RevokeFamilyForReuseAsync(session, now, ipAddress, correlationId, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Failed(InvalidSession);
         }
-        session.UsedAtUtc = now;
-        session.RevokedAtUtc = now;
-        session.RevocationReason = "rotated";
-        var result = await IssueAsync(session.User, ipAddress, userAgent, cancellationToken, session.FamilyId, session.Id);
+
+        if (session.ExpiresAtUtc <= now) return Failed(InvalidSession);
+
+        var authorization = await authorizationStateService.GetAsync(session.UserId, cancellationToken);
+        if (authorization is null || !authorization.CanAuthenticate)
+        {
+            await RevokeFamilyAsync(session.FamilyId, now, ipAddress, "account-unavailable", cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Failed(InvalidSession);
+        }
+
+        var replacementId = Guid.NewGuid();
+        var affected = await db.RefreshTokenSessions
+            .Where(value => value.Id == session.Id &&
+                value.UsedAtUtc == null &&
+                value.RevokedAtUtc == null &&
+                value.ExpiresAtUtc > now)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(value => value.UsedAtUtc, now)
+                    .SetProperty(value => value.RevokedAtUtc, now)
+                    .SetProperty(value => value.RevokedByIp, ipAddress)
+                    .SetProperty(value => value.RevocationReason, "rotated")
+                    .SetProperty(value => value.ReplacedByTokenId, replacementId),
+                cancellationToken);
+        if (affected != 1)
+        {
+            await RevokeFamilyForReuseAsync(session, now, ipAddress, correlationId, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return Failed(InvalidSession);
+        }
+
+        var rawRefreshToken = CreateRefreshToken();
+        var replacement = CreateSession(
+            replacementId,
+            session.UserId,
+            rawRefreshToken,
+            session.FamilyId,
+            session.Id,
+            now,
+            session.ExpiresAtUtc,
+            ipAddress,
+            userAgent);
+        db.RefreshTokenSessions.Add(replacement);
+        db.AuditLogs.Add(AuditLog.Create(
+            session.UserId,
+            "session.refreshed",
+            nameof(RefreshTokenSession),
+            replacement.Id,
+            null,
+            null,
+            now,
+            correlationId));
+
+        var result = await CreateResultAsync(
+            authorization,
+            replacement,
+            rawRefreshToken,
+            cancellationToken);
+        if (!result.Succeeded) return result;
+
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return result;
     }
 
-    public async Task<bool> LogoutAsync(string refreshToken, string? ipAddress, CancellationToken cancellationToken)
+    public async Task<bool> LogoutAsync(
+        string refreshToken,
+        string? ipAddress,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
-        var session = await db.RefreshTokenSessions.SingleOrDefaultAsync(value => value.TokenHash == Hash(refreshToken), cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var session = await db.RefreshTokenSessions.AsNoTracking()
+            .SingleOrDefaultAsync(value => value.TokenHash == Hash(refreshToken), cancellationToken);
         if (session is null) return false;
-        session.RevokedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
-        session.RevokedByIp = ipAddress;
-        session.RevocationReason = "logout";
+        await SessionLock.AcquireAsync(db, session.UserId, cancellationToken);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        await RevokeFamilyAsync(session.FamilyId, now, ipAddress, "logout", cancellationToken);
+        db.AuditLogs.Add(AuditLog.Create(
+            session.UserId,
+            "session.logged-out",
+            nameof(RefreshTokenSession),
+            session.Id,
+            null,
+            null,
+            now,
+            correlationId));
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return true;
     }
 
-    public async Task LogoutAllAsync(Guid userId, string? ipAddress, CancellationToken cancellationToken) =>
-        await db.RefreshTokenSessions.Where(value => value.UserId == userId && value.RevokedAtUtc == null).ExecuteUpdateAsync(setters => setters.SetProperty(value => value.RevokedAtUtc, timeProvider.GetUtcNow().UtcDateTime).SetProperty(value => value.RevokedByIp, ipAddress).SetProperty(value => value.RevocationReason, "logout-all"), cancellationToken);
-
-    public async Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task LogoutAllAsync(
+        Guid userId,
+        string? ipAddress,
+        string? correlationId,
+        CancellationToken cancellationToken)
     {
-        var user = await userManager.FindByIdAsync(userId.ToString());
-        return user is null ? null : new UserProfile(user.Id, user.Email ?? string.Empty, user.DisplayName, (await userManager.GetRolesAsync(user)).ToArray());
-    }
-
-    private async Task<(bool Succeeded, string? Error, AuthResult? Result)> IssueAsync(ApplicationUser user, string? ipAddress, string? userAgent, CancellationToken cancellationToken, Guid? familyId = null, Guid? parentId = null)
-    {
-        var roles = await userManager.GetRolesAsync(user);
-        var permissions = await db.RolePermissions.Where(value => roles.Contains(value.Role.Name!)).Select(value => value.Permission.Name).Distinct().ToListAsync(cancellationToken);
-        var access = jwtTokenService.CreateAccessToken(user.Id, user.Email ?? string.Empty, roles, permissions);
-        var rawRefresh = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await SessionLock.AcquireAsync(db, userId, cancellationToken);
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var session = new RefreshTokenSession { Id = Guid.NewGuid(), UserId = user.Id, TokenHash = Hash(rawRefresh), FamilyId = familyId ?? Guid.NewGuid(), ParentTokenId = parentId, CreatedAtUtc = now, ExpiresAtUtc = now.AddDays(settings.RefreshTokenDays), CreatedByIp = ipAddress, UserAgent = userAgent };
-        db.RefreshTokenSessions.Add(session);
-        return (true, null, new AuthResult(user.Id, access.Token, rawRefresh, access.ExpiresAtUtc, session.ExpiresAtUtc));
+        await db.RefreshTokenSessions
+            .Where(value => value.UserId == userId && value.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(value => value.RevokedAtUtc, now)
+                    .SetProperty(value => value.RevokedByIp, ipAddress)
+                    .SetProperty(value => value.RevocationReason, "logout-all"),
+                cancellationToken);
+        db.AuditLogs.Add(AuditLog.Create(
+            userId,
+            "session.logged-out-all",
+            nameof(RefreshTokenSession),
+            userId,
+            null,
+            null,
+            now,
+            correlationId));
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
-    private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+    public Task<CurrentProfile?> GetProfileAsync(
+        Guid userId,
+        CancellationToken cancellationToken) =>
+        currentProfileService.GetAsync(userId, cancellationToken);
+
+    private async Task<(bool Succeeded, string? Error, AuthResult? Result)> IssueNewFamilyAsync(
+        Guid userId,
+        EffectiveAuthorizationState authorization,
+        string? ipAddress,
+        string? userAgent,
+        string? correlationId,
+        CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var rawRefreshToken = CreateRefreshToken();
+        var session = CreateSession(
+            Guid.NewGuid(),
+            userId,
+            rawRefreshToken,
+            Guid.NewGuid(),
+            null,
+            now,
+            now.AddDays(settings.RefreshTokenDays),
+            ipAddress,
+            userAgent);
+        db.RefreshTokenSessions.Add(session);
+        db.AuditLogs.Add(AuditLog.Create(
+            userId,
+            "session.logged-in",
+            nameof(RefreshTokenSession),
+            session.Id,
+            null,
+            null,
+            now,
+            correlationId));
+
+        var result = await CreateResultAsync(
+            authorization,
+            session,
+            rawRefreshToken,
+            cancellationToken);
+        if (!result.Succeeded) return result;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return result;
+    }
+
+    private async Task<(bool Succeeded, string? Error, AuthResult? Result)> CreateResultAsync(
+        EffectiveAuthorizationState authorization,
+        RefreshTokenSession session,
+        string rawRefreshToken,
+        CancellationToken cancellationToken)
+    {
+        var currentUser = await currentProfileService.GetAsync(authorization.UserId, cancellationToken);
+        if (currentUser is null) return Failed(InvalidSession);
+
+        var access = jwtTokenService.CreateAccessToken(
+            authorization.UserId,
+            authorization.Email,
+            currentUser.Roles,
+            currentUser.Permissions,
+            session.FamilyId);
+        return (
+            true,
+            null,
+            new AuthResult(
+                authorization.UserId,
+                access.Token,
+                rawRefreshToken,
+                access.ExpiresAtUtc,
+                session.ExpiresAtUtc,
+                currentUser));
+    }
+
+    private async Task RevokeFamilyForReuseAsync(
+        RefreshTokenSession session,
+        DateTime now,
+        string? ipAddress,
+        string? correlationId,
+        CancellationToken cancellationToken)
+    {
+        await RevokeFamilyAsync(
+            session.FamilyId,
+            now,
+            ipAddress,
+            "refresh-reuse",
+            cancellationToken);
+        db.AuditLogs.Add(AuditLog.Create(
+            session.UserId,
+            "session.refresh-reuse-detected",
+            nameof(RefreshTokenSession),
+            session.Id,
+            null,
+            null,
+            now,
+            correlationId));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private Task<int> RevokeFamilyAsync(
+        Guid familyId,
+        DateTime now,
+        string? ipAddress,
+        string reason,
+        CancellationToken cancellationToken) =>
+        db.RefreshTokenSessions
+            .Where(value => value.FamilyId == familyId && value.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(value => value.RevokedAtUtc, now)
+                    .SetProperty(value => value.RevokedByIp, ipAddress)
+                    .SetProperty(value => value.RevocationReason, reason),
+                cancellationToken);
+
+    private static RefreshTokenSession CreateSession(
+        Guid id,
+        Guid userId,
+        string rawRefreshToken,
+        Guid familyId,
+        Guid? parentTokenId,
+        DateTime createdAtUtc,
+        DateTime expiresAtUtc,
+        string? ipAddress,
+        string? userAgent) =>
+        new()
+        {
+            Id = id,
+            UserId = userId,
+            TokenHash = Hash(rawRefreshToken),
+            FamilyId = familyId,
+            ParentTokenId = parentTokenId,
+            CreatedAtUtc = createdAtUtc,
+            ExpiresAtUtc = expiresAtUtc,
+            CreatedByIp = ipAddress,
+            UserAgent = userAgent
+        };
+
+    private static string CreateRefreshToken() =>
+        Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+    private async Task<(bool Succeeded, string? Error, AuthResult? Result)> LoginFailedAsync(
+        string? correlationId, CancellationToken cancellationToken)
+    {
+        // No submitted identifier, password or token is persisted in failed-login audit.
+        db.AuditLogs.Add(AuditLog.Create(null, "session.login-failed", nameof(ApplicationUser),
+            Guid.Empty, null, null, timeProvider.GetUtcNow().UtcDateTime, correlationId));
+        await db.SaveChangesAsync(cancellationToken);
+        return Failed(InvalidLogin);
+    }
+
+    private static string Hash(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private static (bool Succeeded, string? Error, AuthResult? Result) Failed(string error) =>
+        (false, error, null);
 }

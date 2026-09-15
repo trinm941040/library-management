@@ -30,8 +30,6 @@ public sealed class CirculationPolicy
     // Khoảng thời gian hiệu lực (Effective Range)
     public DateTime EffectiveFrom { get; private set; }
     public DateTime? EffectiveTo { get; private set; }
-    public DateTime EffectiveFromUtc => EffectiveFrom;
-    public DateTime? EffectiveToUtc => EffectiveTo;
 
     // BorrowingLimit (Giới hạn mượn)
     public int MaxLoanBooks { get; private set; }
@@ -51,6 +49,7 @@ public sealed class CirculationPolicy
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? UpdatedAtUtc { get; private set; }
     public Guid? CreatedByUserId { get; private set; }
+    public Guid ConcurrencyToken { get; private set; }
 
     public static CirculationPolicy Create(
         string name,
@@ -101,7 +100,8 @@ public sealed class CirculationPolicy
             LostBookPenaltyRatio = lostBookPenaltyRatio,
             CreatedByUserId = createdByUserId,
             CreatedAtUtc = now,
-            UpdatedAtUtc = null
+            UpdatedAtUtc = null,
+            ConcurrencyToken = Guid.NewGuid()
         };
     }
 
@@ -145,6 +145,7 @@ public sealed class CirculationPolicy
         MaxFineAmount = maxFineAmount;
         LostBookPenaltyRatio = lostBookPenaltyRatio;
         UpdatedAtUtc = now;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public CirculationPolicy CreateNextVersion(
@@ -193,13 +194,17 @@ public sealed class CirculationPolicy
     {
         IsActive = true;
         UpdatedAtUtc = now;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void Deactivate(DateTime now)
     {
         IsActive = false;
         UpdatedAtUtc = now;
+        ConcurrencyToken = Guid.NewGuid();
     }
+
+    public bool HasConcurrencyToken(Guid token) => token != Guid.Empty && ConcurrencyToken == token;
 
     public bool OverlapsWith(CirculationPolicy other)
     {

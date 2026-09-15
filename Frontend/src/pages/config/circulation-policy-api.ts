@@ -1,6 +1,39 @@
 import { authenticatedFetch } from '@/auth/auth-api'
+import { z } from 'zod'
 
 const POLICIES_URL = '/api/v1/circulation-policies'
+const idSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+
+const circulationPolicySchema = z.object({
+  id: idSchema, name: z.string(), description: z.string().nullish(), version: z.number().int(),
+  isActive: z.boolean(), memberGroup: z.string().nullish(), documentType: z.string().nullish(),
+  branchId: idSchema.nullish(), effectiveFrom: z.string(), effectiveTo: z.string().nullish(),
+  maxLoanBooks: z.number(), loanPeriodDays: z.number(), maxRenewals: z.number(),
+  renewalPeriodDays: z.number(), holdDays: z.number(), blockIfOverdue: z.boolean(),
+  finePerDay: z.number(), fixedFineAmount: z.number(), maxFineAmount: z.number(),
+  lostBookPenaltyRatio: z.number(), createdAtUtc: z.string(), updatedAtUtc: z.string().nullish(),
+  createdByUserId: idSchema.nullish(), concurrencyToken: idSchema,
+})
+
+const circulationPolicyPageSchema = z.object({
+  items: z.array(circulationPolicySchema), pageNumber: z.number(), pageSize: z.number(),
+  totalCount: z.number(), totalPages: z.number(),
+})
+
+const resolvedPolicySchema = circulationPolicySchema.pick({
+  memberGroup: true, documentType: true, branchId: true, maxLoanBooks: true,
+  loanPeriodDays: true, maxRenewals: true, renewalPeriodDays: true, holdDays: true,
+  blockIfOverdue: true, finePerDay: true, fixedFineAmount: true, maxFineAmount: true,
+  lostBookPenaltyRatio: true,
+}).extend({
+  policyId: idSchema.nullish(), policyName: z.string(), version: z.number(),
+  isDefaultFallback: z.boolean(), matchScore: z.number(),
+})
+
+const policyPreviewSchema = z.object({
+  policy: resolvedPolicySchema, calculatedOverdueFine: z.number(), calculatedLostPenalty: z.number(),
+  sampleDueAtUtc: z.string(), sampleHoldExpiresAtUtc: z.string(),
+})
 
 export type CirculationPolicy = {
   id: string
@@ -26,6 +59,7 @@ export type CirculationPolicy = {
   createdAtUtc: string
   updatedAtUtc?: string | null
   createdByUserId?: string | null
+  concurrencyToken: string
 }
 
 export type CirculationPolicyPageResponse = {
@@ -66,9 +100,13 @@ export type CreateCirculationPolicyInput = {
   isActive: boolean
 }
 
-export type UpdateCirculationPolicyInput = Omit<CreateCirculationPolicyInput, 'isActive'>
+export type UpdateCirculationPolicyInput = Omit<CreateCirculationPolicyInput, 'isActive'> & {
+  concurrencyToken: string
+}
 
-export type CreatePolicyVersionInput = Partial<UpdateCirculationPolicyInput>
+export type CreatePolicyVersionInput = Partial<Omit<UpdateCirculationPolicyInput, 'concurrencyToken'>> & {
+  concurrencyToken: string
+}
 
 export type ResolvedPolicy = {
   policyId?: string | null
@@ -142,12 +180,12 @@ export async function getCirculationPolicies(
   query.set('pageSize', String(filters.pageSize ?? 20))
 
   const response = await authenticatedFetch(`${POLICIES_URL}?${query}`, { signal })
-  return readResponse<CirculationPolicyPageResponse>(response)
+  return circulationPolicyPageSchema.parse(await readResponse<unknown>(response))
 }
 
 export async function getCirculationPolicyById(id: string): Promise<CirculationPolicy> {
   const response = await authenticatedFetch(`${POLICIES_URL}/${id}`)
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
 export async function createCirculationPolicy(
@@ -158,7 +196,7 @@ export async function createCirculationPolicy(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
 export async function updateCirculationPolicy(
@@ -170,7 +208,7 @@ export async function updateCirculationPolicy(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
 export async function createPolicyVersion(
@@ -182,21 +220,31 @@ export async function createPolicyVersion(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
-export async function activateCirculationPolicy(id: string): Promise<CirculationPolicy> {
+export async function activateCirculationPolicy(
+  id: string,
+  concurrencyToken: string,
+): Promise<CirculationPolicy> {
   const response = await authenticatedFetch(`${POLICIES_URL}/${id}/activate`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ concurrencyToken }),
   })
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
-export async function deactivateCirculationPolicy(id: string): Promise<CirculationPolicy> {
+export async function deactivateCirculationPolicy(
+  id: string,
+  concurrencyToken: string,
+): Promise<CirculationPolicy> {
   const response = await authenticatedFetch(`${POLICIES_URL}/${id}/deactivate`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ concurrencyToken }),
   })
-  return readResponse<CirculationPolicy>(response)
+  return circulationPolicySchema.parse(await readResponse<unknown>(response))
 }
 
 export async function previewCirculationPolicy(
@@ -207,5 +255,5 @@ export async function previewCirculationPolicy(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  return readResponse<PolicyPreviewResponse>(response)
+  return policyPreviewSchema.parse(await readResponse<unknown>(response))
 }

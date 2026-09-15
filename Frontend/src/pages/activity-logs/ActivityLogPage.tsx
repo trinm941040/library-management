@@ -1,673 +1,242 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { Download, Eye, RefreshCw, Search } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import {
-  RefreshCw,
-  Search,
-  Download,
-  Filter,
-  Eye,
-  XCircle,
-  Hash,
-  Globe,
-  ChevronLeft,
-  ChevronRight,
-  ShieldAlert,
-} from 'lucide-react'
-import { Button } from '@/common/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/common/components/ui/card'
-import { Input } from '@/common/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/common/components/ui/table'
+import { DataTable, FilterPanel, PageShell, type DataTableColumn } from '@/common/components'
 import { Badge } from '@/common/components/ui/badge'
-import { useToast } from '@/common/components'
+import { Button } from '@/common/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import {
-  getAuditLogs,
-  downloadAuditCsv,
-  type AuditLogItem,
-  type AuditLogQueryParams,
-} from './audit-log-api'
-import { AuditDiffDialog } from './components/AuditDiffDialog'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/common/components/ui/dialog'
+import { Input } from '@/common/components/ui/input'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { getAuditLog, getAuditLogs, type AuditLog, type AuditLogFilters } from './audit-log-api'
 
-const ENTITY_TYPES = [
-  { label: 'Tất cả phân hệ', value: '' },
-  { label: 'Sách (Book)', value: 'Book' },
-  { label: 'Chính sách lưu thông', value: 'CirculationPolicy' },
-  { label: 'Thành viên (Member)', value: 'Member' },
-  { label: 'Nhân viên (Employee)', value: 'Employee' },
-  { label: 'Tài khoản (User)', value: 'ApplicationUser' },
-  { label: 'Vai trò (Role)', value: 'ApplicationRole' },
-  { label: 'Mượn trả (Borrowing)', value: 'Borrowing' },
-  { label: 'Đặt trước (Reservation)', value: 'Reservation' },
-  { label: 'Vi phạm (Violation)', value: 'Violation' },
-]
+const filterKeys = [
+  'actorUserId', 'action', 'entityType', 'entityId',
+  'correlationId', 'ipAddress', 'fromUtc', 'toUtc',
+] as const
+type FilterKey = (typeof filterKeys)[number]
+type FilterDraft = Record<FilterKey, string>
 
-const ACTION_TYPES = [
-  { label: 'Tất cả thao tác', value: '' },
-  { label: 'Tạo mới (Added)', value: 'added' },
-  { label: 'Cập nhật (Modified)', value: 'modified' },
-  { label: 'Xóa bỏ (Deleted)', value: 'deleted' },
-]
+const emptyDraft = (): FilterDraft =>
+  Object.fromEntries(filterKeys.map((key) => [key, ''])) as FilterDraft
+const safePage = (value: string | null, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+const displayDate = (value: string) => new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'short', timeStyle: 'medium',
+}).format(new Date(value))
+const toLocalDateTimeInput = (value: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
 
-export function ActivityLogPage() {
-  const { showToast } = useToast()
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // Extract query filters from URL
-  const search = searchParams.get('search') || ''
-  const entityType = searchParams.get('entityType') || ''
-  const entityId = searchParams.get('entityId') || ''
-  const action = searchParams.get('action') || ''
-  const ipAddress = searchParams.get('ipAddress') || ''
-  const correlationId = searchParams.get('correlationId') || ''
-  const fromDate = searchParams.get('fromDate') || ''
-  const toDate = searchParams.get('toDate') || ''
-  const pageNumber = Number(searchParams.get('page') || '1')
-  const pageSize = Number(searchParams.get('pageSize') || '20')
-
-  // Local state
-  const [logs, setLogs] = useState<AuditLogItem[]>([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
-  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null)
-  const [isDiffOpen, setIsDiffOpen] = useState(false)
-
-  // Local filter inputs before applying or debounce
-  const [localSearch, setLocalSearch] = useState(search)
-  const [localIp, setLocalIp] = useState(ipAddress)
-  const [localCorrelation, setLocalCorrelation] = useState(correlationId)
-
-  // Sync local inputs when URL params change
-  useEffect(() => {
-    setLocalSearch(search)
-    setLocalIp(ipAddress)
-    setLocalCorrelation(correlationId)
-  }, [search, ipAddress, correlationId])
-
-  const updateFilters = useCallback(
-    (newParams: Record<string, string | number | undefined | null>) => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev)
-        for (const [k, v] of Object.entries(newParams)) {
-          if (v === undefined || v === null || v === '') {
-            next.delete(k)
-          } else {
-            next.set(k, String(v))
-          }
-        }
-        return next
-      })
-    },
-    [setSearchParams],
-  )
-
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const params: AuditLogQueryParams = {
-        search: search || undefined,
-        entityType: entityType || undefined,
-        entityId: entityId || undefined,
-        action: action || undefined,
-        ipAddress: ipAddress || undefined,
-        correlationId: correlationId || undefined,
-        fromDateUtc: fromDate ? new Date(fromDate).toISOString() : undefined,
-        toDateUtc: toDate ? new Date(toDate + 'T23:59:59.999Z').toISOString() : undefined,
-        pageNumber,
-        pageSize,
-      }
-
-      const res = await getAuditLogs(params)
-      setLogs(res.items)
-      setTotalCount(res.totalCount)
-      setTotalPages(res.totalPages || 1)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể tải nhật ký kiểm toán.'
-      showToast(msg, 'error')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [
-    search,
-    entityType,
-    entityId,
-    action,
-    ipAddress,
-    correlationId,
-    fromDate,
-    toDate,
-    pageNumber,
-    pageSize,
-    showToast,
-  ])
-
-  useEffect(() => {
-    fetchLogs()
-  }, [fetchLogs])
-
-  const handleApplySearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateFilters({
-      search: localSearch.trim(),
-      ipAddress: localIp.trim(),
-      correlationId: localCorrelation.trim(),
-      page: 1,
-    })
+function parseAuditObject(value: string | null): Record<string, unknown> {
+  if (!value) return {}
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>) : { value: parsed }
+  } catch {
+    return { value: '[DỮ LIỆU KHÔNG HỢP LỆ]' }
   }
+}
 
-  const handleResetFilters = () => {
-    setLocalSearch('')
-    setLocalIp('')
-    setLocalCorrelation('')
-    setSearchParams(new URLSearchParams())
-  }
+function displayValue(key: string, value: unknown) {
+  if (/password|token|secret|email|phone|address|dateofbirth|fullname|displayname|username|borrowername|reservername|contactname|contactinfo/i.test(key))
+    return '[ĐÃ ẨN]'
+  if (value === undefined) return '—'
+  if (value === null) return 'null'
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
 
-  const handleExportCsv = async () => {
-    setIsExporting(true)
-    try {
-      const blob = await downloadAuditCsv({
-        search: search || undefined,
-        entityType: entityType || undefined,
-        entityId: entityId || undefined,
-        action: action || undefined,
-        ipAddress: ipAddress || undefined,
-        correlationId: correlationId || undefined,
-        fromDateUtc: fromDate ? new Date(fromDate).toISOString() : undefined,
-        toDateUtc: toDate ? new Date(toDate + 'T23:59:59.999Z').toISOString() : undefined,
-      })
+function AuditDiff({ item }: { item: AuditLog }) {
+  const before = parseAuditObject(item.beforeJson)
+  const after = parseAuditObject(item.afterJson)
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+    .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+    .sort()
 
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `nhat_ky_kiem_toan_${new Date().toISOString().slice(0, 10)}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      showToast('Xuất báo cáo nhật ký kiểm toán CSV thành công.', 'success')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Xuất CSV thất bại.'
-      showToast(msg, 'error')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const handleViewDetail = (log: AuditLogItem) => {
-    setSelectedLog(log)
-    setIsDiffOpen(true)
-  }
-
-  const handleFilterCorrelation = (cId: string) => {
-    updateFilters({ correlationId: cId, page: 1 })
-    showToast(`Đã lọc theo Correlation ID: ${cId}`, 'info')
-  }
-
-  const handleFilterEntity = (eType: string, eId: string) => {
-    updateFilters({ entityType: eType, entityId: eId, page: 1 })
-    showToast(`Đang xem lịch sử của ${eType} #${eId.slice(0, 8)}`, 'info')
-  }
-
-  const renderActionBadge = (act: string) => {
-    if (act.includes('added') || act.includes('create')) {
-      return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Tạo mới</Badge>
-    }
-    if (act.includes('deleted') || act.includes('remove')) {
-      return <Badge variant="destructive">Xóa</Badge>
-    }
-    if (act.includes('modified') || act.includes('update')) {
-      return <Badge className="bg-amber-600 hover:bg-amber-700 text-white">Cập nhật</Badge>
-    }
-    return <Badge variant="secondary">{act}</Badge>
-  }
-
-  const hasActiveFilters = Boolean(
-    search || entityType || entityId || action || ipAddress || correlationId || fromDate || toDate,
-  )
+  if (keys.length === 0)
+    return <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Không có thuộc tính thay đổi để hiển thị.</p>
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 space-y-6">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">
-            Hệ thống &amp; Bảo mật
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Nhật ký hoạt động
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Bản ghi bất biến theo dõi toàn bộ hoạt động thay đổi dữ liệu, tài khoản, cấu hình và bảo mật.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchLogs}
-            disabled={isLoading || isExporting}
-          >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Đang tải...' : 'Làm mới'}
-          </Button>
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleExportCsv}
-            disabled={isExporting || isLoading}
-          >
-            <Download className={`mr-1.5 h-3.5 w-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
-            {isExporting ? 'Đang xuất...' : 'Xuất CSV'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter Toolbar Card */}
-      <Card>
-        <CardHeader className="pb-3 pt-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-              <Filter className="h-4 w-4 text-primary" />
-              Bộ lọc nâng cao
-            </CardTitle>
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                onClick={handleResetFilters}
-              >
-                <XCircle className="mr-1 h-3.5 w-3.5" />
-                Xóa tất cả bộ lọc
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3 pt-0">
-          <form onSubmit={handleApplySearch} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Search query */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm người dùng, thao tác..."
-                className="pl-8 text-xs"
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-              />
-            </div>
-
-            {/* Entity Select */}
-            <div>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={entityType}
-                onChange={(e) => updateFilters({ entityType: e.target.value, page: 1 })}
-              >
-                {ENTITY_TYPES.map((e) => (
-                  <option key={e.value} value={e.value}>
-                    {e.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Action Select */}
-            <div>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={action}
-                onChange={(e) => updateFilters({ action: e.target.value, page: 1 })}
-              >
-                {ACTION_TYPES.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* IP Address */}
-            <div className="relative">
-              <Globe className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Địa chỉ IP nguồn..."
-                className="pl-8 text-xs font-mono"
-                value={localIp}
-                onChange={(e) => setLocalIp(e.target.value)}
-              />
-            </div>
-
-            {/* Correlation ID */}
-            <div className="relative sm:col-span-2">
-              <Hash className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Correlation ID (Mã định danh phiên liên kết)..."
-                className="pl-8 text-xs font-mono"
-                value={localCorrelation}
-                onChange={(e) => setLocalCorrelation(e.target.value)}
-              />
-            </div>
-
-            {/* Date Range: From */}
-            <div>
-              <Input
-                type="date"
-                title="Từ ngày"
-                className="text-xs"
-                value={fromDate}
-                onChange={(e) => updateFilters({ fromDate: e.target.value, page: 1 })}
-              />
-            </div>
-
-            {/* Date Range: To */}
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                title="Đến ngày"
-                className="text-xs flex-1"
-                value={toDate}
-                onChange={(e) => updateFilters({ toDate: e.target.value, page: 1 })}
-              />
-              <Button type="submit" size="sm" className="text-xs px-3">
-                Lọc
-              </Button>
-            </div>
-          </form>
-
-          {/* Active filter badges */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
-              <span className="text-muted-foreground text-[11px]">Đang lọc theo:</span>
-              {search && (
-                <Badge variant="outline" className="text-[11px] gap-1">
-                  Từ khóa: {search}
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ search: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-              {entityType && (
-                <Badge variant="outline" className="text-[11px] gap-1">
-                  Đối tượng: {entityType}
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ entityType: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-              {action && (
-                <Badge variant="outline" className="text-[11px] gap-1">
-                  Hành động: {action}
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ action: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-              {ipAddress && (
-                <Badge variant="outline" className="text-[11px] gap-1 font-mono">
-                  IP: {ipAddress}
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ ipAddress: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-              {entityId && (
-                <Badge variant="outline" className="text-[11px] gap-1 font-mono">
-                  Mã đối tượng: {entityId.slice(0, 8)}...
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ entityId: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-              {correlationId && (
-                <Badge variant="outline" className="text-[11px] gap-1 font-mono">
-                  Corr: {correlationId.slice(0, 8)}...
-                  <span
-                    className="cursor-pointer font-bold hover:text-destructive"
-                    onClick={() => updateFilters({ correlationId: undefined, page: 1 })}
-                  >
-                    ×
-                  </span>
-                </Badge>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Audit Log Table */}
-      <Card>
-        <CardHeader className="py-3 px-6 border-b flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">Danh sách nhật ký</CardTitle>
-            <CardDescription className="text-xs">
-              Hiển thị {logs.length} / {totalCount} bản ghi kiểm toán
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Hiển thị</span>
-            <select
-              className="rounded border border-input bg-background px-2 py-1 text-xs"
-              value={pageSize}
-              onChange={(e) => updateFilters({ pageSize: Number(e.target.value), page: 1 })}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>dòng / trang</span>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 text-xs">
-                  <TableHead className="w-[180px]">Thời gian (VN)</TableHead>
-                  <TableHead>Người thực hiện</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                  <TableHead>Đối tượng</TableHead>
-                  <TableHead>Địa chỉ IP</TableHead>
-                  <TableHead>Correlation ID</TableHead>
-                  <TableHead className="text-right w-[100px]">Chi tiết</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">
-                      <div className="inline-flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                        Đang tải danh sách nhật ký kiểm toán...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <ShieldAlert className="h-6 w-6 text-muted-foreground/60 mb-1" />
-                        <p className="font-medium">Không tìm thấy bản ghi kiểm toán nào.</p>
-                        <p className="text-xs text-muted-foreground">
-                          Thử thay đổi bộ lọc hoặc kiểm tra lại khoảng thời gian.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  logs.map((log) => (
-                    <TableRow
-                      key={log.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors text-xs"
-                      onClick={() => handleViewDetail(log)}
-                    >
-                      {/* Time */}
-                      <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
-                        {new Date(log.createdAtUtc).toLocaleString('vi-VN', {
-                          timeZone: 'Asia/Ho_Chi_Minh',
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        })}
-                      </TableCell>
-
-                      {/* Actor */}
-                      <TableCell>
-                        <p className="font-medium text-foreground">
-                          {log.actorDisplayName || 'Hệ thống'}
-                        </p>
-                        {log.actorEmail && (
-                          <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">
-                            {log.actorEmail}
-                          </p>
-                        )}
-                      </TableCell>
-
-                      {/* Action */}
-                      <TableCell>{renderActionBadge(log.action)}</TableCell>
-
-                      {/* Entity */}
-                      <TableCell>
-                        <p className="font-semibold">{log.entityType}</p>
-                        <p
-                          className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px] hover:text-primary hover:underline cursor-pointer"
-                          title={`Xem toàn bộ lịch sử của đối tượng này (${log.entityId})`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleFilterEntity(log.entityType, log.entityId)
-                          }}
-                        >
-                          #{log.entityId.slice(0, 8)}...
-                        </p>
-                      </TableCell>
-
-                      {/* IP Address */}
-                      <TableCell className="font-mono">
-                        {log.ipAddress ? (
-                          <span className="rounded bg-secondary/80 px-1.5 py-0.5 text-[11px]">
-                            {log.ipAddress}
-                          </span>
-                        ) : (
-                          <span className="italic text-muted-foreground text-[11px]">-</span>
-                        )}
-                      </TableCell>
-
-                      {/* Correlation ID */}
-                      <TableCell className="font-mono">
-                        {log.correlationId ? (
-                          <span
-                            className="rounded bg-muted px-1.5 py-0.5 text-[11px] hover:underline"
-                            title={log.correlationId}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleFilterCorrelation(log.correlationId!)
-                            }}
-                          >
-                            {log.correlationId.slice(0, 8)}...
-                          </span>
-                        ) : (
-                          <span className="italic text-muted-foreground text-[11px]">-</span>
-                        )}
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleViewDetail(log)
-                          }}
-                          title="Xem so sánh Before / After"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
-            <div>
-              Trang <span className="font-semibold text-foreground">{pageNumber}</span> /{' '}
-              <span className="font-semibold text-foreground">{totalPages}</span> (Tổng số{' '}
-              <span className="font-semibold text-foreground">{totalCount}</span> bản ghi)
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => updateFilters({ page: pageNumber - 1 })}
-                disabled={pageNumber <= 1 || isLoading}
-              >
-                <ChevronLeft className="mr-1 h-3.5 w-3.5" />
-                Trang trước
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => updateFilters({ page: pageNumber + 1 })}
-                disabled={pageNumber >= totalPages || isLoading}
-              >
-                Trang sau
-                <ChevronRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Diff Dialog */}
-      <AuditDiffDialog
-        open={isDiffOpen}
-        onOpenChange={setIsDiffOpen}
-        log={selectedLog}
-        onFilterCorrelationId={handleFilterCorrelation}
-        onFilterEntity={handleFilterEntity}
-      />
+    <div className="max-h-[50vh] overflow-auto rounded-md border">
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <thead className="sticky top-0 bg-background shadow-sm">
+          <tr><th className="p-3">Thuộc tính</th><th className="p-3">Trước</th><th className="p-3">Sau</th></tr>
+        </thead>
+        <tbody>
+          {keys.map((key) => (
+            <tr key={key} className="border-t align-top">
+              <th className="p-3 font-medium">{key}</th>
+              <td className="max-w-64 break-words p-3 font-mono text-xs">{displayValue(key, before[key])}</td>
+              <td className="max-w-64 break-words p-3 font-mono text-xs">{displayValue(key, after[key])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
+  )
+}
+
+export function ActivityLogPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const pageNumber = safePage(searchParams.get('pageNumber'), 1)
+  const pageSize = safePage(searchParams.get('pageSize'), 20)
+  const activeFilters = useMemo(
+    () => Object.fromEntries(filterKeys.map((key) => [key, searchParams.get(key) ?? ''])) as FilterDraft,
+    [searchParams],
+  )
+  const [draft, setDraft] = useState<FilterDraft>(activeFilters)
+  const [items, setItems] = useState<AuditLog[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  const [detail, setDetail] = useState<AuditLog | null>(null)
+  const [detailError, setDetailError] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => setDraft(activeFilters), [activeFilters])
+  useEffect(() => {
+    const controller = new AbortController()
+    setIsLoading(true)
+    setError('')
+    const filters: AuditLogFilters = {
+      ...Object.fromEntries(Object.entries(activeFilters).filter(([, value]) => value)),
+      pageNumber, pageSize,
+    }
+    getAuditLogs(filters, controller.signal)
+      .then((page) => {
+        setItems(page.items)
+        setTotalCount(page.totalCount)
+        setTotalPages(page.totalPages)
+        if (page.totalPages > 0 && pageNumber > page.totalPages)
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current)
+            next.set('pageNumber', String(page.totalPages))
+            return next
+          }, { replace: true })
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === 'AbortError') return
+        setError(reason instanceof Error ? reason.message : 'Không thể tải nhật ký kiểm toán.')
+      })
+      .finally(() => { if (!controller.signal.aborted) setIsLoading(false) })
+    return () => controller.abort()
+  }, [activeFilters, pageNumber, pageSize, reloadKey, setSearchParams])
+
+  const updateParams = useCallback((changes: Record<string, string | number | undefined>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === undefined || value === '') next.delete(key)
+        else next.set(key, String(value))
+      })
+      return next
+    })
+  }, [setSearchParams])
+
+  const submitFilters = (event: FormEvent) => {
+    event.preventDefault()
+    updateParams({ ...draft, pageNumber: 1 })
+  }
+
+  const openDetail = async (item: AuditLog) => {
+    setDetail(item)
+    setDetailError('')
+    setDetailLoading(true)
+    try { setDetail(await getAuditLog(item.id)) }
+    catch (reason) { setDetailError(reason instanceof Error ? reason.message : 'Không thể tải chi tiết.') }
+    finally { setDetailLoading(false) }
+  }
+
+  const exportCurrentPage = () => {
+    const headers = ['Thời gian', 'Người thực hiện', 'Hành động', 'Đối tượng', 'Mã đối tượng', 'IP', 'Correlation ID']
+    const escape = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
+    const csv = [headers, ...items.map((item) => [
+      item.createdAtUtc, item.actorName ?? item.actorUserId ?? 'Hệ thống', item.action,
+      item.entityType, item.entityId, item.ipAddress, item.correlationId,
+    ])].map((row) => row.map(escape).join(';')).join('\n')
+    const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `nhat-ky-kiem-toan-trang-${pageNumber}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
+    { id: 'createdAtUtc', header: 'Thời gian', cell: (item) => <time dateTime={item.createdAtUtc}>{displayDate(item.createdAtUtc)}</time> },
+    { id: 'actor', header: 'Người thực hiện', cell: (item) => <span className="grid gap-0.5"><strong>{item.actorName ?? 'Hệ thống'}</strong><small className="font-mono text-muted-foreground">{item.actorUserId ?? '—'}</small></span> },
+    { id: 'action', header: 'Hành động', cell: (item) => <Badge variant="outline">{item.action}</Badge> },
+    { id: 'entity', header: 'Đối tượng', cell: (item) => <span className="grid gap-0.5"><strong>{item.entityType}</strong><button className="text-left font-mono text-xs text-primary hover:underline" onClick={() => updateParams({ entityType: item.entityType, entityId: item.entityId, pageNumber: 1 })}>{item.entityId}</button></span> },
+    { id: 'ipAddress', header: 'Địa chỉ IP', cell: (item) => <span className="font-mono text-xs">{item.ipAddress ?? '—'}</span> },
+    { id: 'correlationId', header: 'Correlation ID', cell: (item) => item.correlationId ? <button className="max-w-48 truncate font-mono text-xs text-primary hover:underline" title={item.correlationId} onClick={() => updateParams({ correlationId: item.correlationId ?? '', pageNumber: 1 })}>{item.correlationId}</button> : '—' },
+    { id: 'details', header: 'Chi tiết', className: 'text-right', cell: (item) => <Button variant="ghost" size="icon" aria-label={`Xem chi tiết ${item.action}`} onClick={() => void openDetail(item)}><Eye /></Button> },
+  ], [updateParams])
+
+  const hasFilters = Object.values(activeFilters).some(Boolean)
+  return (
+    <PageShell
+      eyebrow="Quản lý hệ thống"
+      title="Nhật ký kiểm toán"
+      description="Tra cứu lịch sử thay đổi bất biến theo người thực hiện, đối tượng và yêu cầu."
+      actions={<><Button variant="outline" disabled={isLoading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={isLoading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={items.length === 0} onClick={exportCurrentPage}><Download />Xuất trang hiện tại</Button></PermissionBoundary></>}
+    >
+      <Card>
+        <CardHeader><CardTitle>Danh sách bản ghi</CardTitle><p className="text-sm text-muted-foreground">{totalCount} bản ghi phù hợp với bộ lọc.</p></CardHeader>
+        <CardContent>
+          <DataTable
+            caption="Danh sách nhật ký kiểm toán"
+            rows={items}
+            columns={columns}
+            getRowId={(item) => item.id}
+            isLoading={isLoading && items.length === 0}
+            error={error || undefined}
+            onRetry={() => setReloadKey((value) => value + 1)}
+            emptyTitle="Không có bản ghi kiểm toán"
+            emptyDescription="Thay đổi bộ lọc hoặc thực hiện một nghiệp vụ có ghi nhận kiểm toán."
+            filters={<FilterPanel hasFilters={hasFilters} onReset={() => { setDraft(emptyDraft()); setSearchParams({}) }} resultCount={totalCount}>
+              <form className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-4" onSubmit={submitFilters}>
+                <Input value={draft.action} onChange={(event) => setDraft((value) => ({ ...value, action: event.target.value }))} placeholder="Hành động" aria-label="Lọc theo hành động" />
+                <Input value={draft.entityType} onChange={(event) => setDraft((value) => ({ ...value, entityType: event.target.value }))} placeholder="Loại đối tượng" aria-label="Lọc theo loại đối tượng" />
+                <Input value={draft.entityId} onChange={(event) => setDraft((value) => ({ ...value, entityId: event.target.value }))} placeholder="Mã đối tượng" aria-label="Lọc theo mã đối tượng" />
+                <Input value={draft.actorUserId} onChange={(event) => setDraft((value) => ({ ...value, actorUserId: event.target.value }))} placeholder="Mã người thực hiện" aria-label="Lọc theo mã người thực hiện" />
+                <Input value={draft.ipAddress} onChange={(event) => setDraft((value) => ({ ...value, ipAddress: event.target.value }))} placeholder="Địa chỉ IP" aria-label="Lọc theo địa chỉ IP" />
+                <Input value={draft.correlationId} onChange={(event) => setDraft((value) => ({ ...value, correlationId: event.target.value }))} placeholder="Correlation ID" aria-label="Lọc theo correlation ID" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.fromUtc)} onChange={(event) => setDraft((value) => ({ ...value, fromUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Từ thời điểm" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.toUtc)} onChange={(event) => setDraft((value) => ({ ...value, toUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Đến thời điểm" />
+                <Button type="submit" className="xl:col-start-4"><Search />Áp dụng bộ lọc</Button>
+              </form>
+            </FilterPanel>}
+            page={pageNumber}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={(page) => updateParams({ pageNumber: page })}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => updateParams({ pageSize: size, pageNumber: 1 })}
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null) }}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader><DialogTitle>Chi tiết thay đổi</DialogTitle><DialogDescription>{detail ? `${detail.action} · ${detail.entityType} · ${detail.entityId}` : ''}</DialogDescription></DialogHeader>
+          {detailError ? <p role="alert" className="text-sm text-destructive">{detailError}</p> : null}
+          {detailLoading ? <p className="text-sm text-muted-foreground">Đang tải chi tiết...</p> : detail ? <><dl className="grid gap-2 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Correlation ID</dt><dd className="break-all font-mono">{detail.correlationId ?? '—'}</dd></div><div><dt className="text-muted-foreground">Địa chỉ IP</dt><dd className="font-mono">{detail.ipAddress ?? '—'}</dd></div></dl><AuditDiff item={detail} /></> : null}
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   )
 }

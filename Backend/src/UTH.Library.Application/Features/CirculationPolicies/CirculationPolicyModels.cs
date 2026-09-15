@@ -23,7 +23,8 @@ public sealed record CirculationPolicyModel(
     decimal LostBookPenaltyRatio,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    Guid? CreatedByUserId);
+    Guid? CreatedByUserId,
+    Guid ConcurrencyToken);
 
 public sealed record CirculationPolicyListQuery(
     string? Search,
@@ -60,6 +61,7 @@ public sealed record CreateCirculationPolicyCommand(
     bool IsActive);
 
 public sealed record UpdateCirculationPolicyCommand(
+    Guid ConcurrencyToken,
     string Name,
     string? Description,
     string? MemberGroup,
@@ -79,6 +81,7 @@ public sealed record UpdateCirculationPolicyCommand(
     decimal LostBookPenaltyRatio);
 
 public sealed record CreatePolicyVersionCommand(
+    Guid ConcurrencyToken,
     string? Name,
     string? Description,
     DateTime EffectiveFrom,

@@ -8,6 +8,8 @@ using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Infrastructure.Persistence;
 using UTH.Library.Infrastructure.Persistence.Repositories;
 using UTH.Library.Infrastructure.Identity;
+using UTH.Library.Application.Features.Settings;
+using UTH.Library.Infrastructure.Settings;
 
 namespace UTH.Library.Infrastructure;
 
@@ -15,14 +17,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddDataProtection();
+        services.AddOptions<AuditRetentionOptions>()
+            .Bind(configuration.GetSection(AuditRetentionOptions.SectionName))
+            .Validate(options => options.RetentionDays is >= 30 and <= 3650, "Audit:RetentionDays must be between 30 and 3650.")
+            .ValidateOnStart();
         services.AddScoped<AuditSaveChangesInterceptor>();
-        services.AddDbContext<LibraryDbContext>((sp, options) =>
+        services.AddDbContext<LibraryDbContext>((provider, options) =>
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
             options.UseNpgsql(connectionString);
-            options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());
         });
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
@@ -45,24 +52,27 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHasher>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IUserManagementService, UserManagementService>();
-        services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddScoped<IAuthorizationStateService, AuthorizationStateService>();
         services.AddScoped<ICurrentProfileService, CurrentProfileService>();
+        services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IAccessAccountService, AccessAccountService>();
+        services.AddScoped<IEmployeeAccountLifecycle, EmployeeAccountLifecycle>();
+        services.AddScoped<IRolePermissionManagementService, RolePermissionManagementService>();
         services.AddSingleton<RsaJwtKeyProvider>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHostedService<JwtKeyValidationHostedService>();
         services.AddHostedService<IdentitySeeder>();
+        services.AddHostedService<AuditRetentionService>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-        services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IBookRepository, BookRepository>();
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IViolationRepository, ViolationRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
-        services.AddScoped<UTH.Library.Application.Features.AuditLogs.IAuditLogService, UTH.Library.Infrastructure.Services.AuditLogService>();
-        services.AddScoped<UTH.Library.Application.Features.SystemSettings.ISystemSettingService, UTH.Library.Infrastructure.Services.SystemSettingService>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }
 }

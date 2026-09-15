@@ -32,10 +32,16 @@ import {
   deactivateCirculationPolicy,
 } from '../circulation-policy-api'
 import { CirculationPolicyDialog } from './CirculationPolicyDialog'
+import { Pagination } from '@/common/components/ui/pagination'
 
-export function CirculationPolicyList() {
+type CirculationPolicyListProps = { canManage: boolean }
+
+export function CirculationPolicyList({ canManage }: CirculationPolicyListProps) {
   const [policies, setPolicies] = useState<CirculationPolicy[]>([])
   const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [pageNumber, setPageNumber] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [memberGroupFilter, setMemberGroupFilter] = useState('')
@@ -55,17 +61,18 @@ export function CirculationPolicyList() {
         search: search.trim() || undefined,
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         memberGroup: memberGroupFilter || undefined,
-        pageNumber: 1,
-        pageSize: 50,
+        pageNumber,
+        pageSize,
       })
       setPolicies(res.items)
       setTotalCount(res.totalCount)
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Không thể tải danh sách chính sách lưu thông.')
+      setTotalPages(res.totalPages)
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Không thể tải danh sách chính sách lưu thông.')
     } finally {
       setIsLoading(false)
     }
-  }, [search, statusFilter, memberGroupFilter])
+  }, [search, statusFilter, memberGroupFilter, pageNumber, pageSize])
 
   useEffect(() => {
     loadPolicies()
@@ -75,13 +82,13 @@ export function CirculationPolicyList() {
     setErrorMessage(null)
     try {
       if (policy.isActive) {
-        await deactivateCirculationPolicy(policy.id)
+        await deactivateCirculationPolicy(policy.id, policy.concurrencyToken)
       } else {
-        await activateCirculationPolicy(policy.id)
+        await activateCirculationPolicy(policy.id, policy.concurrencyToken)
       }
       await loadPolicies()
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Thao tác kích hoạt / tạm ngưng thất bại.')
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Thao tác kích hoạt / tạm ngưng thất bại.')
     }
   }
 
@@ -133,13 +140,13 @@ export function CirculationPolicyList() {
                   className="pl-9"
                   placeholder="Tìm theo tên chính sách..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value); setPageNumber(1) }}
                 />
               </div>
 
               <Select
                 value={statusFilter}
-                onValueChange={(val) => setStatusFilter(val as any)}
+                onValueChange={(val) => { setStatusFilter(val as 'all' | 'active' | 'inactive'); setPageNumber(1) }}
               >
                 <SelectTrigger className="w-full sm:w-40" aria-label="Lọc trạng thái">
                   <SelectValue />
@@ -153,7 +160,7 @@ export function CirculationPolicyList() {
 
               <Select
                 value={memberGroupFilter || 'all'}
-                onValueChange={(val) => setMemberGroupFilter(val === 'all' ? '' : val)}
+                onValueChange={(val) => { setMemberGroupFilter(val === 'all' ? '' : val); setPageNumber(1) }}
               >
                 <SelectTrigger className="w-full sm:w-44" aria-label="Lọc nhóm độc giả">
                   <SelectValue />
@@ -171,18 +178,20 @@ export function CirculationPolicyList() {
                 <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
 
-              <Button onClick={handleCreateNew}>
-                <Plus className="mr-1 size-4" />
-                Thêm chính sách
-              </Button>
+              {canManage && (
+                <Button onClick={handleCreateNew}>
+                  <Plus className="mr-1 size-4" />
+                  Thêm chính sách
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
-          <div className="rounded-md border bg-background">
+          <div className="max-h-[55vh] overflow-auto rounded-md border bg-background">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead>Tên chính sách</TableHead>
               <TableHead>Phiên bản</TableHead>
@@ -259,6 +268,7 @@ export function CirculationPolicyList() {
                   </TableCell>
 
                   <TableCell className="text-right">
+                    {canManage && (
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
@@ -291,6 +301,7 @@ export function CirculationPolicyList() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -298,20 +309,34 @@ export function CirculationPolicyList() {
           </TableBody>
         </Table>
           </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Tổng số: <span className="font-semibold">{totalCount}</span> chính sách.
+            </p>
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={pageNumber}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                onPageChange={setPageNumber}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setPageNumber(1)
+                }}
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      <div className="text-xs text-muted-foreground">
-        Tổng số: <span className="font-semibold">{totalCount}</span> chính sách lưu thông trong hệ thống.
-      </div>
-
-      <CirculationPolicyDialog
+      {canManage && <CirculationPolicyDialog
         open={dialogOpen}
         mode={dialogMode}
         policy={selectedPolicy}
         onOpenChange={setDialogOpen}
         onSuccess={loadPolicies}
-      />
+      />}
     </div>
   )
 }

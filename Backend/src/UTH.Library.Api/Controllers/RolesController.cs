@@ -12,13 +12,19 @@ public sealed class RolesController(IRolePermissionManagementService managementS
 {
     [HttpGet]
     [Authorize(Policy = Permissions.RolesRead)]
-    [ProducesResponseType(typeof(IReadOnlyCollection<RoleResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyCollection<RoleResponse>>> Get(
-        [FromQuery] string? search,
+    [ProducesResponseType(typeof(RolePageResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RolePageResponse>> Get(
+        [FromQuery] RoleFilterRequest request,
         CancellationToken cancellationToken)
     {
-        var roles = await managementService.GetRolesAsync(search, cancellationToken);
-        return Ok(roles.Select(ToResponse).ToArray());
+        var page = await managementService.GetRolesAsync(
+            request.Search, request.PageNumber, request.PageSize, cancellationToken);
+        return Ok(new RolePageResponse(
+            page.Items.Select(ToResponse).ToArray(),
+            page.PageNumber,
+            page.PageSize,
+            page.TotalCount,
+            (int)Math.Ceiling(page.TotalCount / (double)page.PageSize)));
     }
 
     [HttpGet("{id:guid}")]
@@ -28,7 +34,7 @@ public sealed class RolesController(IRolePermissionManagementService managementS
     public async Task<ActionResult<RoleResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var role = await managementService.GetRoleByIdAsync(id, cancellationToken);
-        return role is null ? NotFound(Problem("Role was not found.")) : Ok(ToResponse(role));
+        return role is null ? NotFound(Problem("Không tìm thấy vai trò.")) : Ok(ToResponse(role));
     }
 
     [HttpPost]
@@ -58,7 +64,7 @@ public sealed class RolesController(IRolePermissionManagementService managementS
     {
         var result = await managementService.UpdateRoleAsync(
             id,
-            new UpdateManagedRoleCommand(request.Name, request.Description),
+            new UpdateManagedRoleCommand(request.Name, request.Description, request.IsActive),
             cancellationToken);
         return result.Succeeded && result.Value is not null
             ? Ok(ToResponse(result.Value))
@@ -104,7 +110,7 @@ public sealed class RolesController(IRolePermissionManagementService managementS
         RolePermissionManagementFailure failure,
         IReadOnlyCollection<string> errors)
     {
-        var detail = errors.FirstOrDefault() ?? "Role management operation failed.";
+        var detail = errors.FirstOrDefault() ?? "Không thể thực hiện thao tác quản lý vai trò.";
         return failure switch
         {
             RolePermissionManagementFailure.NotFound => NotFound(Problem(detail)),
@@ -126,5 +132,7 @@ public sealed class RolesController(IRolePermissionManagementService managementS
                 permission.Id,
                 permission.Name,
                 permission.Description,
-                permission.Module)).ToArray());
+                permission.Module,
+                permission.IsSystem)).ToArray(),
+            role.IsActive);
 }

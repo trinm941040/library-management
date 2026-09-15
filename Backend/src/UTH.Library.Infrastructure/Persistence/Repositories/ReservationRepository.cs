@@ -70,6 +70,12 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
                 reservation.CancelledAtUtc == null,
             cancellationToken);
 
+    public Task<Reservation?> GetFirstWaitingReservationForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken) =>
+        dbContext.Reservations
+            .Where(r => r.BookId == bookId && r.FulfilledAtUtc == null && r.CancelledAtUtc == null && r.ExpiresAtUtc >= utcNow)
+            .OrderBy(r => r.ReservedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);
 }

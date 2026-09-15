@@ -101,6 +101,7 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
         CancellationToken cancellationToken)
     {
         var command = new UpdateCirculationPolicyCommand(
+            request.ConcurrencyToken,
             request.Name,
             request.Description,
             request.MemberGroup,
@@ -137,6 +138,7 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
         CancellationToken cancellationToken)
     {
         var command = new CreatePolicyVersionCommand(
+            request.ConcurrencyToken,
             request.Name,
             request.Description,
             request.EffectiveFrom,
@@ -167,9 +169,10 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CirculationPolicyResponse>> Activate(
         Guid id,
+        [FromBody] ChangePolicyStatusRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await policyService.ActivateAsync(id, GetCurrentUserId(), cancellationToken);
+        var result = await policyService.ActivateAsync(id, request.ConcurrencyToken, GetCurrentUserId(), cancellationToken);
         if (!result.Succeeded || result.Policy is null)
             return MapFailure(result);
 
@@ -182,9 +185,10 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CirculationPolicyResponse>> Deactivate(
         Guid id,
+        [FromBody] ChangePolicyStatusRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await policyService.DeactivateAsync(id, GetCurrentUserId(), cancellationToken);
+        var result = await policyService.DeactivateAsync(id, request.ConcurrencyToken, GetCurrentUserId(), cancellationToken);
         if (!result.Succeeded || result.Policy is null)
             return MapFailure(result);
 
@@ -261,7 +265,8 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
             policy.LostBookPenaltyRatio,
             policy.CreatedAtUtc,
             policy.UpdatedAtUtc,
-            policy.CreatedByUserId);
+            policy.CreatedByUserId,
+            policy.ConcurrencyToken);
 
     private Guid? GetCurrentUserId() =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)

@@ -1,3 +1,4 @@
+using UTH.Library.Application.Common;
 namespace UTH.Library.Application.Features.Books;
 
 public sealed record BookModel(
@@ -14,7 +15,7 @@ public sealed record BookListQuery(
     string? Search,
     string? Category,
     int PageNumber,
-    int PageSize);
+    int PageSize) : IQuery<BookPageModel>;
 
 public sealed record BookPageModel(
     IReadOnlyList<BookModel> Items,
@@ -27,7 +28,7 @@ public sealed record CreateBookCommand(
     string Author,
     string Isbn,
     string Category,
-    int Quantity);
+    int Quantity) : ICommand<BookResult>;
 
 public sealed record UpdateBookCommand(
     string Title,

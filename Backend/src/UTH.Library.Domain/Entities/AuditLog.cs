@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace UTH.Library.Domain.Entities;
 
 public sealed class AuditLog
@@ -20,6 +18,7 @@ public sealed class AuditLog
     public DateTime CreatedAtUtc { get; private set; }
     public string? CorrelationId { get; private set; }
     public string? IpAddress { get; private set; }
+    public DateTime RetainUntilUtc { get; private set; }
 
     public static AuditLog Create(
         Guid? actorUserId,
@@ -30,36 +29,36 @@ public sealed class AuditLog
         string? afterJson,
         DateTime createdAtUtc,
         string? correlationId = null,
-        string? ipAddress = null) =>
+        string? ipAddress = null,
+        DateTime? retainUntilUtc = null) =>
         new()
         {
             Id = Guid.NewGuid(),
             ActorUserId = actorUserId,
-            Action = action.Trim().ToLowerInvariant(),
-            EntityType = entityType.Trim(),
+            Action = Normalize(action, "unknown.action", 100),
+            EntityType = Normalize(entityType, "Unknown", 100),
             EntityId = entityId,
-            BeforeJson = RedactJson(beforeJson),
-            AfterJson = RedactJson(afterJson),
-            CreatedAtUtc = createdAtUtc,
-            CorrelationId = string.IsNullOrWhiteSpace(correlationId) ? null : correlationId.Trim(),
-            IpAddress = NormalizeIp(ipAddress)
+            BeforeJson = beforeJson,
+            AfterJson = afterJson,
+            CreatedAtUtc = AsUtc(createdAtUtc),
+            CorrelationId = NullIfBlank(correlationId, 100),
+            IpAddress = NullIfBlank(ipAddress, 45),
+            RetainUntilUtc = AsUtc(retainUntilUtc ?? createdAtUtc.AddDays(365))
         };
 
-    public static string? RedactJson(string? json)
+    private static string Normalize(string? value, string fallback, int maxLength)
     {
-        if (string.IsNullOrWhiteSpace(json)) return json;
-
-        // Redact sensitive keys in JSON (passwords, tokens, secrets, private keys, hashes)
-        const string pattern = @"\""(password|passwordhash|token|refreshtoken|secret|securitystamp|concurrencystamp|privatekey|jwt)\""\s*:\s*(\""[^\""]*\""|null|[0-9]+)";
-        return Regex.Replace(json, pattern, "\"$1\": \"[REDACTED]\"", RegexOptions.IgnoreCase);
+        var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return normalized[..Math.Min(normalized.Length, maxLength)];
     }
 
-    private static string? NormalizeIp(string? ip)
+    private static string? NullIfBlank(string? value, int maxLength) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, maxLength)];
+
+    private static DateTime AsUtc(DateTime value) => value.Kind switch
     {
-        if (string.IsNullOrWhiteSpace(ip)) return null;
-        var trimmed = ip.Trim();
-        if (trimmed.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase))
-            trimmed = trimmed[7..];
-        return trimmed.Length > 64 ? trimmed[..64] : trimmed;
-    }
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 }

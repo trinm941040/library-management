@@ -134,12 +134,6 @@ export function ToastProvider({
 
 export function useToast() {
   const context = useContext(ToastContext)
-  if (!context) {
-    return {
-      showToast: (message: string, tone?: ToastOptions | ToastTone) => {
-        console.warn('Toast:', message, tone)
-      },
-    }
-  }
+  if (!context) throw new Error('useToast phải được dùng bên trong ToastProvider.')
   return context
 }

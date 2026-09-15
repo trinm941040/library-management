@@ -42,6 +42,9 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { UserFormDialog, type UserFormData } from './components/UserFormDialog'
+import { UserRoleDialog } from './components/UserRoleDialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { can } from '@/shared/auth/permissions'
 import {
   createUser,
   deactivateUser,
@@ -50,16 +53,10 @@ import {
   type SystemUser,
   type UserPageResponse,
 } from './user-api'
-
-const USERS_PER_PAGE = 20
-
-const roleLabels: Record<string, string> = {
-  Administrator: 'Quản trị viên',
-  User: 'Người dùng',
-}
+import { getAllRoles, type Role } from '@/pages/roles/role-permission-api'
 
 type StatusFilter = 'all' | 'active' | 'inactive'
-type RoleFilter = 'all' | 'Administrator' | 'User'
+type RoleFilter = 'all' | string
 
 type UserSummary = {
   total: number
@@ -75,7 +72,9 @@ export function UserPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [role, setRole] = useState<RoleFilter>('all')
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -83,6 +82,7 @@ export function UserPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null)
   const [deactivatingUser, setDeactivatingUser] = useState<SystemUser | null>(null)
+  const [roleUser, setRoleUser] = useState<SystemUser | null>(null)
   const [deactivateError, setDeactivateError] = useState('')
   const [isDeactivating, setIsDeactivating] = useState(false)
 
@@ -106,7 +106,7 @@ export function UserPage() {
         isActive: status === 'all' ? undefined : status === 'active',
         role: role === 'all' ? undefined : role,
         pageNumber: currentPage,
-        pageSize: USERS_PER_PAGE,
+        pageSize,
       },
       controller.signal,
     )
@@ -118,14 +118,14 @@ export function UserPage() {
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách user.')
+        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách người dùng.')
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false)
       })
 
     return () => controller.abort()
-  }, [currentPage, reloadKey, role, search, status])
+  }, [currentPage, pageSize, reloadKey, role, search, status])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -148,6 +148,21 @@ export function UserPage() {
     return () => controller.abort()
   }, [reloadKey])
 
+  useEffect(() => {
+    if (!can(currentUser?.permissions ?? [], 'roles.read')) {
+      setAvailableRoles([])
+      setRole('all')
+      return
+    }
+    const controller = new AbortController()
+    getAllRoles(controller.signal)
+      .then((items) => setAvailableRoles(items.filter((item) => item.isActive)))
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setAvailableRoles([])
+      })
+    return () => controller.abort()
+  }, [currentUser?.permissions, reloadKey])
+
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
     setReloadKey((value) => value + 1)
@@ -166,7 +181,7 @@ export function UserPage() {
 
   const handleSave = async (data: UserFormData) => {
     if (editingUser?.isProtected && editingUser.id !== currentUser?.id) {
-      return 'Không thể thay đổi thông tin của tài khoản Administrator khác.'
+      return 'Không thể thay đổi thông tin của tài khoản quản trị viên khác.'
     }
 
     try {
@@ -193,7 +208,7 @@ export function UserPage() {
   const confirmDeactivate = async () => {
     if (!deactivatingUser) return
     if (deactivatingUser.isProtected) {
-      setDeactivateError('Không thể vô hiệu hóa tài khoản Administrator.')
+      setDeactivateError('Không thể vô hiệu hóa tài khoản quản trị viên.')
       return
     }
     setDeactivateError('')
@@ -214,6 +229,9 @@ export function UserPage() {
 
   const displayedFrom = page && page.totalCount > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0
   const displayedTo = page ? Math.min(page.pageNumber * page.pageSize, page.totalCount) : 0
+  const canAssignRoles =
+    can(currentUser?.permissions ?? [], 'roles.assign') &&
+    can(currentUser?.permissions ?? [], 'roles.read')
 
   return (
     <>
@@ -231,16 +249,18 @@ export function UserPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              aria-label="Tải lại danh sách user"
+              aria-label="Tải lại danh sách người dùng"
               disabled={isLoading}
               onClick={() => refresh()}
             >
               <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
-            <Button onClick={openCreateForm}>
-              <Plus /> Thêm user
-            </Button>
+            <PermissionBoundary requiredPermissions={['users.create']}>
+              <Button onClick={openCreateForm}>
+                <Plus /> Thêm người dùng
+              </Button>
+            </PermissionBoundary>
           </div>
         </div>
 
@@ -260,7 +280,7 @@ export function UserPage() {
         ) : null}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <SummaryCard title="Tổng user" value={summary?.total ?? '—'} icon={Users} />
+          <SummaryCard title="Tổng người dùng" value={summary?.total ?? '—'} icon={Users} />
           <SummaryCard title="Đang hoạt động" value={summary?.active ?? '—'} icon={UserCheck} />
           <SummaryCard title="Đã vô hiệu hóa" value={summary?.inactive ?? '—'} icon={UserX} />
         </div>
@@ -269,7 +289,7 @@ export function UserPage() {
           <CardHeader className="gap-4">
             <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
               <div>
-                <CardTitle>Danh sách user</CardTitle>
+                <CardTitle>Danh sách người dùng</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {page ? `${page.totalCount} tài khoản phù hợp với bộ lọc.` : 'Đang tải dữ liệu.'}
                 </p>
@@ -301,22 +321,27 @@ export function UserPage() {
                   <SelectItem value="inactive">Đã vô hiệu hóa</SelectItem>
                 </SelectContent>
               </Select>
-              <Select
-                value={role}
-                onValueChange={(value) => {
-                  setRole(value as RoleFilter)
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-48" aria-label="Lọc theo vai trò">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả vai trò</SelectItem>
-                  <SelectItem value="Administrator">Quản trị viên</SelectItem>
-                  <SelectItem value="User">Người dùng</SelectItem>
-                </SelectContent>
-              </Select>
+              <PermissionBoundary requiredPermissions={['roles.read']}>
+                <Select
+                  value={role}
+                  onValueChange={(value) => {
+                    setRole(value)
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-48" aria-label="Lọc theo vai trò">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả vai trò</SelectItem>
+                    {availableRoles.map((availableRole) => (
+                      <SelectItem key={availableRole.id} value={availableRole.name}>
+                        {availableRole.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PermissionBoundary>
             </div>
           </CardHeader>
           <CardContent>
@@ -327,7 +352,7 @@ export function UserPage() {
               >
                 <CircleAlert className="size-6 text-destructive" />
                 <div>
-                  <p className="font-medium">Không thể tải danh sách user</p>
+                  <p className="font-medium">Không thể tải danh sách người dùng</p>
                   <p className="mt-1 text-sm text-muted-foreground">{pageError}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => refresh()}>
@@ -340,7 +365,7 @@ export function UserPage() {
               <Table aria-busy={isLoading}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
+                    <TableHead>Người dùng</TableHead>
                     <TableHead>Vai trò</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>Đăng nhập cuối</TableHead>
@@ -353,7 +378,7 @@ export function UserPage() {
                   {!isLoading && !pageError && page?.items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Không tìm thấy user phù hợp.
+                        Không tìm thấy người dùng phù hợp.
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -365,12 +390,12 @@ export function UserPage() {
                       ? isCurrentUser && user.isProtected
                         ? 'Chỉnh sửa thông tin cá nhân'
                         : 'Chỉnh sửa'
-                      : 'Không thể thay đổi Administrator khác'
+                      : 'Không thể thay đổi quản trị viên khác'
                     const deactivateTitle = user.isProtected
-                      ? 'Không thể vô hiệu hóa tài khoản Administrator'
+                      ? 'Không thể vô hiệu hóa tài khoản quản trị viên'
                       : user.isActive
-                        ? 'Vô hiệu hóa user'
-                        : 'User đã bị vô hiệu hóa'
+                        ? 'Vô hiệu hóa người dùng'
+                        : 'Người dùng đã bị vô hiệu hóa'
 
                     return (
                       <TableRow key={user.id} className={isLoading ? 'opacity-60' : undefined}>
@@ -396,8 +421,7 @@ export function UserPage() {
                             {user.roles.length > 0 ? (
                               user.roles.map((userRole) => (
                                 <Badge key={userRole} variant="outline">
-                                  {userRole === 'Administrator' ? <ShieldCheck /> : null}
-                                  {roleLabels[userRole] ?? userRole}
+                                  <ShieldCheck /> {userRole}
                                 </Badge>
                               ))
                             ) : (
@@ -414,30 +438,45 @@ export function UserPage() {
                         <TableCell>{formatDateTime(user.createdAtUtc)}</TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Chỉnh sửa ${user.displayName}`}
-                              title={editTitle}
-                              disabled={!canEdit}
-                              onClick={() => openEditForm(user)}
-                            >
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-destructive hover:text-destructive"
-                              aria-label={`Vô hiệu hóa ${user.displayName}`}
-                              title={deactivateTitle}
-                              disabled={!canDeactivate}
-                              onClick={() => {
-                                setDeactivateError('')
-                                setDeactivatingUser(user)
-                              }}
-                            >
-                              <Ban />
-                            </Button>
+                            {canAssignRoles ? (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Quản lý vai trò của ${user.displayName}`}
+                                title="Thêm, xóa hoặc thay đổi vai trò"
+                                onClick={() => setRoleUser(user)}
+                              >
+                                <ShieldCheck />
+                              </Button>
+                            ) : null}
+                            <PermissionBoundary requiredPermissions={['users.update']}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Chỉnh sửa ${user.displayName}`}
+                                title={editTitle}
+                                disabled={!canEdit}
+                                onClick={() => openEditForm(user)}
+                              >
+                                <Pencil />
+                              </Button>
+                            </PermissionBoundary>
+                            <PermissionBoundary requiredPermissions={['users.deactivate']}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive hover:text-destructive"
+                                aria-label={`Vô hiệu hóa ${user.displayName}`}
+                                title={deactivateTitle}
+                                disabled={!canDeactivate}
+                                onClick={() => {
+                                  setDeactivateError('')
+                                  setDeactivatingUser(user)
+                                }}
+                              >
+                                <Ban />
+                              </Button>
+                            </PermissionBoundary>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -450,14 +489,19 @@ export function UserPage() {
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 {page?.totalCount
-                  ? `Hiển thị ${displayedFrom}-${displayedTo} trong ${page.totalCount} user.`
-                  : 'Không có user để hiển thị.'}
+                  ? `Hiển thị ${displayedFrom}-${displayedTo} trong ${page.totalCount} người dùng.`
+                  : 'Không có người dùng để hiển thị.'}
               </p>
               {page && page.totalPages > 0 ? (
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
                   onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setCurrentPage(1)
+                    setPageSize(size)
+                  }}
                 />
               ) : null}
             </div>
@@ -465,47 +509,59 @@ export function UserPage() {
         </Card>
       </div>
 
-      <UserFormDialog
-        open={formOpen}
-        user={editingUser}
-        onOpenChange={setFormOpen}
-        onSave={handleSave}
-      />
+      <PermissionBoundary requiredPermissions={[editingUser ? 'users.update' : 'users.create']}>
+        <UserFormDialog
+          open={formOpen}
+          user={editingUser}
+          onOpenChange={setFormOpen}
+          onSave={handleSave}
+        />
+      </PermissionBoundary>
 
-      <Dialog
-        open={!!deactivatingUser}
-        onOpenChange={(open) => !open && !isDeactivating && setDeactivatingUser(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Vô hiệu hóa tài khoản?</DialogTitle>
-            <DialogDescription>
-              Tài khoản <strong>{deactivatingUser?.displayName}</strong> sẽ không thể đăng nhập và
-              tất cả phiên hiện tại sẽ bị thu hồi. API hiện chưa hỗ trợ kích hoạt lại tài khoản.
-            </DialogDescription>
-          </DialogHeader>
-          {deactivateError ? (
-            <p
-              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
-              {deactivateError}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={isDeactivating}
-              onClick={() => setDeactivatingUser(null)}
-            >
-              Hủy
-            </Button>
-            <Button variant="destructive" disabled={isDeactivating} onClick={confirmDeactivate}>
-              {isDeactivating ? 'Đang xử lý...' : 'Vô hiệu hóa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PermissionBoundary requiredPermissions={['roles.assign', 'roles.read']}>
+        <UserRoleDialog
+          user={roleUser}
+          onOpenChange={(open) => !open && setRoleUser(null)}
+          onSaved={() => refresh('Đã cập nhật vai trò của tài khoản.')}
+        />
+      </PermissionBoundary>
+
+      <PermissionBoundary requiredPermissions={['users.deactivate']}>
+        <Dialog
+          open={!!deactivatingUser}
+          onOpenChange={(open) => !open && !isDeactivating && setDeactivatingUser(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Vô hiệu hóa tài khoản?</DialogTitle>
+              <DialogDescription>
+                Tài khoản <strong>{deactivatingUser?.displayName}</strong> sẽ không thể đăng nhập và
+                tất cả phiên hiện tại sẽ bị thu hồi. API hiện chưa hỗ trợ kích hoạt lại tài khoản.
+              </DialogDescription>
+            </DialogHeader>
+            {deactivateError ? (
+              <p
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {deactivateError}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={isDeactivating}
+                onClick={() => setDeactivatingUser(null)}
+              >
+                Hủy
+              </Button>
+              <Button variant="destructive" disabled={isDeactivating} onClick={confirmDeactivate}>
+                {isDeactivating ? 'Đang xử lý...' : 'Vô hiệu hóa'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PermissionBoundary>
     </>
   )
 }

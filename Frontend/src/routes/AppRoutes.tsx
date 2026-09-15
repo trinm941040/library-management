@@ -1,31 +1,107 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import type { ReactNode } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppLayout } from '../layouts/AppLayout'
-import { BooksPage } from '../pages/books/BooksPage'
-import { BorrowingsPage } from '../pages/borrowings/BorrowingsPage'
-import { DashboardPage } from '../pages/dashboard/DashboardPage'
-import { LoginPage } from '../pages/login/LoginPage'
-import { ReservationsPage } from '../pages/reservations/ReservationsPage'
-import { SettingsPage } from '../pages/settings/SettingsPage'
-import { RolePermissionPage } from '../pages/roles/RolePermissionPage'
-import { UserPage } from '../pages/users/UserPage'
-import { ViolationsPage } from '../pages/violations/ViolationsPage'
-import { EmployeePage } from '../pages/employee/EmployeePage'
-import { ConfigPage } from '../pages/config/ConfigPage'
-import { ActivityLogPage } from '../pages/activity-logs/ActivityLogPage'
-import { InfoPage } from '../pages/info/InfoPage'
-import { OtherSettingsPage } from '../pages/other-settings/OtherSettingsPage'
-import { MemberPage } from '../pages/members/MemberPage'
 import { ProtectedRoute } from './ProtectedRoute'
+import { routePermissions } from '@/app/navigation'
+import { NotFoundPage } from '@/pages/errors/NotFoundPage'
+import { safeIntendedDestination } from '@/shared/auth/intended-destination'
+import { ScreenState } from '@/common/components'
+
+const ProfilePage = lazy(() =>
+  import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+)
+const LoginPage = lazy(() =>
+  import('../pages/login/LoginPage').then((module) => ({ default: module.LoginPage })),
+)
+const ChangePasswordPage = lazy(() =>
+  import('../pages/profile/ChangePasswordPage').then((module) => ({
+    default: module.ChangePasswordPage,
+  })),
+)
+const DashboardPage = lazy(() =>
+  import('../pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+)
+const BooksPage = lazy(() =>
+  import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
+)
+const BorrowingsPage = lazy(() =>
+  import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
+)
+const CheckoutPage = lazy(() =>
+  import('../pages/borrowings/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
+)
+const ReturnPage = lazy(() =>
+  import('../pages/borrowings/ReturnPage').then((m) => ({ default: m.ReturnPage })),
+)
+const ReservationsPage = lazy(() =>
+  import('../pages/reservations/ReservationsPage').then((m) => ({ default: m.ReservationsPage })),
+)
+const ViolationsPage = lazy(() =>
+  import('../pages/violations/ViolationsPage').then((m) => ({ default: m.ViolationsPage })),
+)
+const SettingsPage = lazy(() =>
+  import('../pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+)
+const RolePermissionPage = lazy(() =>
+  import('../pages/roles/RolePermissionPage').then((m) => ({ default: m.RolePermissionPage })),
+)
+const AccessAccountsPage = lazy(() =>
+  import('../pages/access-accounts/AccessAccountsPage').then((m) => ({
+    default: m.AccessAccountsPage,
+  })),
+)
+const EmployeePage = lazy(() =>
+  import('../pages/employee/EmployeePage').then((m) => ({ default: m.EmployeePage })),
+)
+const MemberPage = lazy(() =>
+  import('../pages/members/MemberPage').then((m) => ({ default: m.MemberPage })),
+)
+const ConfigPage = lazy(() =>
+  import('../pages/config/ConfigPage').then((m) => ({ default: m.ConfigPage })),
+)
+const ActivityLogPage = lazy(() =>
+  import('../pages/activity-logs/ActivityLogPage').then((m) => ({ default: m.ActivityLogPage })),
+)
+const InfoPage = lazy(() => import('../pages/info/InfoPage').then((m) => ({ default: m.InfoPage })))
+const ConfigurationPage = lazy(() =>
+  import('../pages/settings/ConfigurationPage').then((m) => ({
+    default: m.ConfigurationPage,
+  })),
+)
+
+const page = (path: string, element: ReactNode) => (
+  <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
+    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>{element}</Suspense>
+  </ProtectedRoute>
+)
 
 function LoginRoute() {
-  const { status } = useAuth()
+  const { status, retrySession } = useAuth()
+  const location = useLocation()
+
+  if (status === 'error')
+    return (
+      <ScreenState
+        kind="error"
+        title="Không thể kiểm tra phiên đăng nhập"
+        actionLabel="Thử lại"
+        onAction={retrySession}
+      />
+    )
 
   if (status === 'loading') {
     return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
   }
 
-  return status === 'authenticated' ? <Navigate to="/dashboard" replace /> : <LoginPage />
+  return status === 'authenticated' ? (
+    <Navigate to={safeIntendedDestination(location.state?.from)} replace />
+  ) : (
+    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+      <LoginPage />
+    </Suspense>
+  )
 }
 
 export function AppRoutes() {
@@ -40,74 +116,52 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/users" element={<UserPage />} />
-        <Route path="/books" element={<BooksPage />} />
-        <Route path="/borrowings" element={<BorrowingsPage />} />
-        <Route path="/reservations" element={<ReservationsPage />} />
-        <Route path="/violations" element={<ViolationsPage />} />
-        <Route path="/employee" element={<EmployeePage />} />
-        <Route path="/members" element={<MemberPage />} />
+        <Route path="/dashboard" element={page('/dashboard', <DashboardPage />)} />
         <Route
-          path="/roles"
+          path="/access-accounts"
+          element={page('/access-accounts', <AccessAccountsPage />)}
+        />
+        <Route path="/users" element={<Navigate to="/access-accounts" replace />} />
+        <Route path="/books" element={page('/books', <BooksPage />)} />
+        <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
+        <Route path="/circulation/checkout" element={page('/circulation/checkout', <CheckoutPage />)} />
+        <Route path="/circulation/return" element={page('/circulation/return', <ReturnPage />)} />
+        <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
+        <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
+        <Route path="/staff" element={page('/staff', <EmployeePage />)} />
+        <Route path="/employee" element={<Navigate to="/staff" replace />} />
+        <Route path="/members" element={page('/members', <MemberPage />)} />
+        <Route path="/roles" element={page('/roles', <RolePermissionPage initialView="roles" />)} />
+        <Route
+          path="/permissions"
+          element={page('/permissions', <RolePermissionPage initialView="permissions" />)}
+        />
+        <Route path="/settings" element={page('/settings', <SettingsPage />)} />
+        <Route path="/configuration" element={page('/configuration', <ConfigurationPage />)} />
+        <Route
+          path="/profile"
           element={
-            <ProtectedRoute requiredRole="Administrator">
-              <RolePermissionPage />
-            </ProtectedRoute>
+            <Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}>
+              <ProfilePage />
+            </Suspense>
           }
         />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/profile/change-password"
+          element={
+            <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+              <ChangePasswordPage />
+            </Suspense>
+          }
+        />
         {/* System Management Routes */}
-        <Route
-          path="/system/config"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <ConfigPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/configuration"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <ConfigPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/system/activity-log"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <ActivityLogPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/audit-log"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <ActivityLogPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/system/info"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <InfoPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/system/other-settings"
-          element={
-            <ProtectedRoute requiredRole="Administrator">
-              <OtherSettingsPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/system/config" element={page('/system/config', <ConfigPage />)} />
+        <Route path="/audit-log" element={page('/audit-log', <ActivityLogPage />)} />
+        <Route path="/system/activity-log" element={<Navigate to="/audit-log" replace />} />
+        <Route path="/system/info" element={page('/system/info', <InfoPage />)} />
+        <Route path="/system/other-settings" element={<Navigate to="/settings" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }

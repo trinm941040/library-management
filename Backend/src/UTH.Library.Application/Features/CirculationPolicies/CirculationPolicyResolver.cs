@@ -23,7 +23,7 @@ public sealed class CirculationPolicyResolver(
 
         // Lọc các chính sách có hiệu lực tại thời điểm 'now'
         var validPolicies = policies.Where(p =>
-            p.EffectiveFrom <= now && (p.EffectiveTo is null || p.EffectiveTo.Value >= now));
+            p.EffectiveFrom <= now && (p.EffectiveTo is null || now < p.EffectiveTo.Value));
 
         ResolvedCirculationPolicy? bestMatch = null;
         var highestScore = -1;

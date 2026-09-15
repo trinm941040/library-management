@@ -13,67 +13,121 @@ public partial class AddCirculationPolicies : Migration
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.Sql("""
-            CREATE TABLE IF NOT EXISTS circulation_policies (
-                "Id" uuid NOT NULL,
-                "Name" character varying(200) NOT NULL,
-                "Description" character varying(1000),
-                "Version" integer NOT NULL,
-                "IsActive" boolean NOT NULL,
-                "MemberGroup" character varying(100),
-                "DocumentType" character varying(100),
-                "BranchId" uuid,
-                "EffectiveFrom" timestamp with time zone NOT NULL,
-                "EffectiveTo" timestamp with time zone,
-                "MaxLoanBooks" integer NOT NULL,
-                "LoanPeriodDays" integer NOT NULL,
-                "MaxRenewals" integer NOT NULL,
-                "RenewalPeriodDays" integer NOT NULL,
-                "HoldDays" integer NOT NULL,
-                "BlockIfOverdue" boolean NOT NULL,
-                "FinePerDay" numeric(18,2) NOT NULL,
-                "FixedFineAmount" numeric(18,2) NOT NULL,
-                "MaxFineAmount" numeric(18,2) NOT NULL,
-                "LostBookPenaltyRatio" numeric(18,2) NOT NULL,
-                "CreatedAtUtc" timestamp with time zone NOT NULL,
-                "UpdatedAtUtc" timestamp with time zone,
-                "CreatedByUserId" uuid,
-                CONSTRAINT "PK_circulation_policies" PRIMARY KEY ("Id")
-            );
+            ALTER TABLE circulation_policies ALTER COLUMN "Name" TYPE character varying(200);
 
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "Id" uuid;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "Name" character varying(200);
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveFromUtc'
+                ) AND NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveFrom'
+                ) THEN
+                    ALTER TABLE circulation_policies RENAME COLUMN "EffectiveFromUtc" TO "EffectiveFrom";
+                END IF;
+
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveToUtc'
+                ) AND NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveTo'
+                ) THEN
+                    ALTER TABLE circulation_policies RENAME COLUMN "EffectiveToUtc" TO "EffectiveTo";
+                END IF;
+            END $$;
+
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "Description" character varying(1000);
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "Version" integer DEFAULT 1;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "IsActive" boolean DEFAULT true;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "Version" integer;
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MemberGroup" character varying(100);
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "DocumentType" character varying(100);
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "BranchId" uuid;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "EffectiveFrom" timestamp with time zone DEFAULT NOW();
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "EffectiveFrom" timestamp with time zone;
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "EffectiveTo" timestamp with time zone;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxLoanBooks" integer DEFAULT 5;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "LoanPeriodDays" integer DEFAULT 14;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxRenewals" integer DEFAULT 2;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "RenewalPeriodDays" integer DEFAULT 7;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "HoldDays" integer DEFAULT 3;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "BlockIfOverdue" boolean DEFAULT true;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "FinePerDay" numeric(18,2) DEFAULT 5000;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "FixedFineAmount" numeric(18,2) DEFAULT 0;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxFineAmount" numeric(18,2) DEFAULT 100000;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "LostBookPenaltyRatio" numeric(18,2) DEFAULT 150;
-            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "CreatedAtUtc" timestamp with time zone DEFAULT NOW();
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxLoanBooks" integer;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "LoanPeriodDays" integer;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxRenewals" integer;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "RenewalPeriodDays" integer;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "HoldDays" integer;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "BlockIfOverdue" boolean;
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "FinePerDay" numeric(18,2);
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "FixedFineAmount" numeric(18,2);
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "MaxFineAmount" numeric(18,2);
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "LostBookPenaltyRatio" numeric(18,2);
+            ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "CreatedAtUtc" timestamp with time zone;
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "UpdatedAtUtc" timestamp with time zone;
             ALTER TABLE circulation_policies ADD COLUMN IF NOT EXISTS "CreatedByUserId" uuid;
 
-            CREATE INDEX IF NOT EXISTS "IX_circulation_policies_IsActive_EffectiveFrom_EffectiveTo"
-            ON circulation_policies ("IsActive", "EffectiveFrom", "EffectiveTo");
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveFromUtc'
+                ) THEN
+                    EXECUTE 'UPDATE circulation_policies SET "EffectiveFrom" = COALESCE("EffectiveFrom", "EffectiveFromUtc", NOW())';
+                    ALTER TABLE circulation_policies ALTER COLUMN "EffectiveFromUtc" DROP NOT NULL;
+                END IF;
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveToUtc'
+                ) THEN
+                    EXECUTE 'UPDATE circulation_policies SET "EffectiveTo" = COALESCE("EffectiveTo", "EffectiveToUtc")';
+                END IF;
+            END $$;
 
+            UPDATE circulation_policies
+            SET "Version" = COALESCE("Version", 1),
+                "EffectiveFrom" = COALESCE("EffectiveFrom", NOW()),
+                "MaxLoanBooks" = COALESCE("MaxLoanBooks", 5),
+                "LoanPeriodDays" = COALESCE("LoanPeriodDays", 14),
+                "MaxRenewals" = COALESCE("MaxRenewals", 2),
+                "RenewalPeriodDays" = COALESCE("RenewalPeriodDays", 7),
+                "HoldDays" = COALESCE("HoldDays", 3),
+                "BlockIfOverdue" = COALESCE("BlockIfOverdue", TRUE),
+                "FinePerDay" = COALESCE("FinePerDay", 5000),
+                "FixedFineAmount" = COALESCE("FixedFineAmount", 0),
+                "MaxFineAmount" = COALESCE("MaxFineAmount", 100000),
+                "LostBookPenaltyRatio" = COALESCE("LostBookPenaltyRatio", 150),
+                "CreatedAtUtc" = COALESCE("CreatedAtUtc", "EffectiveFrom", NOW());
+
+            ALTER TABLE circulation_policies ALTER COLUMN "Version" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "EffectiveFrom" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "MaxLoanBooks" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "LoanPeriodDays" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "MaxRenewals" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "RenewalPeriodDays" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "HoldDays" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "BlockIfOverdue" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "FinePerDay" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "FixedFineAmount" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "MaxFineAmount" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "LostBookPenaltyRatio" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "CreatedAtUtc" SET NOT NULL;
+
+            CREATE INDEX IF NOT EXISTS "IX_circulation_policies_IsActive_EffectiveFrom_EffectiveTo"
+                ON circulation_policies ("IsActive", "EffectiveFrom", "EffectiveTo");
             CREATE INDEX IF NOT EXISTS "IX_circulation_policies_MemberGroup_DocumentType_BranchId"
-            ON circulation_policies ("MemberGroup", "DocumentType", "BranchId");
+                ON circulation_policies ("MemberGroup", "DocumentType", "BranchId");
+            CREATE INDEX IF NOT EXISTS "IX_circulation_policies_Name_Version"
+                ON circulation_policies ("Name", "Version");
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'FK_circulation_policies_branches_BranchId'
+                ) THEN
+                    ALTER TABLE circulation_policies
+                    ADD CONSTRAINT "FK_circulation_policies_branches_BranchId"
+                    FOREIGN KEY ("BranchId") REFERENCES branches ("Id") ON DELETE RESTRICT;
+                END IF;
+            END $$;
 
             INSERT INTO permissions ("Id", "CreatedAtUtc", "Description", "Module", "Name")
             VALUES
-                ('30000000-0000-0000-0000-000000000030', TIMESTAMPTZ '2026-09-11T00:00:00Z', 'Read circulation policies.', 'circulation-policies', 'circulation-policies.read'),
-                ('30000000-0000-0000-0000-000000000031', TIMESTAMPTZ '2026-09-11T00:00:00Z', 'Manage circulation policies.', 'circulation-policies', 'circulation-policies.manage')
+                ('30000000-0000-0000-0000-000000000042', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Xem chính sách lưu thông.', 'circulation-policies', 'circulation-policies.read'),
+                ('30000000-0000-0000-0000-000000000043', TIMESTAMPTZ '2026-08-26T00:00:00Z', 'Quản lý chính sách lưu thông.', 'circulation-policies', 'circulation-policies.manage')
             ON CONFLICT ("Name") DO UPDATE
             SET "Description" = EXCLUDED."Description", "Module" = EXCLUDED."Module";
 
@@ -83,62 +137,8 @@ public partial class AddCirculationPolicies : Migration
             CROSS JOIN permissions AS permission
             WHERE role."NormalizedName" = 'ADMINISTRATOR'
               AND permission."Name" IN ('circulation-policies.read', 'circulation-policies.manage')
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT ("RoleId", "PermissionId") DO NOTHING;
 
-            DO $$
-            DECLARE
-                rec RECORD;
-            BEGIN
-                -- Drop NOT NULL on any legacy columns (like EffectiveFromUtc) that would block inserts
-                FOR rec IN 
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'circulation_policies' 
-                      AND is_nullable = 'NO' 
-                      AND column_default IS NULL
-                      AND column_name NOT IN ('Id', 'Name')
-                LOOP
-                    EXECUTE format('ALTER TABLE circulation_policies ALTER COLUMN %I DROP NOT NULL', rec.column_name);
-                END LOOP;
-            END $$;
-
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint WHERE conname = 'PK_circulation_policies'
-                ) THEN
-                    BEGIN
-                        ALTER TABLE circulation_policies ADD CONSTRAINT "PK_circulation_policies" PRIMARY KEY ("Id");
-                    EXCEPTION
-                        WHEN OTHERS THEN NULL;
-                    END;
-                END IF;
-
-                IF NOT EXISTS (
-                    SELECT 1 FROM circulation_policies WHERE "Id" = '50000000-0000-0000-0000-000000000001'
-                ) THEN
-                    INSERT INTO circulation_policies (
-                        "Id", "Name", "Description", "Version", "IsActive", "MemberGroup", "DocumentType", "BranchId",
-                        "EffectiveFrom", "EffectiveTo", "MaxLoanBooks", "LoanPeriodDays", "MaxRenewals", "RenewalPeriodDays",
-                        "HoldDays", "BlockIfOverdue", "FinePerDay", "FixedFineAmount", "MaxFineAmount", "LostBookPenaltyRatio",
-                        "CreatedAtUtc", "UpdatedAtUtc", "CreatedByUserId")
-                    VALUES (
-                        '50000000-0000-0000-0000-000000000001', 'Chính sách lưu thông chuẩn toàn thư viện', 'Chính sách mặc định áp dụng cho tất cả độc giả và thể loại sách.',
-                        1, TRUE, NULL, NULL, NULL,
-                        TIMESTAMPTZ '2026-01-01T00:00:00Z', NULL, 5, 14, 2, 7,
-                        3, TRUE, 5000.00, 0.00, 100000.00, 150.00,
-                        TIMESTAMPTZ '2026-01-01T00:00:00Z', NULL, NULL);
-
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns 
-                        WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveFromUtc'
-                    ) THEN
-                        UPDATE circulation_policies 
-                        SET "EffectiveFromUtc" = "EffectiveFrom" 
-                        WHERE "Id" = '50000000-0000-0000-0000-000000000001';
-                    END IF;
-                END IF;
-            END $$;
             """);
     }
 
@@ -147,13 +147,62 @@ public partial class AddCirculationPolicies : Migration
         migrationBuilder.Sql("""
             DELETE FROM role_permissions
             WHERE "PermissionId" IN (
-                '30000000-0000-0000-0000-000000000030',
-                '30000000-0000-0000-0000-000000000031');
-
+                SELECT "Id" FROM permissions
+                WHERE "Name" IN ('circulation-policies.read', 'circulation-policies.manage'));
             DELETE FROM permissions
             WHERE "Name" IN ('circulation-policies.read', 'circulation-policies.manage');
-            """);
 
-        migrationBuilder.DropTable(name: "circulation_policies");
+            ALTER TABLE circulation_policies DROP CONSTRAINT IF EXISTS "FK_circulation_policies_branches_BranchId";
+            DROP INDEX IF EXISTS "IX_circulation_policies_IsActive_EffectiveFrom_EffectiveTo";
+            DROP INDEX IF EXISTS "IX_circulation_policies_MemberGroup_DocumentType_BranchId";
+            DROP INDEX IF EXISTS "IX_circulation_policies_Name_Version";
+
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "Description";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "Version";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "MemberGroup";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "DocumentType";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "BranchId";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "MaxLoanBooks";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "LoanPeriodDays";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "MaxRenewals";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "RenewalPeriodDays";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "HoldDays";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "BlockIfOverdue";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "FinePerDay";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "FixedFineAmount";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "MaxFineAmount";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "LostBookPenaltyRatio";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "CreatedAtUtc";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "UpdatedAtUtc";
+            ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "CreatedByUserId";
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveFromUtc'
+                ) THEN
+                    ALTER TABLE circulation_policies RENAME COLUMN "EffectiveFrom" TO "EffectiveFromUtc";
+                ELSE
+                    UPDATE circulation_policies
+                    SET "EffectiveFromUtc" = COALESCE("EffectiveFromUtc", "EffectiveFrom");
+                    ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "EffectiveFrom";
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'circulation_policies' AND column_name = 'EffectiveToUtc'
+                ) THEN
+                    ALTER TABLE circulation_policies RENAME COLUMN "EffectiveTo" TO "EffectiveToUtc";
+                ELSE
+                    UPDATE circulation_policies
+                    SET "EffectiveToUtc" = COALESCE("EffectiveToUtc", "EffectiveTo");
+                    ALTER TABLE circulation_policies DROP COLUMN IF EXISTS "EffectiveTo";
+                END IF;
+            END $$;
+
+            ALTER TABLE circulation_policies ALTER COLUMN "EffectiveFromUtc" SET NOT NULL;
+            ALTER TABLE circulation_policies ALTER COLUMN "Name" TYPE character varying(150);
+            """);
     }
 }

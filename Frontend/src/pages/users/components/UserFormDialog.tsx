@@ -37,11 +37,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setForm(
-      user
-        ? { displayName: user.displayName, email: user.email, password: '' }
-        : emptyForm,
-    )
+    setForm(user ? { displayName: user.displayName, email: user.email, password: '' } : emptyForm)
     setError('')
   }, [open, user])
 
@@ -67,11 +63,11 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{user ? 'Chỉnh sửa user' : 'Thêm user mới'}</DialogTitle>
+            <DialogTitle>{user ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}</DialogTitle>
             <DialogDescription>
               {user
                 ? 'Cập nhật tên hiển thị và email của tài khoản.'
-                : 'Tạo tài khoản mới. Hệ thống sẽ tự gán vai trò User.'}
+                : 'Tạo tài khoản mới. Hệ thống sẽ tự gán vai trò người dùng.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -98,7 +94,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
                 type="email"
                 value={form.email}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
-                placeholder="user@example.com"
+                placeholder="nguoidung@example.com"
                 maxLength={256}
                 autoComplete="email"
                 disabled={isSubmitting}
@@ -106,7 +102,8 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
               />
               {user && form.email.trim().toLowerCase() !== user.email.toLowerCase() ? (
                 <p className="text-xs text-muted-foreground">
-                  Đổi email sẽ hủy trạng thái xác nhận email và thu hồi các phiên đăng nhập hiện tại.
+                  Đổi email sẽ hủy trạng thái xác nhận email và thu hồi các phiên đăng nhập hiện
+                  tại.
                 </p>
               ) : null}
             </div>
@@ -130,7 +127,10 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
             ) : null}
 
             {error ? (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              <p
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
                 {error}
               </p>
             ) : null}
@@ -146,7 +146,7 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
               Hủy
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm user'}
+              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm người dùng'}
             </Button>
           </DialogFooter>
         </form>

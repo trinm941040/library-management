@@ -1,9 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { KeyRound, Pencil, ShieldCheck, UserRoundCheck, UserRoundX } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { createUser, getUserById, getUsers, type SystemUser } from '@/pages/users/user-api'
+import {
+  getAccessAccount,
+  type AccessAccount,
+} from '@/pages/access-accounts/access-account-api'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
+import { formatDate, formatDateTime } from '@/common/formatters'
 import {
   Dialog,
   DialogContent,
@@ -12,14 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
-import { Input } from '@/common/components/ui/input'
-import { Label } from '@/common/components/ui/label'
-import {
-  employmentStatusLabels,
-  getEmployeeById,
-  type Employee,
-  type EmploymentStatus,
-} from '../employee-api'
+import { employmentStatusLabels, getEmployeeById, type Employee } from '../employee-api'
+import { EmploymentStatusBadge } from './EmploymentStatusBadge'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { useAuth } from '@/auth/AuthProvider'
+import { can } from '@/shared/auth/permissions'
 
 type EmployeeDetailsDialogProps = {
   open: boolean
@@ -34,15 +35,14 @@ export function EmployeeDetailsDialog({
   onOpenChange,
   onEdit,
 }: EmployeeDetailsDialogProps) {
+  const { user } = useAuth()
+  const canReadUsers = can(user?.permissions ?? [], 'users.read')
   const [details, setDetails] = useState<Employee | null>(employee)
-  const [account, setAccount] = useState<SystemUser | null>(null)
+  const [account, setAccount] = useState<AccessAccount | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [detailsError, setDetailsError] = useState('')
   const [accountLookupComplete, setAccountLookupComplete] = useState(false)
   const [accountError, setAccountError] = useState('')
-  const [showAccountForm, setShowAccountForm] = useState(false)
-  const [password, setPassword] = useState('')
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
 
   useEffect(() => {
     if (!open || !employee) return
@@ -53,8 +53,6 @@ export function EmployeeDetailsDialog({
     setDetailsError('')
     setAccountError('')
     setAccountLookupComplete(false)
-    setShowAccountForm(false)
-    setPassword('')
     setIsLoading(true)
 
     getEmployeeById(employee.id, controller.signal)
@@ -68,16 +66,19 @@ export function EmployeeDetailsDialog({
         if (!controller.signal.aborted) setIsLoading(false)
       })
 
-    const accountRequest = employee.userId
-      ? getUserById(employee.userId, controller.signal).then((user) => ({ items: [user] }))
-      : getUsers({ search: employee.email, pageNumber: 1, pageSize: 20 }, controller.signal)
+    if (!canReadUsers) {
+      setAccountLookupComplete(true)
+      return () => controller.abort()
+    }
 
-    accountRequest
+    if (!employee.userId) {
+      setAccountLookupComplete(true)
+      return () => controller.abort()
+    }
+
+    getAccessAccount(employee.userId, controller.signal)
       .then((response) => {
-        const normalizedEmail = employee.email.toLowerCase()
-        setAccount(
-          response.items.find((user) => user.email.toLowerCase() === normalizedEmail) ?? null,
-        )
+        setAccount(response)
         setAccountLookupComplete(true)
       })
       .catch((error: unknown) => {
@@ -90,33 +91,10 @@ export function EmployeeDetailsDialog({
       })
 
     return () => controller.abort()
-  }, [employee, open])
-
-  const handleCreateAccount = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!details) return
-    setAccountError('')
-    setIsCreatingAccount(true)
-
-    try {
-      const createdAccount = await createUser({
-        displayName: details.fullName,
-        email: details.email,
-        password,
-        employeeId: details.id,
-      })
-      setAccount(createdAccount)
-      setPassword('')
-      setShowAccountForm(false)
-    } catch (error) {
-      setAccountError(error instanceof Error ? error.message : 'Không thể cấp tài khoản truy cập.')
-    } finally {
-      setIsCreatingAccount(false)
-    }
-  }
+  }, [canReadUsers, employee, open])
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !isCreatingAccount && onOpenChange(nextOpen)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Hồ sơ nhân viên</DialogTitle>
@@ -144,16 +122,18 @@ export function EmployeeDetailsDialog({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-semibold">{details.fullName}</h2>
-                    <StatusBadge status={details.status} />
+                    <EmploymentStatusBadge status={details.status} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {details.employeeCode} · {details.position}
                   </p>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => onEdit(details)}>
-                <Pencil /> Cập nhật hồ sơ
-              </Button>
+              <PermissionBoundary requiredPermissions={['employees.update']}>
+                <Button variant="outline" onClick={() => onEdit(details)}>
+                  <Pencil /> Cập nhật hồ sơ
+                </Button>
+              </PermissionBoundary>
             </div>
 
             <section aria-labelledby="employee-personal-title">
@@ -174,10 +154,7 @@ export function EmployeeDetailsDialog({
               </h3>
               <dl className="grid gap-x-8 gap-y-4 rounded-xl border p-5 sm:grid-cols-2">
                 <Detail label="Chức vụ" value={details.position} />
-                <Detail
-                  label="Chi nhánh"
-                  value={details.branchName || details.department}
-                />
+                <Detail label="Chi nhánh" value={details.branchName || details.department} />
                 <Detail label="Đơn vị" value={details.department} />
                 <Detail label="Ngày bắt đầu công tác" value={formatDate(details.hireDate)} />
                 <Detail
@@ -189,122 +166,91 @@ export function EmployeeDetailsDialog({
               </dl>
             </section>
 
-            <section aria-labelledby="employee-account-title">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 id="employee-account-title" className="font-semibold">
-                  Tài khoản truy cập
-                </h3>
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/users">Quản lý tài khoản</Link>
-                </Button>
-              </div>
-              <div className="rounded-xl border p-5">
-                {!accountLookupComplete ? (
-                  <p className="text-sm text-muted-foreground">Đang kiểm tra tài khoản...</p>
-                ) : null}
-                {account ? (
-                  <div className="grid gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 font-medium">
-                        {account.isActive ? (
-                          <UserRoundCheck className="size-4 text-emerald-600" />
-                        ) : (
-                          <UserRoundX className="size-4 text-destructive" />
-                        )}
-                        {account.email}
-                      </span>
-                      <Badge variant={account.isActive ? 'secondary' : 'destructive'}>
-                        {account.isActive ? 'Được phép đăng nhập' : 'Đã khóa'}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {account.roles.length ? (
-                        account.roles.map((role) => (
-                          <Badge key={role} variant="outline">
-                            <ShieldCheck /> {role}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          Chưa được gán vai trò.
+            <PermissionBoundary requiredPermissions={['users.read']}>
+              <section aria-labelledby="employee-account-title">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 id="employee-account-title" className="font-semibold">
+                    Tài khoản truy cập
+                  </h3>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/access-accounts">Quản lý Access Account</Link>
+                  </Button>
+                </div>
+                <div className="rounded-xl border p-5">
+                  {!accountLookupComplete ? (
+                    <p className="text-sm text-muted-foreground">Đang kiểm tra tài khoản...</p>
+                  ) : null}
+                  {account ? (
+                    <div className="grid gap-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 font-medium">
+                          {account.isActive ? (
+                            <UserRoundCheck className="size-4 text-emerald-600" />
+                          ) : (
+                            <UserRoundX className="size-4 text-destructive" />
+                          )}
+                          {account.email}
                         </span>
-                      )}
+                        <Badge variant={account.isActive ? 'secondary' : 'destructive'}>
+                          {account.isActive ? 'Được phép đăng nhập' : 'Đã khóa'}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {account.roles.length ? (
+                          account.roles.map((role) => (
+                            <Badge key={role} variant="outline">
+                              <ShieldCheck /> {role}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            Chưa được gán vai trò.
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Đăng nhập gần nhất:{' '}
+                        {account.lastLoginAtUtc
+                          ? formatDateTime(account.lastLoginAtUtc)
+                          : 'Chưa đăng nhập'}
+                      </p>
+                      <PermissionBoundary requiredPermissions={['roles.read']}>
+                        <Button asChild variant="outline" size="sm" className="w-fit">
+                          <Link to="/roles">
+                            <KeyRound /> Quản lý vai trò và quyền
+                          </Link>
+                        </Button>
+                      </PermissionBoundary>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Đăng nhập gần nhất:{' '}
-                      {account.lastLoginAtUtc
-                        ? formatDateTime(account.lastLoginAtUtc)
-                        : 'Chưa đăng nhập'}
-                    </p>
-                    <Button asChild variant="outline" size="sm" className="w-fit">
-                      <Link to="/roles">
-                        <KeyRound /> Quản lý vai trò và quyền
-                      </Link>
-                    </Button>
-                  </div>
-                ) : null}
-                {accountLookupComplete && !account && !accountError ? (
-                  showAccountForm ? (
-                    <form className="grid gap-4" onSubmit={handleCreateAccount}>
-                      <div>
-                        <p className="font-medium">Cấp tài khoản cho {details.fullName}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Tài khoản dùng email hồ sơ và được quản lý độc lập với trạng thái việc
-                          làm.
-                        </p>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="employee-account-password">Mật khẩu tạm thời</Label>
-                        <Input
-                          id="employee-account-password"
-                          type="password"
-                          value={password}
-                          minLength={8}
-                          maxLength={256}
-                          autoComplete="new-password"
-                          disabled={isCreatingAccount}
-                          onChange={(event) => setPassword(event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={isCreatingAccount}>
-                          {isCreatingAccount ? 'Đang tạo...' : 'Tạo tài khoản'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={isCreatingAccount}
-                          onClick={() => setShowAccountForm(false)}
-                        >
-                          Hủy
-                        </Button>
-                      </div>
-                    </form>
-                  ) : (
+                  ) : null}
+                  {accountLookupComplete && !account && !accountError ? (
                     <div className="flex flex-col items-start gap-3">
                       <div>
-                        <p className="font-medium">Chưa có tài khoản truy cập</p>
+                        <p className="font-medium">Chưa có Access Account</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Hồ sơ nhân viên vẫn hoạt động bình thường khi chưa được cấp tài khoản.
+                          Staff là hồ sơ nhân sự; Access Account được cấp và quản lý riêng.
                         </p>
                       </div>
-                      <Button onClick={() => setShowAccountForm(true)}>
-                        <KeyRound /> Cấp tài khoản
-                      </Button>
+                      <PermissionBoundary requiredPermissions={['users.create']}>
+                        <Button asChild>
+                          <Link to="/access-accounts">
+                            <KeyRound /> Mở quản lý Access Account
+                          </Link>
+                        </Button>
+                      </PermissionBoundary>
                     </div>
-                  )
-                ) : null}
-                {accountError ? (
-                  <p
-                    className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                    role="alert"
-                  >
-                    {accountError}
-                  </p>
-                ) : null}
-              </div>
-            </section>
+                  ) : null}
+                  {accountError ? (
+                    <p
+                      className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                      role="alert"
+                    >
+                      {accountError}
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            </PermissionBoundary>
           </div>
         ) : null}
 
@@ -327,20 +273,6 @@ function Detail({ label, value }: { label: string; value: string }) {
   )
 }
 
-function StatusBadge({ status }: { status: EmploymentStatus }) {
-  const classes: Record<EmploymentStatus, string> = {
-    Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    OnLeave: 'border-amber-200 bg-amber-50 text-amber-700',
-    Inactive: 'border-slate-200 bg-slate-100 text-slate-700',
-    Terminated: 'border-red-200 bg-red-50 text-red-700',
-  }
-  return (
-    <Badge variant="outline" className={classes[status]}>
-      {employmentStatusLabels[status]}
-    </Badge>
-  )
-}
-
 function getInitials(name: string) {
   return name
     .trim()
@@ -349,15 +281,4 @@ function getInitials(name: string) {
     .join('')
     .slice(0, 2)
     .toUpperCase()
-}
-
-function formatDate(value: string | null) {
-  if (!value) return 'Chưa cập nhật'
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`))
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(
-    new Date(value),
-  )
 }

@@ -9,6 +9,9 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
     public Task AddAsync(Borrowing borrowing, CancellationToken cancellationToken) =>
         dbContext.Borrowings.AddAsync(borrowing, cancellationToken).AsTask();
 
+    public Task AddRenewalAsync(Renewal renewal, CancellationToken cancellationToken) =>
+        dbContext.Renewals.AddAsync(renewal, cancellationToken).AsTask();
+
     public Task<Borrowing?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Borrowings.SingleOrDefaultAsync(borrowing => borrowing.Id == id, cancellationToken);
 
@@ -51,6 +54,30 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
     public Task<bool> HasActiveBorrowingAsync(Guid bookId, Guid borrowerId, CancellationToken cancellationToken) =>
         dbContext.Borrowings.AnyAsync(
             borrowing => borrowing.BookId == bookId && borrowing.BorrowerId == borrowerId && borrowing.ReturnedAtUtc == null,
+            cancellationToken);
+
+    public Task<bool> HasActiveBorrowingForCopyAsync(Guid bookCopyId, CancellationToken cancellationToken) =>
+        dbContext.Borrowings.AnyAsync(
+            borrowing => borrowing.BookCopyId == bookCopyId && borrowing.ReturnedAtUtc == null,
+            cancellationToken);
+
+    public Task<Borrowing?> GetActiveBorrowingByCopyIdAsync(Guid bookCopyId, CancellationToken cancellationToken) =>
+        dbContext.Borrowings
+            .SingleOrDefaultAsync(
+                borrowing => borrowing.BookCopyId == bookCopyId && borrowing.ReturnedAtUtc == null,
+                cancellationToken);
+
+    public Task<BookCopy?> GetBookCopyByBarcodeAsync(string barcode, CancellationToken cancellationToken)
+    {
+        var normalized = barcode.Trim().ToUpperInvariant();
+        return dbContext.BookCopies.SingleOrDefaultAsync(
+            copy => copy.Barcode == normalized,
+            cancellationToken);
+    }
+
+    public Task<BookCopy?> GetBookCopyByIdAsync(Guid copyId, CancellationToken cancellationToken) =>
+        dbContext.BookCopies.SingleOrDefaultAsync(
+            copy => copy.Id == copyId,
             cancellationToken);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>

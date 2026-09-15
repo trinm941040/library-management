@@ -38,6 +38,8 @@ type PolicyDialogProps = {
   onSuccess: () => void
 }
 
+const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function CirculationPolicyDialog({
   open,
   mode,
@@ -49,6 +51,7 @@ export function CirculationPolicyDialog({
   const [description, setDescription] = useState('')
   const [memberGroup, setMemberGroup] = useState('')
   const [documentType, setDocumentType] = useState('')
+  const [branchId, setBranchId] = useState('')
   const [effectiveFrom, setEffectiveFrom] = useState('')
   const [effectiveTo, setEffectiveTo] = useState('')
 
@@ -80,6 +83,7 @@ export function CirculationPolicyDialog({
       setDescription(policy.description ?? '')
       setMemberGroup(policy.memberGroup ?? '')
       setDocumentType(policy.documentType ?? '')
+      setBranchId(policy.branchId ?? '')
 
       const effFrom = policy.effectiveFrom
       const effTo = policy.effectiveTo
@@ -104,6 +108,7 @@ export function CirculationPolicyDialog({
       setDescription('')
       setMemberGroup('')
       setDocumentType('')
+      setBranchId('')
       setEffectiveFrom(new Date().toISOString().substring(0, 10))
       setEffectiveTo('')
       setMaxLoanBooks(5)
@@ -139,6 +144,11 @@ export function CirculationPolicyDialog({
       return
     }
 
+    if (branchId && !idPattern.test(branchId.trim())) {
+      setErrorMessage('Mã chi nhánh phải đúng định dạng UUID.')
+      return
+    }
+
     if (maxLoanBooks < 1 || loanPeriodDays < 1 || maxRenewals < 0 || holdDays < 1) {
       setErrorMessage('Các thông số giới hạn mượn phải hợp lệ.')
       return
@@ -152,6 +162,7 @@ export function CirculationPolicyDialog({
           description: description.trim() || undefined,
           memberGroup: memberGroup.trim() || undefined,
           documentType: documentType.trim() || undefined,
+          branchId: branchId.trim() || undefined,
           effectiveFrom: new Date(effectiveFrom).toISOString(),
           effectiveTo: effectiveTo ? new Date(effectiveTo).toISOString() : undefined,
           maxLoanBooks,
@@ -173,6 +184,7 @@ export function CirculationPolicyDialog({
           description: description.trim() || undefined,
           memberGroup: memberGroup.trim() || undefined,
           documentType: documentType.trim() || undefined,
+          branchId: branchId.trim() || undefined,
           effectiveFrom: new Date(effectiveFrom).toISOString(),
           effectiveTo: effectiveTo ? new Date(effectiveTo).toISOString() : undefined,
           maxLoanBooks,
@@ -185,6 +197,7 @@ export function CirculationPolicyDialog({
           fixedFineAmount,
           maxFineAmount,
           lostBookPenaltyRatio,
+          concurrencyToken: policy.concurrencyToken,
         }
         await updateCirculationPolicy(policy.id, payload)
       } else if (mode === 'new-version' && policy) {
@@ -203,14 +216,15 @@ export function CirculationPolicyDialog({
           fixedFineAmount,
           maxFineAmount,
           lostBookPenaltyRatio,
+          concurrencyToken: policy.concurrencyToken,
         }
         await createPolicyVersion(policy.id, payload)
       }
 
       onSuccess()
       onOpenChange(false)
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Có lỗi xảy ra khi lưu chính sách.')
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu chính sách.')
     } finally {
       setIsSubmitting(false)
     }
@@ -316,6 +330,16 @@ export function CirculationPolicyDialog({
                   value={effectiveFrom}
                   onChange={(e) => setEffectiveFrom(e.target.value)}
                   required
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="branch-id">Mã chi nhánh (UUID, không bắt buộc)</Label>
+                <Input
+                  id="branch-id"
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  placeholder="Để trống để áp dụng toàn hệ thống"
                 />
               </div>
 

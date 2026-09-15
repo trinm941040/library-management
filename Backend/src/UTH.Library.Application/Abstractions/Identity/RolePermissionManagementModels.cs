@@ -5,7 +5,8 @@ public sealed record ManagedPermission(
     string Name,
     string Description,
     string Module,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    bool IsSystem);
 
 public sealed record ManagedRole(
     Guid Id,
@@ -13,10 +14,17 @@ public sealed record ManagedRole(
     string Description,
     bool IsSystemRole,
     DateTime CreatedAtUtc,
-    IReadOnlyCollection<ManagedPermission> Permissions);
+    IReadOnlyCollection<ManagedPermission> Permissions,
+    bool IsActive = true);
+
+public sealed record ManagedPage<T>(
+    IReadOnlyCollection<T> Items,
+    int PageNumber,
+    int PageSize,
+    int TotalCount);
 
 public sealed record CreateManagedRoleCommand(string Name, string Description);
-public sealed record UpdateManagedRoleCommand(string Name, string Description);
+public sealed record UpdateManagedRoleCommand(string Name, string Description, bool? IsActive = null);
 public sealed record CreateManagedPermissionCommand(string Name, string Description, string Module);
 public sealed record UpdateManagedPermissionCommand(string Name, string Description, string Module);
 
@@ -63,7 +71,7 @@ public sealed record RolePermissionOperationResult(
 
 public interface IRolePermissionManagementService
 {
-    Task<IReadOnlyCollection<ManagedRole>> GetRolesAsync(string? search, CancellationToken cancellationToken);
+    Task<ManagedPage<ManagedRole>> GetRolesAsync(string? search, int pageNumber, int pageSize, CancellationToken cancellationToken);
     Task<ManagedRole?> GetRoleByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<RolePermissionManagementResult<ManagedRole>> CreateRoleAsync(CreateManagedRoleCommand command, CancellationToken cancellationToken);
     Task<RolePermissionManagementResult<ManagedRole>> UpdateRoleAsync(Guid id, UpdateManagedRoleCommand command, CancellationToken cancellationToken);
@@ -71,7 +79,8 @@ public interface IRolePermissionManagementService
     Task<RolePermissionManagementResult<ManagedRole>> ReplaceRolePermissionsAsync(Guid roleId, IReadOnlyCollection<Guid> permissionIds, CancellationToken cancellationToken);
     Task<RolePermissionOperationResult> ReplaceUserRolesAsync(Guid userId, IReadOnlyCollection<Guid> roleIds, CancellationToken cancellationToken);
 
-    Task<IReadOnlyCollection<ManagedPermission>> GetPermissionsAsync(string? search, string? module, CancellationToken cancellationToken);
+    Task<ManagedPage<ManagedPermission>> GetPermissionsAsync(string? search, string? module, int pageNumber, int pageSize, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<string>> GetPermissionModulesAsync(CancellationToken cancellationToken);
     Task<ManagedPermission?> GetPermissionByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<RolePermissionManagementResult<ManagedPermission>> CreatePermissionAsync(CreateManagedPermissionCommand command, CancellationToken cancellationToken);
     Task<RolePermissionManagementResult<ManagedPermission>> UpdatePermissionAsync(Guid id, UpdateManagedPermissionCommand command, CancellationToken cancellationToken);

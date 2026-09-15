@@ -15,9 +15,13 @@ import { BookOpen, Check, CircleAlert, RefreshCw } from 'lucide-react'
 import type { PolicyPreviewResponse } from '../circulation-policy-api'
 import { previewCirculationPolicy } from '../circulation-policy-api'
 
+const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function CirculationPolicyPreview() {
   const [memberGroup, setMemberGroup] = useState('Student')
   const [documentType, setDocumentType] = useState('Giáo trình')
+  const [branchId, setBranchId] = useState('')
+  const [effectiveAt, setEffectiveAt] = useState('')
   const [testOverdueDays, setTestOverdueDays] = useState(3)
   const [testBookPrice, setTestBookPrice] = useState(100000)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,18 +29,24 @@ export function CirculationPolicyPreview() {
   const [error, setError] = useState<string | null>(null)
 
   const handleRunPreview = async () => {
+    if (branchId && !idPattern.test(branchId.trim())) {
+      setError('Mã chi nhánh phải đúng định dạng UUID.')
+      return
+    }
     setIsLoading(true)
     setError(null)
     try {
       const res = await previewCirculationPolicy({
         memberGroup: memberGroup || undefined,
         documentType: documentType || undefined,
+        branchId: branchId || undefined,
+        effectiveAtUtc: effectiveAt ? new Date(effectiveAt).toISOString() : undefined,
         testOverdueDays,
         testBookPrice,
       })
       setPreviewResult(res)
-    } catch (err: any) {
-      setError(err?.message || 'Không thể chạy xem trước chính sách.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể chạy xem trước chính sách.')
     } finally {
       setIsLoading(false)
     }
@@ -67,7 +77,7 @@ export function CirculationPolicyPreview() {
 
       <CardContent className="space-y-5">
         {/* Bộ lọc thử nghiệm */}
-        <div className="grid grid-cols-1 gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-3 lg:grid-cols-6">
           <div className="flex flex-col justify-between space-y-1.5">
             <Label htmlFor="preview-member-group" className="text-sm font-medium">
               Nhóm độc giả thử nghiệm
@@ -124,6 +134,16 @@ export function CirculationPolicyPreview() {
               value={testOverdueDays}
               onChange={(e) => setTestOverdueDays(Number(e.target.value))}
             />
+          </div>
+
+          <div className="flex flex-col justify-between space-y-1.5">
+            <Label htmlFor="preview-branch" className="text-sm font-medium">Mã chi nhánh</Label>
+            <Input id="preview-branch" value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="Toàn hệ thống" />
+          </div>
+
+          <div className="flex flex-col justify-between space-y-1.5">
+            <Label htmlFor="preview-effective" className="text-sm font-medium">Thời điểm áp dụng</Label>
+            <Input id="preview-effective" type="datetime-local" value={effectiveAt} onChange={(e) => setEffectiveAt(e.target.value)} />
           </div>
 
           <div className="flex flex-col justify-between space-y-1.5">

@@ -69,8 +69,8 @@ public sealed class CirculationPolicyRepository(LibraryDbContext db) : ICirculat
         DateTime? effectiveTo,
         CancellationToken cancellationToken)
     {
-        var normMember = string.IsNullOrWhiteSpace(memberGroup) ? null : memberGroup.Trim();
-        var normDoc = string.IsNullOrWhiteSpace(documentType) ? null : documentType.Trim();
+        var normMember = NormalizeScope(memberGroup);
+        var normDoc = NormalizeScope(documentType);
         var end = effectiveTo ?? DateTime.MaxValue;
 
         var activePolicies = await db.CirculationPolicies
@@ -99,4 +99,9 @@ public sealed class CirculationPolicyRepository(LibraryDbContext db) : ICirculat
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         db.SaveChangesAsync(cancellationToken);
+
+    private static string? NormalizeScope(string? value) =>
+        string.IsNullOrWhiteSpace(value) || value.Trim().Equals("all", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : value.Trim();
 }

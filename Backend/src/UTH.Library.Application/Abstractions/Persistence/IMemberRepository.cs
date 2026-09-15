@@ -8,6 +8,7 @@ public interface IMemberRepository
 {
     Task<(IReadOnlyList<Member>, int)> GetAsync(MemberQuery query, CancellationToken ct);
     Task<Member?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<Member?> GetByCardOrCodeAsync(string cardOrCode, CancellationToken ct);
     Task<bool> CodeExistsAsync(string code, Guid? excludingId, CancellationToken ct);
     Task<bool> EmailExistsAsync(string email, Guid? excludingId, CancellationToken ct);
     Task<bool> CardNumberExistsAsync(string cardNumber, CancellationToken ct);

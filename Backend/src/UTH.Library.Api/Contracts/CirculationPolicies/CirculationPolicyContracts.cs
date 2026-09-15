@@ -25,7 +25,8 @@ public sealed record CirculationPolicyResponse(
     decimal LostBookPenaltyRatio,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    Guid? CreatedByUserId);
+    Guid? CreatedByUserId,
+    Guid ConcurrencyToken);
 
 public sealed record CirculationPolicyPageResponse(
     IReadOnlyList<CirculationPolicyResponse> Items,
@@ -55,6 +56,7 @@ public sealed record CreateCirculationPolicyRequest(
     bool IsActive);
 
 public sealed record UpdateCirculationPolicyRequest(
+    Guid ConcurrencyToken,
     string Name,
     string? Description,
     string? MemberGroup,
@@ -74,6 +76,7 @@ public sealed record UpdateCirculationPolicyRequest(
     decimal LostBookPenaltyRatio);
 
 public sealed record CreatePolicyVersionRequest(
+    Guid ConcurrencyToken,
     string? Name,
     string? Description,
     DateTime EffectiveFrom,
@@ -104,3 +107,5 @@ public sealed record PolicyPreviewResponse(
     decimal CalculatedLostPenalty,
     DateTime SampleDueAtUtc,
     DateTime SampleHoldExpiresAtUtc);
+
+public sealed record ChangePolicyStatusRequest(Guid ConcurrencyToken);

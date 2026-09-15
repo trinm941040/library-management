@@ -17,4 +17,12 @@
     <ProjectReference Include="..\UTH.Library.Infrastructure\UTH.Library.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Keep generated output out of Web SDK content discovery on decomposed Unicode paths. -->
+  <ItemGroup>
+    <Content Remove="bin/**;obj/**" />
+    <None Remove="bin/**;obj/**" />
+    <Compile Remove="bin/**;obj/**" />
+    <EmbeddedResource Remove="bin/**;obj/**" />
+  </ItemGroup>
+
 </Project>

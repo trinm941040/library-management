@@ -44,7 +44,7 @@ public sealed class SystemSettingService(
         ["notification.smtp_host"] = new("notification.smtp_host", SettingType.String, "notification", "smtp.gmail.com", "Máy chủ SMTP gửi mail"),
         ["notification.smtp_port"] = new("notification.smtp_port", SettingType.Number, "notification", "587", "Cổng máy chủ SMTP"),
         ["notification.smtp_user"] = new("notification.smtp_user", SettingType.String, "notification", "notification@northstarlibrary.com", "Tài khoản gửi email"),
-        ["notification.smtp_password"] = new("notification.smtp_password", SettingType.Secret, "notification", "", "Mật khẩu ứng dụng SMTP", IsSecret: true),
+        ["notification.smtp_password"] = new("notification.smtp_password", SettingType.String, "notification", "", "Mật khẩu ứng dụng SMTP", IsSecret: true),
 
         ["system.auto_backup"] = new("system.auto_backup", SettingType.Boolean, "system", "true", "Tự động sao lưu định kỳ"),
         ["system.backup_retention_days"] = new("system.backup_retention_days", SettingType.Number, "system", "30", "Thời gian lưu trữ bản sao lưu (ngày)")
@@ -113,7 +113,9 @@ public sealed class SystemSettingService(
 
         if (entity is null)
         {
-            entity = SystemSetting.Create(key, valueToSave, valueType, description, userId, now);
+            var scope = MapScope(def?.Scope ?? GetScopeFromKey(key));
+            var isSecret = def?.IsSecret ?? false;
+            entity = SystemSetting.Create(key, valueToSave, valueType, scope, isSecret, description, userId, now);
             dbContext.SystemSettings.Add(entity);
         }
         else
@@ -123,7 +125,10 @@ public sealed class SystemSettingService(
                 throw new InvalidOperationException("Thiết lập đã bị thay đổi bởi người dùng khác. Vui lòng tải lại trang.");
             }
 
-            entity.Update(valueToSave, valueType, description, userId, now);
+            var scope = MapScope(def?.Scope ?? GetScopeFromKey(key));
+            var isSecret = def?.IsSecret ?? entity.IsSecret;
+            entity.SynchronizeDefinition(valueType, scope, isSecret, description);
+            entity.Update(valueToSave, userId, now);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -158,7 +163,7 @@ public sealed class SystemSettingService(
         foreach (var s in settings)
         {
             Registry.TryGetValue(s.Key, out var def);
-            var isSecret = def?.IsSecret ?? s.ValueType == SettingType.Secret;
+            var isSecret = def?.IsSecret ?? s.IsSecret;
             var scope = def?.Scope ?? GetScopeFromKey(s.Key);
 
             // Redact secret on export
@@ -222,7 +227,7 @@ public sealed class SystemSettingService(
         foreach (var incoming in package.Settings)
         {
             Registry.TryGetValue(incoming.Key, out var def);
-            var isSecret = def?.IsSecret ?? incoming.ValueType == SettingType.Secret;
+            var isSecret = def?.IsSecret ?? false;
             var scope = incoming.Scope ?? def?.Scope ?? GetScopeFromKey(incoming.Key);
 
             if (currentSettings.TryGetValue(incoming.Key, out var current))
@@ -302,7 +307,7 @@ public sealed class SystemSettingService(
             foreach (var item in package.Settings)
             {
                 Registry.TryGetValue(item.Key, out var def);
-                var isSecret = def?.IsSecret ?? item.ValueType == SettingType.Secret;
+                var isSecret = def?.IsSecret ?? false;
 
                 // Skip secrets if marked [REDACTED] or empty
                 if (isSecret && (item.Value == "[REDACTED]" || item.Value == MaskedSecret || string.IsNullOrWhiteSpace(item.Value)))
@@ -311,11 +316,14 @@ public sealed class SystemSettingService(
                     continue;
                 }
 
+                var scope = MapScope(def?.Scope ?? item.Scope ?? GetScopeFromKey(item.Key));
+
                 if (currentMap.TryGetValue(item.Key, out var existing))
                 {
+                    existing.SynchronizeDefinition(item.ValueType, scope, isSecret, item.Description ?? existing.Description);
                     if (existing.Value != item.Value)
                     {
-                        existing.Update(item.Value, item.ValueType, item.Description ?? existing.Description, userId, now);
+                        existing.Update(item.Value, userId, now);
                         updated++;
                     }
                     else
@@ -325,7 +333,7 @@ public sealed class SystemSettingService(
                 }
                 else
                 {
-                    var newSetting = SystemSetting.Create(item.Key, item.Value, item.ValueType, item.Description, userId, now);
+                    var newSetting = SystemSetting.Create(item.Key, item.Value, item.ValueType, scope, isSecret, item.Description, userId, now);
                     dbContext.SystemSettings.Add(newSetting);
                     added++;
                 }
@@ -399,17 +407,20 @@ public sealed class SystemSettingService(
         {
             if (def.IsSecret) continue; // Keep secret as is
 
+            var scope = MapScope(def.Scope);
+
             if (existingSettings.TryGetValue(key, out var existing))
             {
+                existing.SynchronizeDefinition(def.ValueType, scope, def.IsSecret, def.Description);
                 if (existing.Value != def.DefaultValue)
                 {
-                    existing.Update(def.DefaultValue, def.ValueType, def.Description, userId, now);
+                    existing.Update(def.DefaultValue, userId, now);
                     count++;
                 }
             }
             else
             {
-                var newSetting = SystemSetting.Create(key, def.DefaultValue, def.ValueType, def.Description, userId, now);
+                var newSetting = SystemSetting.Create(key, def.DefaultValue, def.ValueType, scope, def.IsSecret, def.Description, userId, now);
                 dbContext.SystemSettings.Add(newSetting);
                 count++;
             }
@@ -435,7 +446,8 @@ public sealed class SystemSettingService(
 
             foreach (var (key, def) in missingDefs)
             {
-                var entity = SystemSetting.Create(key, def.DefaultValue, def.ValueType, def.Description, userId, now);
+                var scope = MapScope(def.Scope);
+                var entity = SystemSetting.Create(key, def.DefaultValue, def.ValueType, scope, def.IsSecret, def.Description, userId, now);
                 dbContext.SystemSettings.Add(entity);
             }
 
@@ -446,7 +458,7 @@ public sealed class SystemSettingService(
     private static SystemSettingDto MapToDto(SystemSetting entity, IReadOnlyDictionary<Guid, string?> userDict)
     {
         Registry.TryGetValue(entity.Key, out var def);
-        var isSecret = def?.IsSecret ?? entity.ValueType == SettingType.Secret;
+        var isSecret = def?.IsSecret ?? entity.IsSecret;
         var scope = def?.Scope ?? GetScopeFromKey(entity.Key);
         userDict.TryGetValue(entity.UpdatedByUserId, out var userName);
 
@@ -464,6 +476,17 @@ public sealed class SystemSettingService(
             userName,
             entity.UpdatedAtUtc,
             entity.ConcurrencyToken);
+    }
+
+    private static SettingScope MapScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope)) return SettingScope.System;
+        return scope.Trim().ToLowerInvariant() switch
+        {
+            "notification" or "notifications" => SettingScope.Notifications,
+            "operation" or "operations" or "circulation" => SettingScope.Operations,
+            _ => SettingScope.System
+        };
     }
 
     private static string GetScopeFromKey(string key)

@@ -1,25 +1,48 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { canAll } from '@/shared/auth/permissions'
+import { ForbiddenPage } from '@/pages/errors/ForbiddenPage'
+import { ScreenState } from '@/common/components'
 
 type ProtectedRouteProps = {
   children: ReactNode
-  requiredRole?: string
+  requiredPermissions?: readonly string[]
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { status, user } = useAuth()
+export function ProtectedRoute({ children, requiredPermissions = [] }: ProtectedRouteProps) {
+  const { status, user, retrySession } = useAuth()
+  const location = useLocation()
+
+  if (status === 'error')
+    return (
+      <ScreenState
+        kind="error"
+        title="Không thể kiểm tra phiên đăng nhập"
+        actionLabel="Thử lại"
+        onAction={retrySession}
+      />
+    )
 
   if (status === 'loading') {
     return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
   }
 
   if (status === 'unauthenticated') {
-    return <Navigate to="/login" replace />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: location.pathname + location.search + location.hash,
+          notice: 'Vui lòng đăng nhập để tiếp tục.',
+        }}
+      />
+    )
   }
 
-  if (requiredRole && !user?.roles.includes(requiredRole)) {
-    return <Navigate to="/dashboard" replace />
+  if (!canAll(user?.permissions ?? [], requiredPermissions)) {
+    return <ForbiddenPage />
   }
 
   return children

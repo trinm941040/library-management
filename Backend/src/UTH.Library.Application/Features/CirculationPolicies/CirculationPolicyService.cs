@@ -124,6 +124,8 @@ public sealed class CirculationPolicyService(
         var policy = await repository.GetByIdAsync(id, cancellationToken);
         if (policy is null)
             return CirculationPolicyResult.Fail(CirculationPolicyFailure.NotFound, "Chính sách không tồn tại.");
+        if (!policy.HasConcurrencyToken(command.ConcurrencyToken))
+            return CirculationPolicyResult.Fail(CirculationPolicyFailure.Conflict, "Chính sách đã được thay đổi. Vui lòng tải lại dữ liệu.");
 
         if (policy.IsActive)
         {
@@ -201,6 +203,8 @@ public sealed class CirculationPolicyService(
         var basePolicy = await repository.GetByIdAsync(id, cancellationToken);
         if (basePolicy is null)
             return CirculationPolicyResult.Fail(CirculationPolicyFailure.NotFound, "Chính sách gốc không tồn tại.");
+        if (!basePolicy.HasConcurrencyToken(command.ConcurrencyToken))
+            return CirculationPolicyResult.Fail(CirculationPolicyFailure.Conflict, "Chính sách gốc đã được thay đổi. Vui lòng tải lại dữ liệu.");
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
@@ -249,12 +253,15 @@ public sealed class CirculationPolicyService(
 
     public async Task<CirculationPolicyResult> ActivateAsync(
         Guid id,
+        Guid concurrencyToken,
         Guid? actorUserId,
         CancellationToken cancellationToken)
     {
         var policy = await repository.GetByIdAsync(id, cancellationToken);
         if (policy is null)
             return CirculationPolicyResult.Fail(CirculationPolicyFailure.NotFound, "Chính sách không tồn tại.");
+        if (!policy.HasConcurrencyToken(concurrencyToken))
+            return CirculationPolicyResult.Fail(CirculationPolicyFailure.Conflict, "Chính sách đã được thay đổi. Vui lòng tải lại dữ liệu.");
 
         if (policy.IsActive)
             return CirculationPolicyResult.Success(Map(policy));
@@ -300,12 +307,15 @@ public sealed class CirculationPolicyService(
 
     public async Task<CirculationPolicyResult> DeactivateAsync(
         Guid id,
+        Guid concurrencyToken,
         Guid? actorUserId,
         CancellationToken cancellationToken)
     {
         var policy = await repository.GetByIdAsync(id, cancellationToken);
         if (policy is null)
             return CirculationPolicyResult.Fail(CirculationPolicyFailure.NotFound, "Chính sách không tồn tại.");
+        if (!policy.HasConcurrencyToken(concurrencyToken))
+            return CirculationPolicyResult.Fail(CirculationPolicyFailure.Conflict, "Chính sách đã được thay đổi. Vui lòng tải lại dữ liệu.");
 
         if (!policy.IsActive)
             return CirculationPolicyResult.Success(Map(policy));
@@ -383,5 +393,6 @@ public sealed class CirculationPolicyService(
             policy.LostBookPenaltyRatio,
             policy.CreatedAtUtc,
             policy.UpdatedAtUtc,
-            policy.CreatedByUserId);
+            policy.CreatedByUserId,
+            policy.ConcurrencyToken);
 }

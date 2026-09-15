@@ -10,7 +10,7 @@ export type SearchItem = {
 const pageItems: SearchItem[] = [
   {
     id: 'dashboard',
-    title: 'Dashboard - Tổng quan',
+    title: 'Bảng điều khiển - Tổng quan',
     description: 'Xem số lượt mượn, thành viên, sách quá hạn và hoạt động gần đây.',
     category: 'Trang',
     path: '/dashboard',
@@ -19,7 +19,7 @@ const pageItems: SearchItem[] = [
   {
     id: 'new-checkout',
     title: 'Tạo phiếu mượn sách',
-    description: 'Thực hiện checkout và ghi nhận sách được mượn.',
+    description: 'Tạo phiếu và ghi nhận sách được mượn.',
     category: 'Mượn / trả',
     path: '/dashboard',
     keywords: 'mượn sách checkout lưu thông độc giả',
@@ -36,7 +36,7 @@ const pageItems: SearchItem[] = [
     id: 'recent-activity',
     title: 'Hoạt động gần đây',
     description: 'Xem các thao tác mới nhất của nhân viên trong hệ thống.',
-    category: 'Dashboard',
+    category: 'Bảng điều khiển',
     path: '/dashboard',
     keywords: 'lịch sử nhật ký activity nhân viên',
   },
@@ -45,7 +45,7 @@ const pageItems: SearchItem[] = [
     title: 'Quản lý tài khoản',
     description: 'Xem và tìm kiếm toàn bộ tài khoản trong hệ thống.',
     category: 'Người dùng',
-    path: '/users',
+    path: '/access-accounts',
     keywords: 'user người dùng thành viên nhân viên độc giả account',
   },
   {
@@ -53,7 +53,7 @@ const pageItems: SearchItem[] = [
     title: 'Quản lý nhân viên',
     description: 'Quản lý hồ sơ, việc làm và tài khoản truy cập của nhân viên.',
     category: 'Nhân sự',
-    path: '/employee',
+    path: '/staff',
     keywords: 'nhân viên employee hồ sơ chức vụ chi nhánh tài khoản nhân sự',
   },
   {
@@ -69,20 +69,20 @@ const pageItems: SearchItem[] = [
     title: 'Tạo hồ sơ nhân viên',
     description: 'Tạo hồ sơ nhân sự mới và ghi nhận thông tin công tác.',
     category: 'Nhân sự',
-    path: '/employee',
+    path: '/staff',
     keywords: 'thêm tạo nhân viên employee hồ sơ nhân sự',
   },
   {
     id: 'add-user',
-    title: 'Thêm user mới',
-    description: 'Tạo tài khoản mới với vai trò User mặc định.',
+    title: 'Thêm người dùng mới',
+    description: 'Tạo tài khoản mới với vai trò người dùng mặc định.',
     category: 'Người dùng',
     path: '/users',
     keywords: 'tạo thêm user tài khoản đăng ký',
   },
   {
     id: 'edit-user',
-    title: 'Chỉnh sửa thông tin user',
+    title: 'Chỉnh sửa thông tin người dùng',
     description: 'Thay đổi họ tên hoặc email của tài khoản.',
     category: 'Người dùng',
     path: '/users',
@@ -90,7 +90,7 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'deactivate-user',
-    title: 'Vô hiệu hóa user',
+    title: 'Vô hiệu hóa người dùng',
     description: 'Ngăn tài khoản đăng nhập và thu hồi các phiên hiện tại.',
     category: 'Người dùng',
     path: '/users',
@@ -138,11 +138,19 @@ const pageItems: SearchItem[] = [
   },
   {
     id: 'settings',
-    title: 'Cài đặt sidebar',
-    description: 'Cố định sidebar để menu luôn hiển thị.',
+    title: 'Thiết lập hệ thống',
+    description: 'Quản lý cấu hình hệ thống, thông báo và vận hành.',
     category: 'Cài đặt',
     path: '/settings',
-    keywords: 'setting cấu hình ghim pin menu thanh bên',
+    keywords: 'setting cấu hình hệ thống thông báo smtp sao lưu',
+  },
+  {
+    id: 'configuration-package',
+    title: 'Gói cấu hình',
+    description: 'Xuất, kiểm tra và nhập gói cấu hình hệ thống.',
+    category: 'Cài đặt',
+    path: '/configuration',
+    keywords: 'configuration package export import checksum khôi phục',
   },
 ]
 

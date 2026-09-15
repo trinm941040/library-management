@@ -1,41 +1,24 @@
-using UTH.Library.Api;
+﻿using UTH.Library.Api;
 using UTH.Library.Application;
 using UTH.Library.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UTH.Library.Infrastructure.Identity;
-using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using Microsoft.AspNetCore.HttpOverrides;
+using UTH.Library.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddApi();
+builder.Services.AddApi(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOpenApi();
-
-//Build swagger documentation with versioning
-builder.Services.AddSwaggerGen(config =>
-{
-    config.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "UTH.Library API Development",
-        Version = "v1",
-        Description = "API documentation for UTH.Library",
-    });
-});
-
-// Configure trusted forwarded headers for accurate client IP resolution
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-});
 
 var app = builder.Build();
 
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapOpenApi();

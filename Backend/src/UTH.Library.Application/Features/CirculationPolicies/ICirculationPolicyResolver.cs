@@ -15,3 +15,4 @@ public interface ICirculationPolicyResolver
 
     void InvalidateCache();
 }
+

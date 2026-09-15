@@ -38,8 +38,17 @@ internal sealed class CirculationPolicyConfiguration : IEntityTypeConfiguration<
         builder.Property(p => p.CreatedAtUtc).IsRequired();
         builder.Property(p => p.UpdatedAtUtc);
         builder.Property(p => p.CreatedByUserId);
+        builder.Property(p => p.ConcurrencyToken)
+            .IsConcurrencyToken()
+            .HasDefaultValueSql("gen_random_uuid()");
+
+        builder.HasOne<Branch>()
+            .WithMany()
+            .HasForeignKey(p => p.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(p => new { p.IsActive, p.EffectiveFrom, p.EffectiveTo });
         builder.HasIndex(p => new { p.MemberGroup, p.DocumentType, p.BranchId });
+        builder.HasIndex(p => new { p.Name, p.Version });
     }
 }

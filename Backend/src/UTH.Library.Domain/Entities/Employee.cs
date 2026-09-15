@@ -119,24 +119,6 @@ public sealed class Employee
         UpdatedAtUtc = updatedAtUtc;
     }
 
-    public void UpdatePersonalProfile(
-        string fullName,
-        string? phoneNumber,
-        DateOnly? dateOfBirth,
-        string? address,
-        DateTime updatedAtUtc)
-    {
-        if (dateOfBirth is not null && dateOfBirth >= HireDate)
-            throw new ArgumentException("Date of birth must be earlier than the hire date.", nameof(dateOfBirth));
-
-        FullName = Required(fullName, nameof(fullName), 150);
-        PhoneNumber = Optional(phoneNumber, nameof(phoneNumber), 30);
-        DateOfBirth = dateOfBirth;
-        Address = Optional(address, nameof(address), 500);
-        ConcurrencyToken = Guid.NewGuid();
-        UpdatedAtUtc = updatedAtUtc;
-    }
-
     public void LinkUser(Guid userId, DateTime updatedAtUtc)
     {
         if (userId == Guid.Empty)
@@ -160,6 +142,26 @@ public sealed class Employee
             throw new ArgumentOutOfRangeException(nameof(status), "Employment status is invalid.");
 
         Status = status;
+        ConcurrencyToken = Guid.NewGuid();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdatePersonalProfile(
+        string fullName,
+        string? phoneNumber,
+        DateOnly? dateOfBirth,
+        string? address,
+        DateTime updatedAtUtc)
+    {
+        if (dateOfBirth is not null && dateOfBirth > DateOnly.FromDateTime(updatedAtUtc))
+            throw new ArgumentException("Date of birth cannot be in the future.", nameof(dateOfBirth));
+        if (dateOfBirth is not null && dateOfBirth >= HireDate)
+            throw new ArgumentException("Date of birth must be earlier than the hire date.", nameof(dateOfBirth));
+
+        FullName = Required(fullName, nameof(fullName), 150);
+        PhoneNumber = Optional(phoneNumber, nameof(phoneNumber), 30);
+        DateOfBirth = dateOfBirth;
+        Address = Optional(address, nameof(address), 500);
         ConcurrencyToken = Guid.NewGuid();
         UpdatedAtUtc = updatedAtUtc;
     }
