@@ -66,9 +66,34 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
             : MapFailure(result);
     }
 
+    [HttpGet("{id:guid}")]
+    [Authorize(Policy = Permissions.BorrowingsRead)]
+    [ProducesResponseType(typeof(BorrowingDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BorrowingDetailResponse>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await borrowingService.GetDetailAsync(id, cancellationToken);
+        if (detail is null) return NotFound(CreateProblem("Không tìm thấy khoản mượn."));
+
+        return Ok(ToDetailResponse(detail));
+    }
+
+    [HttpGet("{id:guid}/renewal-preview")]
+    [Authorize(Policy = Permissions.BorrowingsRead)]
+    [ProducesResponseType(typeof(RenewalPreviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RenewalPreviewResponse>> GetRenewalPreview(Guid id, CancellationToken cancellationToken)
+    {
+        var preview = await borrowingService.GetRenewalPreviewAsync(id, cancellationToken);
+        if (preview is null) return NotFound(CreateProblem("Không tìm thấy khoản mượn để xem trước gia hạn."));
+
+        return Ok(ToRenewalPreviewResponse(preview));
+    }
+
     [HttpPost("{id:guid}/renew")]
-    [Authorize(Policy = Permissions.BorrowingsCreate)]
+    [Authorize(Policy = Permissions.BorrowingsRenew)]
     [ProducesResponseType(typeof(BorrowingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BorrowingResponse>> Renew(
         Guid id,
@@ -279,4 +304,53 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
             borrowing.BookCopyId,
             borrowing.BookCopyBarcode,
             borrowing.ProcessedByEmployeeId);
+
+    private static RenewalPreviewResponse ToRenewalPreviewResponse(RenewalPreviewResult preview) =>
+        new(
+            preview.BorrowingId,
+            preview.BookId,
+            preview.BookTitle,
+            preview.BorrowerId,
+            preview.BorrowerName,
+            preview.CurrentDueAtUtc,
+            preview.ProposedDueAtUtc,
+            preview.CurrentRenewalCount,
+            preview.MaxRenewals,
+            preview.RenewalPeriodDays,
+            preview.IsEligible,
+            preview.IneligibilityReasons,
+            preview.PolicyName,
+            preview.ConcurrencyToken,
+            preview.History.Select(r => new RenewalHistoryResponse(
+                r.Id,
+                r.BorrowingId,
+                r.PreviousDueAtUtc,
+                r.NewDueAtUtc,
+                r.RenewedByUserId,
+                r.RenewedByUserName,
+                r.RenewedAtUtc,
+                r.AppliedPolicyId,
+                r.AppliedPolicyVersion)).ToArray());
+
+    private static BorrowingDetailResponse ToDetailResponse(BorrowingDetailModel detail) =>
+        new(
+            ToResponse(detail.Borrowing),
+            detail.BookAuthor,
+            detail.BookIsbn,
+            detail.BookCategory,
+            detail.BorrowerMemberCode,
+            detail.BorrowerCardNumber,
+            detail.BorrowerGroup,
+            detail.Renewals.Select(r => new RenewalHistoryResponse(
+                r.Id,
+                r.BorrowingId,
+                r.PreviousDueAtUtc,
+                r.NewDueAtUtc,
+                r.RenewedByUserId,
+                r.RenewedByUserName,
+                r.RenewedAtUtc,
+                r.AppliedPolicyId,
+                r.AppliedPolicyVersion)).ToArray(),
+            ToRenewalPreviewResponse(detail.RenewalPreview));
 }
+

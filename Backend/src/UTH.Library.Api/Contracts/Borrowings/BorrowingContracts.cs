@@ -130,3 +130,43 @@ public sealed record ReturnExecutionResponse(
     IReadOnlyList<ViolationSummaryResponse> Violations,
     decimal TotalFine,
     bool HasWaitingReservation);
+
+public sealed record RenewalHistoryResponse(
+    Guid Id,
+    Guid BorrowingId,
+    DateTime PreviousDueAtUtc,
+    DateTime NewDueAtUtc,
+    Guid RenewedByUserId,
+    string? RenewedByUserName,
+    DateTime RenewedAtUtc,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
+
+public sealed record RenewalPreviewResponse(
+    Guid BorrowingId,
+    Guid BookId,
+    string BookTitle,
+    Guid BorrowerId,
+    string BorrowerName,
+    DateTime CurrentDueAtUtc,
+    DateTime ProposedDueAtUtc,
+    int CurrentRenewalCount,
+    int MaxRenewals,
+    int RenewalPeriodDays,
+    bool IsEligible,
+    IReadOnlyList<string> IneligibilityReasons,
+    string? PolicyName,
+    Guid ConcurrencyToken,
+    IReadOnlyList<RenewalHistoryResponse> History);
+
+public sealed record BorrowingDetailResponse(
+    BorrowingResponse Borrowing,
+    string? BookAuthor,
+    string? BookIsbn,
+    string? BookCategory,
+    string? BorrowerMemberCode,
+    string? BorrowerCardNumber,
+    string? BorrowerGroup,
+    IReadOnlyList<RenewalHistoryResponse> Renewals,
+    RenewalPreviewResponse RenewalPreview);
+

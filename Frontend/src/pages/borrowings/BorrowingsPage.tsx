@@ -284,19 +284,24 @@ export function BorrowingsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.status !== 'returned' ? (
-                          <PermissionBoundary requiredPermissions={['borrowings.return']}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={returningId === item.id}
-                              onClick={() => handleReturn(item.id)}
-                            >
-                              <Undo2 />
-                              Trả sách
-                            </Button>
-                          </PermissionBoundary>
-                        ) : null}
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link to={`/loans/${item.id}`}>Chi tiết</Link>
+                          </Button>
+                          {item.status !== 'returned' ? (
+                            <PermissionBoundary requiredPermissions={['borrowings.return']}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={returningId === item.id}
+                                onClick={() => handleReturn(item.id)}
+                              >
+                                <Undo2 />
+                                Trả sách
+                              </Button>
+                            </PermissionBoundary>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
