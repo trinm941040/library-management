@@ -60,3 +60,7 @@ export async function getAuditLog(id: string, signal?: AbortSignal) {
     auditLogSchema,
   )
 }
+
+export function exportAuditLogs(filters: AuditLogFilters, signal?: AbortSignal) {
+  return authenticatedFetch(`/api/v1/audit-log/export?${queryString(filters)}`, { signal })
+}

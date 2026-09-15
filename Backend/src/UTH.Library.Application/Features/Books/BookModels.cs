@@ -15,13 +15,32 @@ public sealed record BookListQuery(
     string? Search,
     string? Category,
     int PageNumber,
-    int PageSize) : IQuery<BookPageModel>;
+    int PageSize,
+    string SortBy = "title",
+    SortDirection SortDirection = SortDirection.Asc) : IQuery<BookPageModel>;
 
 public sealed record BookPageModel(
     IReadOnlyList<BookModel> Items,
     int PageNumber,
     int PageSize,
     int TotalCount);
+
+public sealed record BookImportRow(
+    int RowNumber,
+    string Title,
+    string Author,
+    string Isbn,
+    string Category,
+    int Quantity);
+
+public sealed record ConfirmBookImportCommand(
+    IReadOnlyList<BookImportRow> Rows,
+    string Checksum);
+
+public sealed record BookImportResult(
+    int ImportedCount,
+    IReadOnlyList<ImportFieldError> Errors,
+    string CorrelationId);
 
 public sealed record CreateBookCommand(
     string Title,

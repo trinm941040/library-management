@@ -60,11 +60,24 @@ public sealed class BookServiceTests
             string? category,
             int pageNumber,
             int pageSize,
+            string sortBy,
+            bool descending,
             CancellationToken cancellationToken)
         {
             var items = Books.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Book>, int)>((items, Books.Count));
         }
+
+        public Task<IReadOnlyList<Book>> GetForExportAsync(string? search, string? category,
+            string sortBy, bool descending, int maximumRows, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Book>>(Books.Take(maximumRows).ToArray());
+
+        public Task<IReadOnlySet<string>> GetExistingIsbnsAsync(IEnumerable<string> isbns,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<string>>(Books.Select(book => book.Isbn).ToHashSet());
+
+        public Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
 
         public void Remove(Book book) => Books.Remove(book);
 
