@@ -29,6 +29,7 @@ import {
   getReservations,
   type ReservationPageResponse,
 } from './reservation-api'
+import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
   waiting: 'Chờ sách',
@@ -39,12 +40,9 @@ const statusLabels: Record<string, string> = {
 }
 
 export function ReservationsPage() {
+  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<ReservationPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(search)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -52,14 +50,15 @@ export function ReservationsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim())
-      setCurrentPage(1)
+      const value = searchInput.trim()
+      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [searchInput])
+  }, [search, searchInput, update])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -78,7 +77,7 @@ export function ReservationsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          setCurrentPage(response.totalPages)
+          update({ pageNumber: response.totalPages })
         }
       })
       .catch((error: unknown) => {
@@ -90,7 +89,7 @@ export function ReservationsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status, update])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -107,7 +106,7 @@ export function ReservationsPage() {
         reserverId: data.reserverId,
         holdDays,
       })
-      setCurrentPage(1)
+      update({ pageNumber: 1 })
       refresh('Đã tạo phiếu đặt trước.')
       return null
     } catch (error) {
@@ -197,8 +196,7 @@ export function ReservationsPage() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    setStatus(value)
-                    setCurrentPage(1)
+                    update({ status: value, pageNumber: 1 })
                   }}
                 >
                   <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
@@ -329,11 +327,10 @@ export function ReservationsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={setCurrentPage}
+                  onPageChange={(value) => update({ pageNumber: value })}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    setCurrentPage(1)
-                    setPageSize(size)
+                    update({ pageNumber: 1, pageSize: size })
                   }}
                 />
               </div>

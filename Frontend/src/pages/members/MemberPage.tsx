@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { parseTableUrlState, updateSearchParams } from '@/shared/data/table-contracts'
 import {
   BadgeCheck,
   Ban,
@@ -85,32 +86,25 @@ export function MemberPage() {
   const navigate = useNavigate()
   const { id: routeMemberId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialPage = Number(searchParams.get('page'))
-  const initialPageSize = Number(searchParams.get('pageSize'))
-  const initialStatus = searchParams.get('status')
+  const listState = useMemo(() => parseTableUrlState(searchParams, ['memberCode'], 'memberCode'), [searchParams])
+  const page = listState.pageNumber
+  const pageSize = listState.pageSize
+  const search = listState.search
+  const statusParam = searchParams.get('status')
+  const status: 'all' | MemberStatus = memberStatuses.includes(statusParam as MemberStatus) ? statusParam as MemberStatus : 'all'
+  const group = searchParams.get('memberGroup')?.trim() ?? ''
+  const updateUrl = useCallback((changes: Record<string, string | number | undefined>) => {
+    setSearchParams((current) => updateSearchParams(current, changes))
+  }, [setSearchParams])
   const [items, setItems] = useState<Member[]>([]),
     [total, setTotal] = useState(0),
     [pages, setPages] = useState(0),
-    [page, setPage] = useState(Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1),
-    [pageSize, setPageSize] = useState([10, 20, 50, 100].includes(initialPageSize) ? initialPageSize : 20),
-    [search, setSearch] = useState(searchParams.get('search') ?? ''),
-    [status, setStatus] = useState<'all' | MemberStatus>(memberStatuses.includes(initialStatus as MemberStatus) ? initialStatus as MemberStatus : 'all'),
-    [group, setGroup] = useState(searchParams.get('memberGroup') ?? ''),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [reload, setReload] = useState(0),
     [editing, setEditing] = useState<Member | null>(null),
     [formOpen, setFormOpen] = useState(false),
     [selected, setSelected] = useState<Member | null>(null)
-  useEffect(() => {
-    const next = new URLSearchParams()
-    if (search.trim()) next.set('search', search.trim())
-    if (group.trim()) next.set('memberGroup', group.trim())
-    if (status !== 'all') next.set('status', status)
-    if (page > 1) next.set('page', String(page))
-    if (pageSize !== 20) next.set('pageSize', String(pageSize))
-    setSearchParams(next, { replace: true })
-  }, [group, page, pageSize, search, setSearchParams, status])
   useEffect(() => {
     if (!routeMemberId) return
     const controller = new AbortController()
@@ -148,7 +142,7 @@ export function MemberPage() {
     return () => c.abort()
   }, [group, page, pageSize, reload, search, status])
   const openDetails = async (m: Member) => {
-    navigate(`/members/${m.id}`)
+    navigate({ pathname: `/members/${m.id}`, search: searchParams.toString() })
     try {
       setSelected(await getMember(m.id))
     } catch (e) {
@@ -222,8 +216,7 @@ export function MemberPage() {
                 className="pl-9"
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value)
-                  setPage(1)
+                  updateUrl({ search: e.target.value || undefined, pageNumber: 1 })
                 }}
                 placeholder="Mã, tên, email, số điện thoại..."
               />
@@ -231,16 +224,14 @@ export function MemberPage() {
             <Input
               value={group}
               onChange={(e) => {
-                setGroup(e.target.value)
-                setPage(1)
+                updateUrl({ memberGroup: e.target.value || undefined, pageNumber: 1 })
               }}
               placeholder="Nhóm độc giả"
             />
             <Select
               value={status}
               onValueChange={(v) => {
-                setStatus(v as typeof status)
-                setPage(1)
+                updateUrl({ status: v, pageNumber: 1 })
               }}
             >
               <SelectTrigger>
@@ -258,9 +249,7 @@ export function MemberPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setSearch('')
-                setGroup('')
-                setStatus('all')
+                updateUrl({ search: undefined, memberGroup: undefined, status: undefined, pageNumber: 1 })
               }}
             >
               Xóa lọc
@@ -357,11 +346,10 @@ export function MemberPage() {
               <Pagination
                 currentPage={page}
                 totalPages={pages}
-                onPageChange={setPage}
+                onPageChange={(value) => updateUrl({ pageNumber: value })}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
-                  setPage(1)
-                  setPageSize(size)
+                  updateUrl({ pageNumber: 1, pageSize: size })
                 }}
               />
             </div>
@@ -384,7 +372,7 @@ export function MemberPage() {
           member={selected}
           onClose={() => {
             setSelected(null)
-            navigate('/members')
+            navigate({ pathname: '/members', search: searchParams.toString() })
           }}
           onChange={refresh}
         />

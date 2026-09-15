@@ -14,13 +14,15 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
 
     public async Task<BookPageModel> GetAsync(BookListQuery query, CancellationToken cancellationToken)
     {
-        var pageNumber = Math.Max(query.PageNumber, 1);
-        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var (pageNumber, pageSize) = CollectionLimits.NormalizePage(query.PageNumber, query.PageSize);
+        var sortBy = BookTransferService.NormalizeSort(query.SortBy);
         var (items, totalCount) = await repository.GetPageAsync(
             query.Search,
             query.Category,
             pageNumber,
             pageSize,
+            sortBy,
+            query.SortDirection == SortDirection.Desc,
             cancellationToken);
 
         return new BookPageModel(items.Select(Map).ToArray(), pageNumber, pageSize, totalCount);

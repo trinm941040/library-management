@@ -28,6 +28,7 @@ import {
   returnBorrowing,
   type BorrowingPageResponse,
 } from './borrowing-api'
+import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
   borrowed: 'Đang mượn',
@@ -36,12 +37,9 @@ const statusLabels: Record<string, string> = {
 }
 
 export function BorrowingsPage() {
+  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<BorrowingPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(search)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -49,14 +47,15 @@ export function BorrowingsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [returningId, setReturningId] = useState<string | null>(null)
 
+  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim())
-      setCurrentPage(1)
+      const value = searchInput.trim()
+      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [searchInput])
+  }, [search, searchInput, update])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,7 +74,7 @@ export function BorrowingsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          setCurrentPage(response.totalPages)
+          update({ pageNumber: response.totalPages })
         }
       })
       .catch((error: unknown) => {
@@ -87,7 +86,7 @@ export function BorrowingsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status, update])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -104,7 +103,7 @@ export function BorrowingsPage() {
         borrowerId: data.borrowerId,
         loanDays,
       })
-      setCurrentPage(1)
+      update({ pageNumber: 1 })
       refresh('Đã tạo phiếu mượn thành công.')
       return null
     } catch (error) {
@@ -194,8 +193,7 @@ export function BorrowingsPage() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    setStatus(value)
-                    setCurrentPage(1)
+                    update({ status: value, pageNumber: 1 })
                   }}
                 >
                   <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
@@ -296,11 +294,10 @@ export function BorrowingsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={setCurrentPage}
+                  onPageChange={(value) => update({ pageNumber: value })}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    setCurrentPage(1)
-                    setPageSize(size)
+                    update({ pageNumber: 1, pageSize: size })
                   }}
                 />
               </div>
