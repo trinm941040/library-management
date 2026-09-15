@@ -14,7 +14,8 @@ import {
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
-import { getAuditLog, getAuditLogs, type AuditLog, type AuditLogFilters } from './audit-log-api'
+import { exportAuditLogs, getAuditLog, getAuditLogs, type AuditLog, type AuditLogFilters } from './audit-log-api'
+import { downloadResponse } from '@/shared/data/table-contracts'
 
 const filterKeys = [
   'actorUserId', 'action', 'entityType', 'entityId',
@@ -161,19 +162,13 @@ export function ActivityLogPage() {
     finally { setDetailLoading(false) }
   }
 
-  const exportCurrentPage = () => {
-    const headers = ['Thời gian', 'Người thực hiện', 'Hành động', 'Đối tượng', 'Mã đối tượng', 'IP', 'Correlation ID']
-    const escape = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
-    const csv = [headers, ...items.map((item) => [
-      item.createdAtUtc, item.actorName ?? item.actorUserId ?? 'Hệ thống', item.action,
-      item.entityType, item.entityId, item.ipAddress, item.correlationId,
-    ])].map((row) => row.map(escape).join(';')).join('\n')
-    const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `nhat-ky-kiem-toan-trang-${pageNumber}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  const exportFiltered = async () => {
+    const filters: AuditLogFilters = {
+      ...Object.fromEntries(Object.entries(activeFilters).filter(([, value]) => value)),
+      pageNumber: 1, pageSize,
+    }
+    try { await downloadResponse(await exportAuditLogs(filters), 'audit-log.csv') }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể xuất nhật ký kiểm toán.') }
   }
 
   const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
@@ -192,7 +187,7 @@ export function ActivityLogPage() {
       eyebrow="Quản lý hệ thống"
       title="Nhật ký kiểm toán"
       description="Tra cứu lịch sử thay đổi bất biến theo người thực hiện, đối tượng và yêu cầu."
-      actions={<><Button variant="outline" disabled={isLoading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={isLoading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={items.length === 0} onClick={exportCurrentPage}><Download />Xuất trang hiện tại</Button></PermissionBoundary></>}
+      actions={<><Button variant="outline" disabled={isLoading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={isLoading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={totalCount === 0} onClick={() => void exportFiltered()}><Download />Xuất kết quả đã lọc</Button></PermissionBoundary></>}
     >
       <Card>
         <CardHeader><CardTitle>Danh sách bản ghi</CardTitle><p className="text-sm text-muted-foreground">{totalCount} bản ghi phù hợp với bộ lọc.</p></CardHeader>

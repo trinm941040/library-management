@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Text;
 using UTH.Library.Api.Contracts.AuditLogs;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Features.AuditLogs;
@@ -30,6 +31,31 @@ public sealed class AuditLogsController(AuditLogService service) : ControllerBas
             page.PageSize,
             page.TotalCount,
             page.TotalCount == 0 ? 0 : (int)Math.Ceiling(page.TotalCount / (double)page.PageSize)));
+    }
+
+    [HttpGet("export")]
+    [Authorize(Policy = Permissions.AuditLogsExport)]
+    [Produces("text/csv")]
+    public async Task<IActionResult> Export([FromQuery] AuditLogFilterRequest request, CancellationToken cancellationToken)
+    {
+        if (request.FromUtc is DateTime from && request.ToUtc is DateTime to && to <= from)
+            return BadRequest(new ProblemDetails { Detail = "Thời điểm kết thúc phải sau thời điểm bắt đầu." });
+        if (!string.IsNullOrWhiteSpace(request.IpAddress) && !IPAddress.TryParse(request.IpAddress, out _))
+            return BadRequest(new ProblemDetails { Detail = "Địa chỉ IP không hợp lệ." });
+        var items = await service.GetForExportAsync(ToQuery(request), cancellationToken);
+        var stream = new MemoryStream();
+        await using (var writer = new StreamWriter(stream, new UTF8Encoding(true), leaveOpen: true))
+        {
+            await writer.WriteLineAsync("CreatedAtUtc,Actor,Action,EntityType,EntityId,IpAddress,CorrelationId");
+            foreach (var item in items)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await writer.WriteLineAsync(string.Join(',', Csv(item.CreatedAtUtc.ToString("O")), Csv(item.ActorName ?? item.ActorUserId?.ToString() ?? "System"),
+                    Csv(item.Action), Csv(item.EntityType), Csv(item.EntityId.ToString()), Csv(item.IpAddress ?? ""), Csv(item.CorrelationId ?? "")));
+            }
+        }
+        stream.Position = 0;
+        return File(stream, "text/csv; charset=utf-8", $"audit-log-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv");
     }
 
     [HttpGet("{id:guid}")]
@@ -66,4 +92,10 @@ public sealed class AuditLogsController(AuditLogService service) : ControllerBas
     private static AuditLogResponse Map(AuditLogModel item) => new(
         item.Id, item.ActorUserId, item.ActorName, item.Action, item.EntityType, item.EntityId,
         item.BeforeJson, item.AfterJson, item.CreatedAtUtc, item.CorrelationId, item.IpAddress);
+
+    private static string Csv(string value)
+    {
+        var safe = value.Length > 0 && "=+-@".Contains(value[0]) ? $"'{value}" : value;
+        return $"\"{safe.Replace("\"", "\"\"")}\"";
+    }
 }
