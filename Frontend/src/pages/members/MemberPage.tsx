@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   BadgeCheck,
   Ban,
@@ -47,6 +48,7 @@ import {
   changeCardStatus,
   createMember,
   getMember,
+  getMemberHistory,
   getMembers,
   issueCard,
   memberStatuses,
@@ -55,7 +57,9 @@ import {
   statusLabels,
   updateMember,
   type CardStatus,
+  type HistoryCategory,
   type Member,
+  type MemberHistoryPage,
   type MemberStatus,
   type RestrictionType,
   type SaveMemberInput,
@@ -78,20 +82,47 @@ const empty: SaveMemberInput = {
   loanPeriodDays: 14,
 }
 export function MemberPage() {
+  const navigate = useNavigate()
+  const { id: routeMemberId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialPage = Number(searchParams.get('page'))
+  const initialPageSize = Number(searchParams.get('pageSize'))
+  const initialStatus = searchParams.get('status')
   const [items, setItems] = useState<Member[]>([]),
     [total, setTotal] = useState(0),
     [pages, setPages] = useState(0),
-    [page, setPage] = useState(1),
-    [pageSize, setPageSize] = useState(20),
-    [search, setSearch] = useState(''),
-    [status, setStatus] = useState<'all' | MemberStatus>('all'),
-    [group, setGroup] = useState(''),
+    [page, setPage] = useState(Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1),
+    [pageSize, setPageSize] = useState([10, 20, 50, 100].includes(initialPageSize) ? initialPageSize : 20),
+    [search, setSearch] = useState(searchParams.get('search') ?? ''),
+    [status, setStatus] = useState<'all' | MemberStatus>(memberStatuses.includes(initialStatus as MemberStatus) ? initialStatus as MemberStatus : 'all'),
+    [group, setGroup] = useState(searchParams.get('memberGroup') ?? ''),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [reload, setReload] = useState(0),
     [editing, setEditing] = useState<Member | null>(null),
     [formOpen, setFormOpen] = useState(false),
     [selected, setSelected] = useState<Member | null>(null)
+  useEffect(() => {
+    const next = new URLSearchParams()
+    if (search.trim()) next.set('search', search.trim())
+    if (group.trim()) next.set('memberGroup', group.trim())
+    if (status !== 'all') next.set('status', status)
+    if (page > 1) next.set('page', String(page))
+    if (pageSize !== 20) next.set('pageSize', String(pageSize))
+    setSearchParams(next, { replace: true })
+  }, [group, page, pageSize, search, setSearchParams, status])
+  useEffect(() => {
+    if (!routeMemberId) return
+    const controller = new AbortController()
+    setError('')
+    getMember(routeMemberId, controller.signal)
+      .then(setSelected)
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError'))
+          setError(requestError instanceof Error ? requestError.message : 'Không tải được chi tiết')
+      })
+    return () => controller.abort()
+  }, [routeMemberId])
   useEffect(() => {
     const c = new AbortController()
     setLoading(true)
@@ -117,6 +148,7 @@ export function MemberPage() {
     return () => c.abort()
   }, [group, page, pageSize, reload, search, status])
   const openDetails = async (m: Member) => {
+    navigate(`/members/${m.id}`)
     try {
       setSelected(await getMember(m.id))
     } catch (e) {
@@ -234,8 +266,9 @@ export function MemberPage() {
               Xóa lọc
             </Button>
           </div>
+          <div className="max-h-[60vh] overflow-auto rounded-lg border">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead>Mã / độc giả</TableHead>
                 <TableHead>Liên hệ</TableHead>
@@ -318,6 +351,7 @@ export function MemberPage() {
               )}
             </TableBody>
           </Table>
+          </div>
           {total > 0 && (
             <div className="mt-5">
               <Pagination
@@ -346,7 +380,14 @@ export function MemberPage() {
         />
       </PermissionBoundary>
       {selected && (
-        <MemberDetails member={selected} onClose={() => setSelected(null)} onChange={refresh} />
+        <MemberDetails
+          member={selected}
+          onClose={() => {
+            setSelected(null)
+            navigate('/members')
+          }}
+          onChange={refresh}
+        />
       )}
     </div>
   )
@@ -618,7 +659,15 @@ function MemberDetails({
                           variant="outline"
                           onClick={async () => {
                             const reason = window.prompt('Lý do gỡ hạn chế')
-                            if (reason) onChange(await removeRestriction(member.id, r.id, reason))
+                            if (reason)
+                              onChange(
+                                await removeRestriction(
+                                  member.id,
+                                  r.id,
+                                  reason,
+                                  member.concurrencyToken,
+                                ),
+                              )
                           }}
                         >
                           Gỡ bỏ
@@ -630,23 +679,8 @@ function MemberDetails({
               </div>
             )}
           </Section>
-          <Section title="Lịch sử mượn và đặt trước" icon={CalendarClock}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <History
-                title={`Mượn sách (${member.borrowings.length})`}
-                rows={member.borrowings.map(
-                  (x) =>
-                    `${date(x.borrowedAtUtc)} · Hạn ${date(x.dueAtUtc)} · ${x.returnedAtUtc ? 'Đã trả' : 'Đang mượn'}`,
-                )}
-              />
-              <History
-                title={`Đặt trước (${member.reservations.length})`}
-                rows={member.reservations.map(
-                  (x) =>
-                    `${date(x.reservedAtUtc)} · ${x.fulfilledAtUtc ? 'Đã nhận' : x.cancelledAtUtc ? 'Đã hủy' : 'Đang giữ chỗ'}`,
-                )}
-              />
-            </div>
+          <Section title="Lịch sử giao dịch" icon={CalendarClock}>
+            <MemberHistory memberId={member.id} />
           </Section>
           <Section title="Tiền phạt và thanh toán" icon={ShieldAlert}>
             {member.fines.length === 0 ? (
@@ -738,21 +772,59 @@ function Info({ label, value }: { label: string; value: string }) {
 function Empty() {
   return <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>
 }
-function History({ title, rows }: { title: string; rows: string[] }) {
+const historyLabels: Record<HistoryCategory, string> = {
+  Borrowings: 'Mượn', Returns: 'Trả', Renewals: 'Gia hạn', Reservations: 'Đặt trước',
+  Violations: 'Vi phạm', Payments: 'Thanh toán',
+}
+function MemberHistory({ memberId }: { memberId: string }) {
+  const [category, setCategory] = useState<HistoryCategory>('Borrowings')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [history, setHistory] = useState<MemberHistoryPage | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
+    getMemberHistory(memberId, category, page, pageSize, controller.signal)
+      .then(setHistory)
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError'))
+          setError(requestError instanceof Error ? requestError.message : 'Không tải được lịch sử.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [category, memberId, page, pageSize])
   return (
-    <div>
-      <b className="text-sm">{title}</b>
-      <div className="mt-2 grid gap-2">
-        {rows.length ? (
-          rows.slice(0, 8).map((r, i) => (
-            <p key={i} className="rounded bg-muted/50 p-2 text-xs">
-              {r}
-            </p>
-          ))
-        ) : (
-          <Empty />
-        )}
+    <div className="grid gap-4">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Loại lịch sử">
+        {(Object.keys(historyLabels) as HistoryCategory[]).map((item) => (
+          <Button key={item} role="tab" aria-selected={category === item}
+            size="sm" variant={category === item ? 'default' : 'outline'}
+            onClick={() => { setCategory(item); setPage(1) }}>
+            {historyLabels[item]}
+          </Button>
+        ))}
       </div>
+      {error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}
+      {loading ? <p className="text-sm text-muted-foreground">Đang tải lịch sử...</p> : null}
+      {!loading && history?.items.length === 0 ? <Empty /> : null}
+      <div className="grid gap-2">
+        {history?.items.map((item) => (
+          <div key={item.id} className="flex flex-wrap items-start justify-between gap-2 rounded-md bg-muted/50 p-3 text-sm">
+            <div><b>{item.title || historyLabels[category]}</b><p className="text-xs text-muted-foreground">{item.description}</p></div>
+            <div className="text-right text-xs"><p>{date(item.occurredAtUtc)}</p>{item.amount !== null ? <b>{money(item.amount)}</b> : null}</div>
+          </div>
+        ))}
+      </div>
+      {history && history.totalPages > 0 ? (
+        <Pagination currentPage={history.pageNumber} totalPages={history.totalPages}
+          onPageChange={setPage} pageSize={pageSize}
+          onPageSizeChange={(size) => { setPage(1); setPageSize(size) }} />
+      ) : null}
     </div>
   )
 }
@@ -808,14 +880,20 @@ function ActionDialog({
       let result: Member
       if (action === 'card') {
         result = member.card
-          ? await renewCard(member.id, a)
-          : await issueCard(member.id, { cardNumber: a, issuedOn: b, expiresOn: c })
+          ? await renewCard(member.id, a, member.concurrencyToken)
+          : await issueCard(member.id, {
+              cardNumber: a,
+              issuedOn: b || today(),
+              expiresOn: c,
+              concurrencyToken: member.concurrencyToken,
+            })
       } else if (action === 'restriction') {
         result = await addRestriction(member.id, {
           type: a as RestrictionType,
           reason: b,
           startsAtUtc: new Date().toISOString(),
           endsAtUtc: c ? new Date(c).toISOString() : null,
+          concurrencyToken: member.concurrencyToken,
         })
       } else if (action === 'payment') {
         result = await addPayment(member.id, sessionStorage.getItem('member-fine')!, {
@@ -854,31 +932,35 @@ function ActionDialog({
           {action === 'card' ? (
             member.card ? (
               <>
-                <Field label="Ngày hết hạn mới">
-                  <Input
-                    required
-                    type="date"
-                    min={member.card.expiresOn}
-                    value={a}
-                    onChange={(e) => setA(e.target.value)}
-                  />
-                </Field>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () =>
-                    changed(
-                      await changeCardStatus(
-                        member.id,
-                        member.card!.status === 'Suspended'
-                          ? 'Active'
-                          : ('Suspended' as CardStatus),
-                      ),
-                    )
-                  }
-                >
-                  {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
-                </Button>
+                {member.card.status === 'Revoked' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Thẻ đã bị thu hồi vĩnh viễn và không thể gia hạn hoặc kích hoạt lại.
+                  </p>
+                ) : (
+                  <>
+                    <Field label="Ngày hết hạn mới">
+                      <Input required type="date" min={member.card.expiresOn} value={a}
+                        onChange={(e) => setA(e.target.value)} />
+                    </Field>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline"
+                        onClick={async () => changed(await changeCardStatus(
+                          member.id,
+                          member.card!.status === 'Suspended' ? 'Active' : ('Suspended' as CardStatus),
+                          member.concurrencyToken,
+                        ))}>
+                        {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
+                      </Button>
+                      <Button type="button" variant="destructive"
+                        onClick={async () => {
+                          if (window.confirm('Thu hồi thẻ này? Thao tác không thể hoàn tác.'))
+                            changed(await changeCardStatus(member.id, 'Revoked', member.concurrencyToken))
+                        }}>
+                        Thu hồi thẻ
+                      </Button>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -968,7 +1050,9 @@ function ActionDialog({
             <Button type="button" variant="outline" onClick={close}>
               Hủy
             </Button>
-            <Button>Xác nhận</Button>
+            <Button disabled={action === 'card' && member.card?.status === 'Revoked'}>
+              Xác nhận
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
