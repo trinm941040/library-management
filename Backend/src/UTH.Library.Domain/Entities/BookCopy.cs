@@ -27,7 +27,7 @@ public sealed class BookCopy
     public Guid? StockReceiptItemId { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
 
-    public static BookCopy Create(Guid bookId, string barcode, DateTime acquiredAtUtc)
+    private static BookCopy CreateBase(Guid bookId, string barcode, DateTime acquiredAtUtc)
     {
         if (bookId == Guid.Empty) throw new ArgumentException("Book is required.", nameof(bookId));
         return new BookCopy(Guid.NewGuid(), bookId, NormalizeBarcode(barcode), EnsureUtc(acquiredAtUtc));
@@ -37,7 +37,7 @@ public sealed class BookCopy
     {
         if (!Enum.IsDefined(condition)) throw new ArgumentOutOfRangeException(nameof(condition));
         if (shelfId == Guid.Empty) throw new ArgumentException("Shelf is required.", nameof(shelfId));
-        var copy = Create(bookId, barcode, acquiredAtUtc);
+        var copy = CreateBase(bookId, barcode, acquiredAtUtc);
         copy.Condition = condition;
         copy.ShelfId = shelfId;
         copy.StockReceiptItemId = stockReceiptItemId;

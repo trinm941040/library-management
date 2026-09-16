@@ -541,7 +541,7 @@ export function BooksPage() {
         <ImportPreviewDialog
           open={importOpen}
           title="Nhập danh mục sách"
-          description="CSV gồm các cột Title, Author, ISBN, Category, Quantity. Dữ liệu chỉ được lưu sau khi xác nhận."
+          description="CSV gồm Title, Author, ISBN, Category, Quantity; Quantity phải là 0. Tạo bản sao có mã vạch và kệ riêng sau khi nhập biểu ghi."
           file={importFile}
           errors={importPreview?.errors ?? []}
           canConfirm={importPreview?.canConfirm ?? false}

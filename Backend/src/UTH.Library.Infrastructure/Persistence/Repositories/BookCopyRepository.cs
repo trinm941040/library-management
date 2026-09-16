@@ -64,7 +64,9 @@ internal sealed class BookCopyRepository(LibraryDbContext db) : IBookCopyReposit
                 db.Branches.Any(branch => branch.Id == area.BranchId && branch.IsActive)), cancellationToken);
 
     public Task<bool> ReceiptItemMatchesBookAsync(Guid id, Guid bookId, CancellationToken cancellationToken) =>
-        db.StockReceiptItems.AnyAsync(x => x.Id == id && x.BookId == bookId, cancellationToken);
+        db.StockReceiptItems.AnyAsync(x => x.Id == id && x.BookId == bookId &&
+            db.StockReceipts.Any(receipt => receipt.Id == x.StockReceiptId &&
+                receipt.Status == StockReceiptStatus.Confirmed), cancellationToken);
 
     public Task<bool> HasActiveAuditAsync(Guid id, CancellationToken cancellationToken) =>
         db.InventoryAuditItems.AnyAsync(item => item.BookCopyId == id &&

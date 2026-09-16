@@ -33,7 +33,7 @@ public sealed class CopyService(IBookCopyRepository repository, IUnitOfWork unit
             throw Validation("shelfId", "Kệ hoặc chi nhánh đã ngừng hoạt động.");
         if (command.StockReceiptItemId is Guid receiptId &&
             !await repository.ReceiptItemMatchesBookAsync(receiptId, command.BookId, cancellationToken))
-            throw Validation("stockReceiptItemId", "Dòng phiếu nhập không thuộc biểu ghi này.");
+            throw Validation("stockReceiptItemId", "Dòng phiếu nhập không thuộc biểu ghi hoặc phiếu chưa được xác nhận.");
         if (await repository.BarcodeExistsAsync(barcode, cancellationToken))
             throw new ResourceConflictException("Mã vạch đã tồn tại.");
 

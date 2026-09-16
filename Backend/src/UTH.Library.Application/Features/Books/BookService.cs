@@ -66,6 +66,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
     {
         var errors = validator.Validate(command);
         if (errors.Count > 0) return BookResult.Fail(BookFailure.Validation, errors.ToArray());
+        if (catalogRepository is not null && command.Quantity != 0)
+            return BookResult.Fail(BookFailure.Validation, "Số lượng bản sao được quản lý tại trang Bản sao; biểu ghi mới phải có số lượng 0.");
         if (!await ReferencesAreValidAsync(command.AuthorIds, command.CategoryIds, command.PublisherId, cancellationToken))
             return BookResult.Fail(BookFailure.Validation, "One or more catalog references are invalid or inactive.");
         try
@@ -95,8 +97,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         ct);
                 else if (catalogRepository is not null)
                     await catalogRepository.NormalizeBookAsync(book, command.Author, command.Category, command.PublisherName, ct);
-                if (catalogRepository is not null)
-                    await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, book.CreatedAtUtc, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.created", nameof(Book), book.Id, null, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
                 return BookResult.Success(Map(
                     book,
@@ -118,6 +118,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
             return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
+        if (catalogRepository is not null && command.Quantity != (await catalogRepository.GetCatalogAsync(id, cancellationToken)).AvailableCopyCount)
+            return BookResult.Fail(BookFailure.Validation, "Không thể sửa số lượng tại biểu ghi; hãy quản lý từng bản sao theo mã vạch.");
         if (command.ConcurrencyToken is not null && command.ConcurrencyToken != book.ConcurrencyToken)
             return BookResult.Fail(BookFailure.Conflict, "Biểu ghi đã thay đổi. Vui lòng tải lại trước khi lưu.");
 
@@ -133,7 +135,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Author,
                 command.Isbn,
                 command.Category,
-                command.Quantity,
+                book.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
             book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
                 command.PublicationYear, command.Language, command.PageCount);
@@ -148,8 +150,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         ct);
                 else if (catalogRepository is not null)
                     await catalogRepository.NormalizeBookAsync(book, command.Author, command.Category, command.PublisherName, ct);
-                if (catalogRepository is not null)
-                    await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, timeProvider.GetUtcNow().UtcDateTime, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.updated", nameof(Book), book.Id, before, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
                 return BookResult.Success(Map(
                     book,
