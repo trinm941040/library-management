@@ -27,6 +27,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
             .IsRequired();
         builder.Property(book => book.EditionStatement).HasMaxLength(200);
         builder.Property(book => book.Description).HasMaxLength(4000);
+        builder.Property(book => book.Language).HasMaxLength(100);
         builder.HasIndex(book => book.Isbn).IsUnique();
         builder.HasIndex(book => book.Title);
         builder.HasIndex(book => book.Status);

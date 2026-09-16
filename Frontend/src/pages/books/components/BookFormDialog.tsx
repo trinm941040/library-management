@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
-import type { LibraryBook } from '../book-api'
+import { getCatalogReferences, type LibraryBook } from '../book-api'
 
 export type BookFormData = {
   title: string
@@ -16,6 +16,12 @@ export type BookFormData = {
   isbn: string
   category: string
   quantity: string
+  publisherName: string
+  description: string
+  editionStatement: string
+  publicationYear: string
+  language: string
+  pageCount: string
 }
 
 type BookFormDialogProps = {
@@ -31,6 +37,12 @@ const emptyForm: BookFormData = {
   isbn: '',
   category: '',
   quantity: '1',
+  publisherName: '',
+  description: '',
+  editionStatement: '',
+  publicationYear: '',
+  language: '',
+  pageCount: '',
 }
 
 export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDialogProps) {
@@ -38,6 +50,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof BookFormData, string>>>({})
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [lookups, setLookups] = useState({ authors: [] as string[], categories: [] as string[], publishers: [] as string[] })
 
   useEffect(() => {
     setForm(
@@ -48,12 +61,33 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
             isbn: book.isbn,
             category: book.category,
             quantity: String(book.quantity),
+            publisherName: book.publisher?.name ?? '',
+            description: book.description ?? '',
+            editionStatement: book.editionStatement ?? '',
+            publicationYear: book.publicationYear ? String(book.publicationYear) : '',
+            language: book.language ?? '',
+            pageCount: book.pageCount ? String(book.pageCount) : '',
           }
         : emptyForm,
     )
     setFieldErrors({})
     setError('')
   }, [open, book])
+
+  useEffect(() => {
+    if (!open) return
+    const controller = new AbortController()
+    Promise.all([
+      getCatalogReferences('authors', controller.signal),
+      getCatalogReferences('categories', controller.signal),
+      getCatalogReferences('publishers', controller.signal),
+    ]).then(([authors, categories, publishers]) => setLookups({
+      authors: authors.map((item) => item.name),
+      categories: categories.map((item) => item.name),
+      publishers: publishers.map((item) => item.name),
+    })).catch(() => undefined)
+    return () => controller.abort()
+  }, [open])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -66,6 +100,10 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
     if (!Number.isInteger(quantity) || quantity < 0) {
       nextErrors.quantity = 'Số lượng phải là số nguyên không âm.'
     }
+    if (form.publicationYear && (!Number.isInteger(Number(form.publicationYear)) || Number(form.publicationYear) < 0 || Number(form.publicationYear) > 9999))
+      nextErrors.publicationYear = 'Năm xuất bản không hợp lệ.'
+    if (form.pageCount && (!Number.isInteger(Number(form.pageCount)) || Number(form.pageCount) < 1))
+      nextErrors.pageCount = 'Số trang phải là số nguyên dương.'
     setFieldErrors(nextErrors)
     const firstInvalidField = Object.keys(nextErrors)[0] as keyof BookFormData | undefined
     if (firstInvalidField) {
@@ -129,11 +167,13 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 aria-invalid={Boolean(fieldErrors.author)}
                 aria-describedby={fieldErrors.author ? 'book-author-error' : undefined}
                 value={form.author}
+                list="catalog-authors"
                 onChange={(event) => {
                   setForm({ ...form, author: event.target.value })
                   setFieldErrors((values) => ({ ...values, author: undefined }))
                 }}
               />
+              <datalist id="catalog-authors">{lookups.authors.map((name) => <option key={name} value={name} />)}</datalist>
             </EntityFormField>
             <EntityFormField
               id="book-isbn"
@@ -161,11 +201,13 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 aria-invalid={Boolean(fieldErrors.category)}
                 aria-describedby={fieldErrors.category ? 'book-category-error' : undefined}
                 value={form.category}
+                list="catalog-categories"
                 onChange={(event) => {
                   setForm({ ...form, category: event.target.value })
                   setFieldErrors((values) => ({ ...values, category: undefined }))
                 }}
               />
+              <datalist id="catalog-categories">{lookups.categories.map((name) => <option key={name} value={name} />)}</datalist>
             </EntityFormField>
             <EntityFormField id="book-quantity" label="Số lượng" error={fieldErrors.quantity}>
               <Input
@@ -181,6 +223,25 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                   setFieldErrors((values) => ({ ...values, quantity: undefined }))
                 }}
               />
+            </EntityFormField>
+            <EntityFormField id="book-publisherName" label="Nhà xuất bản">
+              <Input id="book-publisherName" list="catalog-publishers" value={form.publisherName} onChange={(event) => setForm({ ...form, publisherName: event.target.value })} />
+              <datalist id="catalog-publishers">{lookups.publishers.map((name) => <option key={name} value={name} />)}</datalist>
+            </EntityFormField>
+            <EntityFormField id="book-editionStatement" label="Mô tả ấn bản">
+              <Input id="book-editionStatement" value={form.editionStatement} onChange={(event) => setForm({ ...form, editionStatement: event.target.value })} />
+            </EntityFormField>
+            <EntityFormField id="book-language" label="Ngôn ngữ">
+              <Input id="book-language" value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value })} />
+            </EntityFormField>
+            <EntityFormField id="book-publicationYear" label="Năm xuất bản" error={fieldErrors.publicationYear}>
+              <Input id="book-publicationYear" type="number" min={0} max={9999} value={form.publicationYear} onChange={(event) => setForm({ ...form, publicationYear: event.target.value })} />
+            </EntityFormField>
+            <EntityFormField id="book-pageCount" label="Số trang" error={fieldErrors.pageCount}>
+              <Input id="book-pageCount" type="number" min={1} value={form.pageCount} onChange={(event) => setForm({ ...form, pageCount: event.target.value })} />
+            </EntityFormField>
+            <EntityFormField id="book-description" label="Mô tả">
+              <textarea id="book-description" className="min-h-24 rounded-md border bg-background px-3 py-2 text-sm" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
             </EntityFormField>
           </div>
         </EntityForm>

@@ -59,7 +59,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
   {
     label: 'Quản lý tác vụ',
     items: [
-      { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/catalog', label: 'Biểu ghi sách', icon: Layers, requiredPermissions: ['books.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',

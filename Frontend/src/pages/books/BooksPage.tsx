@@ -10,7 +10,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   BulkResultSummary,
   ConfirmDialog,
@@ -58,6 +58,7 @@ export function BooksPage() {
     [searchParams],
   )
   const { search, pageNumber: currentPage, pageSize, sortBy, sortDirection } = tableState
+  const status = searchParams.get('status') === 'Inactive' ? 'Inactive' : 'Active'
   const [page, setPage] = useState<BookPageResponse | null>(null)
   const [searchInput, setSearchInput] = useState(search)
   const [reloadKey, setReloadKey] = useState(0)
@@ -109,6 +110,7 @@ export function BooksPage() {
         pageSize,
         sortBy: sortBy as (typeof bookSortFields)[number],
         sortDirection,
+        status,
       },
       controller.signal,
     )
@@ -127,7 +129,7 @@ export function BooksPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, sortBy, sortDirection, updateUrl])
+  }, [currentPage, pageSize, reloadKey, search, sortBy, sortDirection, status, updateUrl])
 
   const refresh = useCallback(
     (message?: string) => {
@@ -148,6 +150,13 @@ export function BooksPage() {
         isbn: data.isbn.trim(),
         category: data.category.trim(),
         quantity,
+        publisherName: data.publisherName.trim() || null,
+        description: data.description.trim() || null,
+        editionStatement: data.editionStatement.trim() || null,
+        publicationYear: data.publicationYear ? Number(data.publicationYear) : null,
+        language: data.language.trim() || null,
+        pageCount: data.pageCount ? Number(data.pageCount) : null,
+        concurrencyToken: editingBook?.concurrencyToken,
       }
 
       if (editingBook) {
@@ -191,6 +200,7 @@ export function BooksPage() {
           pageSize,
           sortBy: sortBy as (typeof bookSortFields)[number],
           sortDirection,
+          status,
         }),
         'books.csv',
       )
@@ -250,7 +260,7 @@ export function BooksPage() {
     try {
       await deleteBook(deletingBook.id)
       setDeletingBook(null)
-      refresh('Đã xóa sách khỏi kho.')
+      refresh('Đã ngừng sử dụng biểu ghi.')
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : 'Không thể xóa sách.')
     } finally {
@@ -267,7 +277,7 @@ export function BooksPage() {
         sortable: true,
         cell: (book) => (
           <span className="grid gap-0.5">
-            <strong>{book.title}</strong>
+            <Link className="font-semibold text-primary hover:underline" to={`/catalog/${book.id}`}>{book.title}</Link>
             <small className="text-muted-foreground">{book.author}</small>
           </span>
         ),
@@ -285,8 +295,8 @@ export function BooksPage() {
         header: 'Trạng thái',
         cell: (book) => (
           <StatusBadge
-            label={book.quantity > 0 ? 'Còn sách' : 'Hết sách'}
-            tone={book.quantity > 0 ? 'success' : 'danger'}
+            label={book.status === 'Active' ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+            tone={book.status === 'Active' ? 'success' : 'neutral'}
           />
         ),
       },
@@ -334,8 +344,8 @@ export function BooksPage() {
     <>
       <PageShell
         eyebrow="Quản lý tác vụ"
-        title="Kho sách"
-        description="Thêm, sửa, xóa và tìm kiếm đầu sách trong kho thư viện."
+        title="Biểu ghi sách"
+        description="Tra cứu, thêm, cập nhật và ngừng sử dụng biểu ghi biên mục."
         actions={
           <>
             <Button
@@ -408,6 +418,20 @@ export function BooksPage() {
             </p>
           </CardHeader>
           <CardContent>
+            <FilterPanel className="mb-4">
+              <label className="grid gap-1 text-sm font-medium" htmlFor="catalog-status">
+                Trạng thái
+                <select
+                  id="catalog-status"
+                  className="h-10 rounded-md border bg-background px-3"
+                  value={status}
+                  onChange={(event) => updateUrl({ status: event.target.value, pageNumber: 1 })}
+                >
+                  <option value="Active">Đang sử dụng</option>
+                  <option value="Inactive">Ngừng sử dụng</option>
+                </select>
+              </label>
+            </FilterPanel>
             <DataTable
               caption="Danh sách sách trong kho"
               rows={page?.items ?? []}
@@ -498,13 +522,13 @@ export function BooksPage() {
         />
         <ConfirmDialog
           open={deletingBook !== null}
-          title="Xóa sách?"
+          title="Ngừng sử dụng biểu ghi?"
           description={
             deletingBook
-              ? `Sách "${deletingBook.title}" sẽ bị xóa khỏi kho. Thao tác này không thể hoàn tác.`
+              ? `Biểu ghi "${deletingBook.title}" chỉ có thể ngừng sử dụng khi không còn bản sao, lượt mượn hoặc đặt trước đang hoạt động.`
               : ''
           }
-          confirmLabel="Xóa sách"
+          confirmLabel="Ngừng sử dụng"
           destructive
           isPending={isDeleting}
           error={deleteError}

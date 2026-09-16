@@ -1,4 +1,5 @@
 using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.Enums;
 
 namespace UTH.Library.Application.Abstractions.Persistence;
 
@@ -12,6 +13,7 @@ public interface IBookCatalogRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        RecordStatus? status,
         string sortBy,
         bool descending,
         CancellationToken cancellationToken);
@@ -47,6 +49,21 @@ public interface IBookCatalogRepository
         string categoryName,
         int availableCopyCount,
         DateTime acquiredAtUtc,
+        CancellationToken cancellationToken);
+
+    Task NormalizeBookAsync(
+        Book book,
+        string authorName,
+        string categoryName,
+        string? publisherName,
+        CancellationToken cancellationToken);
+
+    Task<bool> HasActiveDependenciesAsync(Guid bookId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<BookCatalogReference>> SearchReferencesAsync(
+        string type,
+        string? search,
+        int maximumResults,
         CancellationToken cancellationToken);
 }
 
