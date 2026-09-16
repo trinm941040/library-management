@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookOpen, Layers, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import {
+  BookOpen,
+  Download,
+  Layers,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  Upload,
+} from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import {
+  BulkResultSummary,
   ConfirmDialog,
   DataTable,
   FilterPanel,
+  ImportPreviewDialog,
   PageShell,
   StatusBadge,
   useToast,
@@ -17,20 +30,37 @@ import { Input } from '@/common/components/ui/input'
 import { BookFormDialog, type BookFormData } from './components/BookFormDialog'
 import { EntityActivityLink } from '@/pages/activity-logs/EntityActivityLink'
 import {
+  bulkDeleteBooks,
+  confirmBookImport,
   createBook,
   deleteBook,
+  exportBooks,
   getBooks,
+  previewBookImport,
   updateBook,
+  type BookImportPreview,
   type BookPageResponse,
   type LibraryBook,
 } from './book-api'
+import {
+  downloadResponse,
+  parseTableUrlState,
+  updateSearchParams,
+  type BulkResult,
+} from '@/shared/data/table-contracts'
+
+const bookSortFields = ['title', 'author', 'isbn', 'category', 'quantity', 'createdAtUtc'] as const
 
 export function BooksPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tableState = useMemo(
+    () => parseTableUrlState(searchParams, bookSortFields, 'title'),
+    [searchParams],
+  )
+  const { search, pageNumber: currentPage, pageSize, sortBy, sortDirection } = tableState
+  const status = searchParams.get('status') === 'Inactive' ? 'Inactive' : 'Active'
   const [page, setPage] = useState<BookPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(search)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -40,20 +70,33 @@ export function BooksPage() {
   const [deleteError, setDeleteError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection }>({
-    columnId: 'title',
-    direction: 'asc',
-  })
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importPreview, setImportPreview] = useState<BookImportPreview | null>(null)
+  const [transferAction, setTransferAction] = useState<'export' | 'preview' | 'confirm' | null>(
+    null,
+  )
   const { showToast } = useToast()
+
+  const updateUrl = useCallback(
+    (changes: Record<string, string | number | undefined>) => {
+      setSearchParams((current) => updateSearchParams(current, changes))
+    },
+    [setSearchParams],
+  )
+
+  useEffect(() => setSearchInput(search), [search])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim())
-      setCurrentPage(1)
+      const value = searchInput.trim()
+      if (value !== search) updateUrl({ search: value || undefined, pageNumber: 1 })
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [searchInput])
+  }, [search, searchInput, updateUrl])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -65,13 +108,16 @@ export function BooksPage() {
         search: search || undefined,
         pageNumber: currentPage,
         pageSize,
+        sortBy: sortBy as (typeof bookSortFields)[number],
+        sortDirection,
+        status,
       },
       controller.signal,
     )
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          setCurrentPage(response.totalPages)
+          updateUrl({ pageNumber: response.totalPages })
         }
       })
       .catch((error: unknown) => {
@@ -83,7 +129,7 @@ export function BooksPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search])
+  }, [currentPage, pageSize, reloadKey, search, sortBy, sortDirection, status, updateUrl])
 
   const refresh = useCallback(
     (message?: string) => {
@@ -104,6 +150,13 @@ export function BooksPage() {
         isbn: data.isbn.trim(),
         category: data.category.trim(),
         quantity,
+        publisherName: data.publisherName.trim() || null,
+        description: data.description.trim() || null,
+        editionStatement: data.editionStatement.trim() || null,
+        publicationYear: data.publicationYear ? Number(data.publicationYear) : null,
+        language: data.language.trim() || null,
+        pageCount: data.pageCount ? Number(data.pageCount) : null,
+        concurrencyToken: editingBook?.concurrencyToken,
       }
 
       if (editingBook) {
@@ -111,13 +164,91 @@ export function BooksPage() {
         refresh('Đã cập nhật sách thành công.')
       } else {
         await createBook(input)
-        setCurrentPage(1)
+        updateUrl({ pageNumber: 1 })
         refresh('Đã thêm sách vào kho thành công.')
       }
 
       return null
     } catch (error) {
       return error instanceof Error ? error.message : 'Không thể lưu sách.'
+    }
+  }
+
+  const confirmBulkDelete = async () => {
+    setIsDeleting(true)
+    setDeleteError('')
+    try {
+      const result = await bulkDeleteBooks([...selectedIds])
+      setBulkResult(result)
+      setSelectedIds(new Set())
+      setBulkDeleteOpen(false)
+      refresh(`Đã xóa ${result.succeededCount} sách; ${result.failedCount} thất bại.`)
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Không thể xóa hàng loạt.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleExport = async () => {
+    setTransferAction('export')
+    try {
+      await downloadResponse(
+        await exportBooks({
+          search: search || undefined,
+          pageNumber: 1,
+          pageSize,
+          sortBy: sortBy as (typeof bookSortFields)[number],
+          sortDirection,
+          status,
+        }),
+        'books.csv',
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể xuất dữ liệu.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
+    }
+  }
+
+  const handlePreviewImport = async () => {
+    if (!importFile) return
+    setTransferAction('preview')
+    try {
+      setImportPreview(await previewBookImport(importFile))
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể đọc tệp nhập.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
+    }
+  }
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return
+    setTransferAction('confirm')
+    try {
+      const result = await confirmBookImport(importPreview)
+      if (result.errors.length > 0) {
+        setImportPreview((value) =>
+          value ? { ...value, errors: result.errors, canConfirm: false } : value,
+        )
+      } else {
+        setImportOpen(false)
+        setImportFile(null)
+        setImportPreview(null)
+        updateUrl({ pageNumber: 1 })
+        refresh(`Đã nhập ${result.importedCount} đầu sách.`)
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể nhập dữ liệu.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
     }
   }
 
@@ -129,7 +260,7 @@ export function BooksPage() {
     try {
       await deleteBook(deletingBook.id)
       setDeletingBook(null)
-      refresh('Đã xóa sách khỏi kho.')
+      refresh('Đã ngừng sử dụng biểu ghi.')
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : 'Không thể xóa sách.')
     } finally {
@@ -138,18 +269,6 @@ export function BooksPage() {
   }
 
   const inStockCount = page?.items.filter((book) => book.quantity > 0).length ?? 0
-  const sortedBooks = useMemo(
-    () =>
-      [...(page?.items ?? [])].sort((left, right) => {
-        const leftValue = left[sort.columnId as keyof LibraryBook]
-        const rightValue = right[sort.columnId as keyof LibraryBook]
-        return (
-          String(leftValue).localeCompare(String(rightValue), 'vi', { numeric: true }) *
-          (sort.direction === 'asc' ? 1 : -1)
-        )
-      }),
-    [page?.items, sort],
-  )
   const columns = useMemo<DataTableColumn<LibraryBook>[]>(
     () => [
       {
@@ -158,7 +277,7 @@ export function BooksPage() {
         sortable: true,
         cell: (book) => (
           <span className="grid gap-0.5">
-            <strong>{book.title}</strong>
+            <Link className="font-semibold text-primary hover:underline" to={`/catalog/${book.id}`}>{book.title}</Link>
             <small className="text-muted-foreground">{book.author}</small>
           </span>
         ),
@@ -176,8 +295,8 @@ export function BooksPage() {
         header: 'Trạng thái',
         cell: (book) => (
           <StatusBadge
-            label={book.quantity > 0 ? 'Còn sách' : 'Hết sách'}
-            tone={book.quantity > 0 ? 'success' : 'danger'}
+            label={book.status === 'Active' ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+            tone={book.status === 'Active' ? 'success' : 'neutral'}
           />
         ),
       },
@@ -225,20 +344,25 @@ export function BooksPage() {
     <>
       <PageShell
         eyebrow="Quản lý tác vụ"
-        title="Kho sách"
-        description="Thêm, sửa, xóa và tìm kiếm đầu sách trong kho thư viện."
+        title="Biểu ghi sách"
+        description="Tra cứu, thêm, cập nhật và ngừng sử dụng biểu ghi biên mục."
         actions={
           <>
             <Button
               variant="outline"
               aria-label="Tải lại danh sách sách"
               disabled={isLoading}
+              loading={isLoading && Boolean(page)}
+              loadingLabel="Đang tải lại danh sách sách"
               onClick={() => refresh()}
             >
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['books.create']}>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload /> Nhập CSV
+              </Button>
               <Button
                 onClick={() => {
                   setEditingBook(null)
@@ -246,6 +370,16 @@ export function BooksPage() {
                 }}
               >
                 <Plus /> Thêm sách
+              </Button>
+            </PermissionBoundary>
+            <PermissionBoundary requiredPermissions={['books.read']}>
+              <Button
+                variant="outline"
+                loading={transferAction === 'export'}
+                loadingLabel="Đang xuất danh mục sách"
+                onClick={() => void handleExport()}
+              >
+                <Download /> Xuất CSV
               </Button>
             </PermissionBoundary>
           </>
@@ -284,9 +418,23 @@ export function BooksPage() {
             </p>
           </CardHeader>
           <CardContent>
+            <FilterPanel className="mb-4">
+              <label className="grid gap-1 text-sm font-medium" htmlFor="catalog-status">
+                Trạng thái
+                <select
+                  id="catalog-status"
+                  className="h-10 rounded-md border bg-background px-3"
+                  value={status}
+                  onChange={(event) => updateUrl({ status: event.target.value, pageNumber: 1 })}
+                >
+                  <option value="Active">Đang sử dụng</option>
+                  <option value="Inactive">Ngừng sử dụng</option>
+                </select>
+              </label>
+            </FilterPanel>
             <DataTable
               caption="Danh sách sách trong kho"
-              rows={sortedBooks}
+              rows={page?.items ?? []}
               columns={columns}
               getRowId={(book) => book.id}
               isLoading={isLoading && !page}
@@ -297,9 +445,16 @@ export function BooksPage() {
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
               bulkActions={
-                <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
-                  Bỏ chọn tất cả
-                </Button>
+                <>
+                  <PermissionBoundary requiredPermissions={['books.delete']}>
+                    <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                      Xóa mục đã chọn
+                    </Button>
+                  </PermissionBoundary>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    Bỏ chọn tất cả
+                  </Button>
+                </>
               }
               filters={
                 <FilterPanel
@@ -322,18 +477,24 @@ export function BooksPage() {
                   </div>
                 </FilterPanel>
               }
-              sort={sort}
-              onSortChange={(columnId, direction) => setSort({ columnId, direction })}
+              sort={{ columnId: sortBy, direction: sortDirection as SortDirection }}
+              onSortChange={(columnId, direction) =>
+                updateUrl({ sortBy: columnId, sortDirection: direction, pageNumber: 1 })
+              }
               page={page?.pageNumber}
               totalPages={page?.totalPages}
               totalCount={page?.totalCount}
-              onPageChange={setCurrentPage}
+              onPageChange={(value) => updateUrl({ pageNumber: value })}
               pageSize={pageSize}
               onPageSizeChange={(size) => {
-                setCurrentPage(1)
-                setPageSize(size)
+                updateUrl({ pageNumber: 1, pageSize: size })
               }}
             />
+            {bulkResult ? (
+              <div className="mt-3">
+                <BulkResultSummary result={bulkResult} />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </PageShell>
@@ -349,20 +510,81 @@ export function BooksPage() {
 
       <PermissionBoundary requiredPermissions={['books.delete']}>
         <ConfirmDialog
+          open={bulkDeleteOpen}
+          title="Xóa các sách đã chọn?"
+          description={`${selectedIds.size} sách sẽ được xử lý. Các dòng không thể xóa sẽ được báo riêng.`}
+          confirmLabel="Xóa hàng loạt"
+          destructive
+          isPending={isDeleting}
+          error={deleteError}
+          onConfirm={confirmBulkDelete}
+          onOpenChange={setBulkDeleteOpen}
+        />
+        <ConfirmDialog
           open={deletingBook !== null}
-          title="Xóa sách?"
+          title="Ngừng sử dụng biểu ghi?"
           description={
             deletingBook
-              ? `Sách "${deletingBook.title}" sẽ bị xóa khỏi kho. Thao tác này không thể hoàn tác.`
+              ? `Biểu ghi "${deletingBook.title}" chỉ có thể ngừng sử dụng khi không còn bản sao, lượt mượn hoặc đặt trước đang hoạt động.`
               : ''
           }
-          confirmLabel="Xóa sách"
+          confirmLabel="Ngừng sử dụng"
           destructive
           isPending={isDeleting}
           error={deleteError}
           onConfirm={confirmDelete}
           onOpenChange={(open) => !open && setDeletingBook(null)}
         />
+      </PermissionBoundary>
+
+      <PermissionBoundary requiredPermissions={['books.create']}>
+        <ImportPreviewDialog
+          open={importOpen}
+          title="Nhập danh mục sách"
+          description="CSV gồm các cột Title, Author, ISBN, Category, Quantity. Dữ liệu chỉ được lưu sau khi xác nhận."
+          file={importFile}
+          errors={importPreview?.errors ?? []}
+          canConfirm={importPreview?.canConfirm ?? false}
+          pendingAction={
+            transferAction === 'preview' || transferAction === 'confirm' ? transferAction : null
+          }
+          onOpenChange={setImportOpen}
+          onFileChange={(file) => {
+            setImportFile(file)
+            setImportPreview(null)
+          }}
+          onPreview={() => void handlePreviewImport()}
+          onConfirm={() => void handleConfirmImport()}
+        >
+          {importPreview ? (
+            <div className="max-h-64 overflow-auto rounded-md border">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="sticky top-0 bg-background">
+                  <tr>
+                    <th className="p-2">Dòng</th>
+                    <th className="p-2">Tên sách</th>
+                    <th className="p-2">Tác giả</th>
+                    <th className="p-2">ISBN</th>
+                    <th className="p-2">Thể loại</th>
+                    <th className="p-2">SL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.rows.map((row) => (
+                    <tr key={row.rowNumber} className="border-t">
+                      <td className="p-2">{row.rowNumber}</td>
+                      <td className="p-2">{row.title}</td>
+                      <td className="p-2">{row.author}</td>
+                      <td className="p-2 font-mono">{row.isbn}</td>
+                      <td className="p-2">{row.category}</td>
+                      <td className="p-2">{row.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </ImportPreviewDialog>
       </PermissionBoundary>
     </>
   )

@@ -251,9 +251,11 @@ export function UserPage() {
               variant="outline"
               aria-label="Tải lại danh sách người dùng"
               disabled={isLoading}
+              loading={isLoading && Boolean(page)}
+              loadingLabel="Đang tải lại tài khoản"
               onClick={() => refresh()}
             >
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['users.create']}>
@@ -555,8 +557,8 @@ export function UserPage() {
               >
                 Hủy
               </Button>
-              <Button variant="destructive" disabled={isDeactivating} onClick={confirmDeactivate}>
-                {isDeactivating ? 'Đang xử lý...' : 'Vô hiệu hóa'}
+              <Button variant="destructive" loading={isDeactivating} loadingLabel="Đang vô hiệu hóa tài khoản" onClick={confirmDeactivate}>
+                Vô hiệu hóa
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -594,7 +596,7 @@ function LoadingRows() {
   return Array.from({ length: 5 }, (_, index) => (
     <TableRow key={index}>
       <TableCell colSpan={6}>
-        <div className="h-9 animate-pulse rounded-md bg-muted" />
+        <div className="h-9 rounded-md bg-muted motion-safe:animate-pulse" />
       </TableCell>
     </TableRow>
   ))

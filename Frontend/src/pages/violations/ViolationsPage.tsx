@@ -29,6 +29,7 @@ import {
   waiveViolation,
   type ViolationPageResponse,
 } from './violation-api'
+import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
   open: 'Chưa xử lý',
@@ -44,12 +45,9 @@ const typeLabels: Record<string, string> = {
 }
 
 export function ViolationsPage() {
+  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<ViolationPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(search)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -57,14 +55,15 @@ export function ViolationsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim())
-      setCurrentPage(1)
+      const value = searchInput.trim()
+      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [searchInput])
+  }, [search, searchInput, update])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -83,7 +82,7 @@ export function ViolationsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          setCurrentPage(response.totalPages)
+          update({ pageNumber: response.totalPages })
         }
       })
       .catch((error: unknown) => {
@@ -95,7 +94,7 @@ export function ViolationsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status])
+  }, [currentPage, pageSize, reloadKey, search, status, update])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -114,7 +113,7 @@ export function ViolationsPage() {
         note: data.note.trim(),
         fineAmount,
       })
-      setCurrentPage(1)
+      update({ pageNumber: 1 })
       refresh('Đã ghi nhận vi phạm.')
       return null
     } catch (error) {
@@ -158,8 +157,8 @@ export function ViolationsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
+            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại vi phạm" onClick={() => refresh()}>
+              <RefreshCw />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['violations.create']}>
@@ -207,8 +206,7 @@ export function ViolationsPage() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    setStatus(value)
-                    setCurrentPage(1)
+                    update({ status: value, pageNumber: 1 })
                   }}
                 >
                   <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
@@ -329,11 +327,10 @@ export function ViolationsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={setCurrentPage}
+                  onPageChange={(value) => update({ pageNumber: value })}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    setCurrentPage(1)
-                    setPageSize(size)
+                    update({ pageNumber: 1, pageSize: size })
                   }}
                 />
               </div>

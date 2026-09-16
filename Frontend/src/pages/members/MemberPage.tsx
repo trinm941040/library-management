@@ -1,4 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { parseTableUrlState, updateSearchParams } from '@/shared/data/table-contracts'
 import {
   BadgeCheck,
   Ban,
@@ -47,6 +49,7 @@ import {
   changeCardStatus,
   createMember,
   getMember,
+  getMemberHistory,
   getMembers,
   issueCard,
   memberStatuses,
@@ -55,12 +58,15 @@ import {
   statusLabels,
   updateMember,
   type CardStatus,
+  type HistoryCategory,
   type Member,
+  type MemberHistoryPage,
   type MemberStatus,
   type RestrictionType,
   type SaveMemberInput,
 } from './member-api'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { LoadingBoundary } from '@/common/components/molecules/LoadingBoundary'
 const today = () => new Date().toISOString().slice(0, 10)
 const money = (v: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
@@ -78,20 +84,48 @@ const empty: SaveMemberInput = {
   loanPeriodDays: 14,
 }
 export function MemberPage() {
+  const navigate = useNavigate()
+  const { id: routeMemberId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const listState = useMemo(
+    () => parseTableUrlState(searchParams, ['memberCode'], 'memberCode'),
+    [searchParams],
+  )
+  const page = listState.pageNumber
+  const pageSize = listState.pageSize
+  const search = listState.search
+  const statusParam = searchParams.get('status')
+  const status: 'all' | MemberStatus = memberStatuses.includes(statusParam as MemberStatus)
+    ? (statusParam as MemberStatus)
+    : 'all'
+  const group = searchParams.get('memberGroup')?.trim() ?? ''
+  const updateUrl = useCallback(
+    (changes: Record<string, string | number | undefined>) => {
+      setSearchParams((current) => updateSearchParams(current, changes))
+    },
+    [setSearchParams],
+  )
   const [items, setItems] = useState<Member[]>([]),
     [total, setTotal] = useState(0),
     [pages, setPages] = useState(0),
-    [page, setPage] = useState(1),
-    [pageSize, setPageSize] = useState(20),
-    [search, setSearch] = useState(''),
-    [status, setStatus] = useState<'all' | MemberStatus>('all'),
-    [group, setGroup] = useState(''),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [reload, setReload] = useState(0),
     [editing, setEditing] = useState<Member | null>(null),
     [formOpen, setFormOpen] = useState(false),
     [selected, setSelected] = useState<Member | null>(null)
+  useEffect(() => {
+    if (!routeMemberId) return
+    const controller = new AbortController()
+    setError('')
+    getMember(routeMemberId, controller.signal)
+      .then(setSelected)
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError'))
+          setError(requestError instanceof Error ? requestError.message : 'Không tải được chi tiết')
+      })
+    return () => controller.abort()
+  }, [routeMemberId])
   useEffect(() => {
     const c = new AbortController()
     setLoading(true)
@@ -117,6 +151,7 @@ export function MemberPage() {
     return () => c.abort()
   }, [group, page, pageSize, reload, search, status])
   const openDetails = async (m: Member) => {
+    navigate({ pathname: `/members/${m.id}`, search: searchParams.toString() })
     try {
       setSelected(await getMember(m.id))
     } catch (e) {
@@ -140,8 +175,14 @@ export function MemberPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setReload((x) => x + 1)}>
-            <RefreshCw className={loading ? 'animate-spin' : ''} />
+          <Button
+            variant="outline"
+            disabled={loading}
+            loading={loading && items.length > 0}
+            loadingLabel="Đang tải lại độc giả"
+            onClick={() => setReload((x) => x + 1)}
+          >
+            <RefreshCw />
             Làm mới
           </Button>
           <PermissionBoundary requiredPermissions={['members.create']}>
@@ -190,8 +231,7 @@ export function MemberPage() {
                 className="pl-9"
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value)
-                  setPage(1)
+                  updateUrl({ search: e.target.value || undefined, pageNumber: 1 })
                 }}
                 placeholder="Mã, tên, email, số điện thoại..."
               />
@@ -199,16 +239,14 @@ export function MemberPage() {
             <Input
               value={group}
               onChange={(e) => {
-                setGroup(e.target.value)
-                setPage(1)
+                updateUrl({ memberGroup: e.target.value || undefined, pageNumber: 1 })
               }}
               placeholder="Nhóm độc giả"
             />
             <Select
               value={status}
               onValueChange={(v) => {
-                setStatus(v as typeof status)
-                setPage(1)
+                updateUrl({ status: v, pageNumber: 1 })
               }}
             >
               <SelectTrigger>
@@ -226,108 +264,112 @@ export function MemberPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setSearch('')
-                setGroup('')
-                setStatus('all')
+                updateUrl({
+                  search: undefined,
+                  memberGroup: undefined,
+                  status: undefined,
+                  pageNumber: 1,
+                })
               }}
             >
               Xóa lọc
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mã / độc giả</TableHead>
-                <TableHead>Liên hệ</TableHead>
-                <TableHead>Nhóm & giới hạn</TableHead>
-                <TableHead>Thẻ</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="max-h-[60vh] overflow-auto rounded-lg border">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center">
-                    Đang tải...
-                  </TableCell>
+                  <TableHead>Mã / độc giả</TableHead>
+                  <TableHead>Liên hệ</TableHead>
+                  <TableHead>Nhóm & giới hạn</TableHead>
+                  <TableHead>Thẻ</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                    Không có độc giả phù hợp.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>
-                      <b>{m.memberCode}</b>
-                      <div className="text-sm text-muted-foreground">{m.fullName}</div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center">
+                      <LoadingBoundary loading mode="inline" label="Đang tải danh sách độc giả" />
                     </TableCell>
-                    <TableCell>
-                      {m.email}
-                      <div className="text-sm text-muted-foreground">{m.phoneNumber || '—'}</div>
+                  </TableRow>
+                ) : items.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      Không có độc giả phù hợp.
                     </TableCell>
-                    <TableCell>
-                      {m.memberGroup}
-                      <div className="text-xs text-muted-foreground">
-                        {m.borrowingLimit} cuốn / {m.loanPeriodDays} ngày
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {m.card ? (
-                        <>
-                          <b>{m.card.cardNumber}</b>
-                          <div className="text-xs text-muted-foreground">
-                            Hạn {date(m.card.expiresOn)}
-                          </div>
-                        </>
-                      ) : (
-                        'Chưa cấp'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Status value={m.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Chi tiết"
-                        onClick={() => openDetails(m)}
-                      >
-                        <Eye />
-                      </Button>
-                      <PermissionBoundary requiredPermissions={['members.update']}>
+                  </TableRow>
+                ) : (
+                  items.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <b>{m.memberCode}</b>
+                        <div className="text-sm text-muted-foreground">{m.fullName}</div>
+                      </TableCell>
+                      <TableCell>
+                        {m.email}
+                        <div className="text-sm text-muted-foreground">{m.phoneNumber || '—'}</div>
+                      </TableCell>
+                      <TableCell>
+                        {m.memberGroup}
+                        <div className="text-xs text-muted-foreground">
+                          {m.borrowingLimit} cuốn / {m.loanPeriodDays} ngày
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {m.card ? (
+                          <>
+                            <b>{m.card.cardNumber}</b>
+                            <div className="text-xs text-muted-foreground">
+                              Hạn {date(m.card.expiresOn)}
+                            </div>
+                          </>
+                        ) : (
+                          'Chưa cấp'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Status value={m.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Sửa"
-                          onClick={() => {
-                            setEditing(m)
-                            setFormOpen(true)
-                          }}
+                          aria-label="Chi tiết"
+                          onClick={() => openDetails(m)}
                         >
-                          <Pencil />
+                          <Eye />
                         </Button>
-                      </PermissionBoundary>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                        <PermissionBoundary requiredPermissions={['members.update']}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Sửa"
+                            onClick={() => {
+                              setEditing(m)
+                              setFormOpen(true)
+                            }}
+                          >
+                            <Pencil />
+                          </Button>
+                        </PermissionBoundary>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
           {total > 0 && (
             <div className="mt-5">
               <Pagination
                 currentPage={page}
                 totalPages={pages}
-                onPageChange={setPage}
+                onPageChange={(value) => updateUrl({ pageNumber: value })}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
-                  setPage(1)
-                  setPageSize(size)
+                  updateUrl({ pageNumber: 1, pageSize: size })
                 }}
               />
             </div>
@@ -346,7 +388,14 @@ export function MemberPage() {
         />
       </PermissionBoundary>
       {selected && (
-        <MemberDetails member={selected} onClose={() => setSelected(null)} onChange={refresh} />
+        <MemberDetails
+          member={selected}
+          onClose={() => {
+            setSelected(null)
+            navigate({ pathname: '/members', search: searchParams.toString() })
+          }}
+          onChange={refresh}
+        />
       )}
     </div>
   )
@@ -523,7 +572,9 @@ function MemberForm({
             <Button type="button" variant="outline" onClick={onClose}>
               Hủy
             </Button>
-            <Button disabled={busy}>{busy ? 'Đang lưu...' : 'Lưu hồ sơ'}</Button>
+            <Button loading={busy} loadingLabel="Đang lưu hồ sơ độc giả">
+              Lưu hồ sơ
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -618,7 +669,15 @@ function MemberDetails({
                           variant="outline"
                           onClick={async () => {
                             const reason = window.prompt('Lý do gỡ hạn chế')
-                            if (reason) onChange(await removeRestriction(member.id, r.id, reason))
+                            if (reason)
+                              onChange(
+                                await removeRestriction(
+                                  member.id,
+                                  r.id,
+                                  reason,
+                                  member.concurrencyToken,
+                                ),
+                              )
                           }}
                         >
                           Gỡ bỏ
@@ -630,23 +689,8 @@ function MemberDetails({
               </div>
             )}
           </Section>
-          <Section title="Lịch sử mượn và đặt trước" icon={CalendarClock}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <History
-                title={`Mượn sách (${member.borrowings.length})`}
-                rows={member.borrowings.map(
-                  (x) =>
-                    `${date(x.borrowedAtUtc)} · Hạn ${date(x.dueAtUtc)} · ${x.returnedAtUtc ? 'Đã trả' : 'Đang mượn'}`,
-                )}
-              />
-              <History
-                title={`Đặt trước (${member.reservations.length})`}
-                rows={member.reservations.map(
-                  (x) =>
-                    `${date(x.reservedAtUtc)} · ${x.fulfilledAtUtc ? 'Đã nhận' : x.cancelledAtUtc ? 'Đã hủy' : 'Đang giữ chỗ'}`,
-                )}
-              />
-            </div>
+          <Section title="Lịch sử giao dịch" icon={CalendarClock}>
+            <MemberHistory memberId={member.id} />
           </Section>
           <Section title="Tiền phạt và thanh toán" icon={ShieldAlert}>
             {member.fines.length === 0 ? (
@@ -738,21 +782,91 @@ function Info({ label, value }: { label: string; value: string }) {
 function Empty() {
   return <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>
 }
-function History({ title, rows }: { title: string; rows: string[] }) {
+const historyLabels: Record<HistoryCategory, string> = {
+  Borrowings: 'Mượn',
+  Returns: 'Trả',
+  Renewals: 'Gia hạn',
+  Reservations: 'Đặt trước',
+  Violations: 'Vi phạm',
+  Payments: 'Thanh toán',
+}
+function MemberHistory({ memberId }: { memberId: string }) {
+  const [category, setCategory] = useState<HistoryCategory>('Borrowings')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [history, setHistory] = useState<MemberHistoryPage | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
+    getMemberHistory(memberId, category, page, pageSize, controller.signal)
+      .then(setHistory)
+      .catch((requestError: unknown) => {
+        if (!(requestError instanceof DOMException && requestError.name === 'AbortError'))
+          setError(requestError instanceof Error ? requestError.message : 'Không tải được lịch sử.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [category, memberId, page, pageSize])
   return (
-    <div>
-      <b className="text-sm">{title}</b>
-      <div className="mt-2 grid gap-2">
-        {rows.length ? (
-          rows.slice(0, 8).map((r, i) => (
-            <p key={i} className="rounded bg-muted/50 p-2 text-xs">
-              {r}
-            </p>
-          ))
-        ) : (
-          <Empty />
-        )}
+    <div className="grid gap-4">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Loại lịch sử">
+        {(Object.keys(historyLabels) as HistoryCategory[]).map((item) => (
+          <Button
+            key={item}
+            role="tab"
+            aria-selected={category === item}
+            size="sm"
+            variant={category === item ? 'default' : 'outline'}
+            onClick={() => {
+              setCategory(item)
+              setPage(1)
+            }}
+          >
+            {historyLabels[item]}
+          </Button>
+        ))}
       </div>
+      {error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {loading ? <p className="text-sm text-muted-foreground">Đang tải lịch sử...</p> : null}
+      {!loading && history?.items.length === 0 ? <Empty /> : null}
+      <div className="grid gap-2">
+        {history?.items.map((item) => (
+          <div
+            key={item.id}
+            className="flex flex-wrap items-start justify-between gap-2 rounded-md bg-muted/50 p-3 text-sm"
+          >
+            <div>
+              <b>{item.title || historyLabels[category]}</b>
+              <p className="text-xs text-muted-foreground">{item.description}</p>
+            </div>
+            <div className="text-right text-xs">
+              <p>{date(item.occurredAtUtc)}</p>
+              {item.amount !== null ? <b>{money(item.amount)}</b> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+      {history && history.totalPages > 0 ? (
+        <Pagination
+          currentPage={history.pageNumber}
+          totalPages={history.totalPages}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => {
+            setPage(1)
+            setPageSize(size)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
@@ -808,14 +922,20 @@ function ActionDialog({
       let result: Member
       if (action === 'card') {
         result = member.card
-          ? await renewCard(member.id, a)
-          : await issueCard(member.id, { cardNumber: a, issuedOn: b, expiresOn: c })
+          ? await renewCard(member.id, a, member.concurrencyToken)
+          : await issueCard(member.id, {
+              cardNumber: a,
+              issuedOn: b || today(),
+              expiresOn: c,
+              concurrencyToken: member.concurrencyToken,
+            })
       } else if (action === 'restriction') {
         result = await addRestriction(member.id, {
           type: a as RestrictionType,
           reason: b,
           startsAtUtc: new Date().toISOString(),
           endsAtUtc: c ? new Date(c).toISOString() : null,
+          concurrencyToken: member.concurrencyToken,
         })
       } else if (action === 'payment') {
         result = await addPayment(member.id, sessionStorage.getItem('member-fine')!, {
@@ -854,31 +974,54 @@ function ActionDialog({
           {action === 'card' ? (
             member.card ? (
               <>
-                <Field label="Ngày hết hạn mới">
-                  <Input
-                    required
-                    type="date"
-                    min={member.card.expiresOn}
-                    value={a}
-                    onChange={(e) => setA(e.target.value)}
-                  />
-                </Field>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () =>
-                    changed(
-                      await changeCardStatus(
-                        member.id,
-                        member.card!.status === 'Suspended'
-                          ? 'Active'
-                          : ('Suspended' as CardStatus),
-                      ),
-                    )
-                  }
-                >
-                  {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
-                </Button>
+                {member.card.status === 'Revoked' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Thẻ đã bị thu hồi vĩnh viễn và không thể gia hạn hoặc kích hoạt lại.
+                  </p>
+                ) : (
+                  <>
+                    <Field label="Ngày hết hạn mới">
+                      <Input
+                        required
+                        type="date"
+                        min={member.card.expiresOn}
+                        value={a}
+                        onChange={(e) => setA(e.target.value)}
+                      />
+                    </Field>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () =>
+                          changed(
+                            await changeCardStatus(
+                              member.id,
+                              member.card!.status === 'Suspended'
+                                ? 'Active'
+                                : ('Suspended' as CardStatus),
+                              member.concurrencyToken,
+                            ),
+                          )
+                        }
+                      >
+                        {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={async () => {
+                          if (window.confirm('Thu hồi thẻ này? Thao tác không thể hoàn tác.'))
+                            changed(
+                              await changeCardStatus(member.id, 'Revoked', member.concurrencyToken),
+                            )
+                        }}
+                      >
+                        Thu hồi thẻ
+                      </Button>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -968,7 +1111,9 @@ function ActionDialog({
             <Button type="button" variant="outline" onClick={close}>
               Hủy
             </Button>
-            <Button>Xác nhận</Button>
+            <Button disabled={action === 'card' && member.card?.status === 'Revoked'}>
+              Xác nhận
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

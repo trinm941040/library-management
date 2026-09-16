@@ -174,8 +174,8 @@ export function CirculationPolicyList({ canManage }: CirculationPolicyListProps)
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="icon" onClick={loadPolicies} title="Làm mới">
-                <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <Button variant="outline" size="icon" loading={isLoading} loadingLabel="Đang tải lại chính sách" onClick={loadPolicies} title="Làm mới">
+                <RefreshCw className="size-4" />
               </Button>
 
               {canManage && (

@@ -40,7 +40,7 @@ export function ChangePasswordPage() {
           <PasswordField label="Mật khẩu mới" name="newPassword" autoComplete="new-password" form={form} visible={visible.newPassword} toggle={() => setVisible((value) => ({ ...value, newPassword: !value.newPassword }))} />
           <PasswordField label="Xác nhận mật khẩu mới" name="confirmPassword" autoComplete="new-password" form={form} visible={visible.confirmPassword} toggle={() => setVisible((value) => ({ ...value, confirmPassword: !value.confirmPassword }))} />
           {error ? <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p> : null}
-          <div className="flex justify-end gap-2"><Button type="button" variant="outline" asChild><Link to="/profile">Hủy</Link></Button><Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}</Button></div>
+          <div className="flex justify-end gap-2"><Button type="button" variant="outline" asChild><Link to="/profile">Hủy</Link></Button><Button type="submit" loading={form.formState.isSubmitting} loadingLabel="Đang cập nhật mật khẩu">Cập nhật mật khẩu</Button></div>
         </form></CardContent>
       </Card>
       <Card className="h-fit bg-muted/20">

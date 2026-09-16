@@ -178,8 +178,8 @@ export function ViolationFormDialog({ open, onOpenChange, onSave }: ViolationFor
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting || !form.borrowerId}>
-              {isSubmitting ? 'Đang lưu...' : 'Ghi nhận'}
+            <Button type="submit" disabled={!form.borrowerId} loading={isSubmitting} loadingLabel="Đang ghi nhận vi phạm">
+              Ghi nhận
             </Button>
           </DialogFooter>
         </form>
