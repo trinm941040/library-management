@@ -130,13 +130,18 @@ các request `/api` đến API này theo cấu hình trong `vite.config.ts`.
 Luồng đăng nhập:
 
 1. Khi mở ứng dụng, `AuthProvider` gọi `/api/v1/auth/refresh` để kiểm tra refresh cookie.
-2. Nếu phiên còn hiệu lực, frontend gọi `/api/v1/auth/me` và cho phép vào dashboard.
+2. Nếu phiên còn hiệu lực, frontend gọi `/api/v1/me` và cho phép vào dashboard.
 3. Nếu chưa đăng nhập, route bảo vệ chuyển user đến `/login`.
 4. Login page gửi email và password đến `/api/v1/auth/login`.
 5. Khi đăng xuất, frontend gọi `/api/v1/auth/logout` và chuyển về `/login`.
 
 Access token chỉ được giữ trong bộ nhớ. Refresh token do API lưu bằng cookie HttpOnly.
 Backend cần được chạy tại cổng `5191` trước khi thử đăng nhập.
+
+Trang `/profile` và menu tài khoản trên Header dùng chung dữ liệu current-user từ
+`AuthProvider`. Trang cho phép cập nhật thông tin cá nhân, xem dữ liệu công việc/quyền
+truy cập. Trang `/profile/change-password` xử lý đổi mật khẩu riêng; mật khẩu không
+được lưu vào storage hoặc state toàn cục.
 
 ## Quản lý user
 

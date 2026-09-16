@@ -40,6 +40,9 @@ import {
   type LibraryViolation,
   type ViolationPageResponse,
 } from './violation-api'
+import { PaymentFormDialog } from '@/pages/payments/components/PaymentFormDialog'
+import { PaymentReceiptDialog } from '@/pages/payments/components/PaymentReceiptDialog'
+import type { FinePaymentReceipt } from '@/pages/payments/payment-api'
 
 const statusLabels: Record<string, string> = {
   open: 'Chưa thanh toán',
@@ -90,6 +93,27 @@ export function ViolationsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedViolation, setSelectedViolation] = useState<LibraryViolation | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  const [paymentFormOpen, setPaymentFormOpen] = useState(false)
+  const [paymentReceiptOpen, setPaymentReceiptOpen] = useState(false)
+  const [paymentViolationId, setPaymentViolationId] = useState<string | null>(null)
+  const [currentReceipt, setCurrentReceipt] = useState<FinePaymentReceipt | null>(null)
+
+  const handleOpenPayment = (violationId: string) => {
+    setPaymentViolationId(violationId)
+    setPaymentFormOpen(true)
+  }
+
+  const handlePaymentSuccess = (receipt: FinePaymentReceipt) => {
+    setCurrentReceipt(receipt)
+    setPaymentReceiptOpen(true)
+    setNotice(
+      receipt.isFullyPaid
+        ? 'Đã ghi nhận thanh toán hoàn tất cho vi phạm.'
+        : `Đã ghi nhận thanh toán một phần (${receipt.amount.toLocaleString('vi-VN')} ₫). Số dư còn lại: ${receipt.remainingBalance.toLocaleString('vi-VN')} ₫.`
+    )
+    setReloadKey((k) => k + 1)
+  }
 
   // Đồng bộ search input debounce
   useEffect(() => {
@@ -433,13 +457,7 @@ export function ViolationsPage() {
                                 <Button
                                   size="sm"
                                   disabled={busyId === item.id}
-                                  onClick={() =>
-                                    runAction(
-                                      item.id,
-                                      () => payViolation(item.id),
-                                      'Đã ghi nhận nộp phạt thành công.',
-                                    )
-                                  }
+                                  onClick={() => handleOpenPayment(item.id)}
                                 >
                                   Nộp phạt
                                 </Button>
@@ -494,6 +512,20 @@ export function ViolationsPage() {
         violation={selectedViolation}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onOpenPayment={handleOpenPayment}
+      />
+
+      <PaymentFormDialog
+        violationId={paymentViolationId}
+        open={paymentFormOpen}
+        onOpenChange={setPaymentFormOpen}
+        onSuccess={handlePaymentSuccess}
+      />
+
+      <PaymentReceiptDialog
+        receipt={currentReceipt}
+        open={paymentReceiptOpen}
+        onOpenChange={setPaymentReceiptOpen}
       />
     </>
   )

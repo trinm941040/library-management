@@ -44,6 +44,9 @@ const ReservationsPage = lazy(() =>
 const ViolationsPage = lazy(() =>
   import('../pages/violations/ViolationsPage').then((m) => ({ default: m.ViolationsPage })),
 )
+const PaymentsPage = lazy(() =>
+  import('../pages/payments/PaymentsPage').then((m) => ({ default: m.PaymentsPage })),
+)
 const SettingsPage = lazy(() =>
   import('../pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
@@ -133,6 +136,7 @@ export function AppRoutes() {
         <Route path="/circulation/return" element={page('/circulation/return', <ReturnPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
+        <Route path="/payments" element={page('/payments', <PaymentsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
