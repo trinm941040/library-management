@@ -295,13 +295,41 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("EditionStatement")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Isbn")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("Language")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PageCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PublicationYear")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("PublisherId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Active");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -315,6 +343,10 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Isbn")
                         .IsUnique();
+
+                    b.HasIndex("PublisherId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("Title");
 
@@ -2811,6 +2843,14 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("UTH.Library.Domain.Entities.Book", b =>
+                {
+                    b.HasOne("UTH.Library.Domain.Entities.Publisher", null)
+                        .WithMany()
+                        .HasForeignKey("PublisherId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.BookAuthor", b =>

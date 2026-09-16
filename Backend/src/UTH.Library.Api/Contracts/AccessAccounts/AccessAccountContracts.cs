@@ -4,7 +4,7 @@ namespace UTH.Library.Api.Contracts.AccessAccounts;
 
 public sealed class AccessAccountFilterRequest
 {
-    public string? Search { get; init; }
+    [StringLength(200)] public string? Search { get; init; }
     public bool? IsActive { get; init; }
     [Range(1, 1_000_000)] public int PageNumber { get; init; } = 1;
     [Range(1, 100)] public int PageSize { get; init; } = 20;

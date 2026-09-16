@@ -1,3 +1,0 @@
-using UTH.Library.Domain.Enums;
-namespace UTH.Library.Domain.Entities;
-public sealed class StockReceipt { public Guid Id { get; private set; } public string ReceiptNumber { get; private set; } = string.Empty; public Guid SupplierId { get; private set; } public Guid BranchId { get; private set; } public Guid ReceivedByUserId { get; private set; } public StockReceiptStatus Status { get; private set; } public DateTime ReceivedAtUtc { get; private set; } public DateTime? ConfirmedAtUtc { get; private set; } public string? Notes { get; private set; } public Guid ConcurrencyToken { get; private set; } }

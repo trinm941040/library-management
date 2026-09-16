@@ -18,6 +18,11 @@ public sealed record MemberModel(Guid Id, string MemberCode, string FullName, st
     IReadOnlyList<RestrictionModel> Restrictions, IReadOnlyList<BorrowingHistoryModel> Borrowings,
     IReadOnlyList<ReservationHistoryModel> Reservations, IReadOnlyList<FineModel> Fines);
 public sealed record MemberPage(IReadOnlyList<MemberModel> Items, int PageNumber, int PageSize, int TotalCount);
+public enum MemberHistoryCategory { Borrowings, Returns, Renewals, Reservations, Violations, Payments }
+public sealed record MemberHistoryItemModel(Guid Id, string Type, DateTime OccurredAtUtc, string Title,
+    string Description, decimal? Amount);
+public sealed record MemberHistoryPage(IReadOnlyList<MemberHistoryItemModel> Items, int PageNumber,
+    int PageSize, int TotalCount);
 public enum MemberFailure { None, NotFound, Conflict, Validation }
 public sealed record MemberResult(bool Succeeded, MemberFailure Failure, MemberModel? Member, IReadOnlyList<string> Errors) {
     public static MemberResult Success(MemberModel member) => new(true, MemberFailure.None, member, []);

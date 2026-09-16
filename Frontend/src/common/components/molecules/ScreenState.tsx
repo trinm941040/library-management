@@ -1,9 +1,9 @@
-import { AlertTriangle, CircleCheck, Inbox, LoaderCircle, LockKeyhole } from 'lucide-react'
+import { AlertTriangle, CircleCheck, Inbox, LockKeyhole } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
+import { Spinner } from '../atoms/Spinner'
 
 type StateKind = 'loading' | 'empty' | 'error' | 'forbidden' | 'conflict' | 'success'
 const icons = {
-  loading: LoaderCircle,
   empty: Inbox,
   error: AlertTriangle,
   forbidden: LockKeyhole,
@@ -26,7 +26,7 @@ export function ScreenState({
   onAction?: () => void
   compact?: boolean
 }) {
-  const Icon = icons[kind]
+  const Icon = kind === 'loading' ? null : icons[kind]
   return (
     <div
       className={
@@ -35,16 +35,15 @@ export function ScreenState({
           : 'grid min-h-52 place-items-center gap-3 rounded-lg border border-dashed p-8 text-center'
       }
       role={kind === 'error' || kind === 'conflict' ? 'alert' : 'status'}
+      aria-label={kind === 'loading' ? title : undefined}
       aria-live="polite"
+      aria-busy={kind === 'loading' || undefined}
     >
-      <Icon
-        className={
-          kind === 'loading'
-            ? 'size-6 animate-spin motion-reduce:animate-none text-primary'
-            : 'size-6 text-muted-foreground'
-        }
-        aria-hidden="true"
-      />
+      {kind === 'loading' ? (
+        <Spinner size="lg" decorative className="text-primary" />
+      ) : Icon ? (
+        <Icon className="size-6 text-muted-foreground" aria-hidden="true" />
+      ) : null}
       <div>
         <p className="font-medium">{title}</p>
         {description ? (

@@ -130,10 +130,12 @@ function SettingEditor({
       <Button
         type="button"
         variant="outline"
-        disabled={!canUpdate || !dirty || saving}
+        disabled={!canUpdate || !dirty}
+        loading={saving}
+        loadingLabel="Đang lưu thiết lập"
         onClick={() => void save()}
       >
-        <Save /> {saving ? 'Đang lưu...' : 'Lưu'}
+        <Save /> Lưu
       </Button>
     </article>
   )
@@ -172,7 +174,7 @@ export function SettingsPage() {
       eyebrow="Quản lý hệ thống"
       title="Thiết lập hệ thống"
       description="Quản lý tham số hệ thống theo schema và kiểu dữ liệu được backend kiểm soát."
-      actions={<Button variant="outline" disabled={loading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={loading ? 'animate-spin' : ''} />Làm mới</Button>}
+      actions={<Button variant="outline" disabled={loading} loading={loading && settings.length > 0} loadingLabel="Đang tải lại thiết lập" onClick={() => setReloadKey((value) => value + 1)}><RefreshCw />Làm mới</Button>}
     >
       {error && settings.length === 0 ? (
         <ScreenState kind="error" title="Không thể tải thiết lập" description={error} actionLabel="Thử lại" onAction={() => setReloadKey((value) => value + 1)} />

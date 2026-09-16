@@ -4,8 +4,8 @@ namespace UTH.Library.Api.Contracts.Violations;
 
 public sealed class ViolationFilterRequest
 {
-    public string? Search { get; init; }
-    public string? Status { get; init; }
+    [StringLength(200)] public string? Search { get; init; }
+    [RegularExpression("^(open|paid|waived)$")] public string? Status { get; init; }
 
     [Range(1, 1_000_000)]
     public int PageNumber { get; init; } = 1;
