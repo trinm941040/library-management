@@ -1,6 +1,9 @@
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Abstractions;
 using UTH.Library.Application.Features.Books;
 using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.Enums;
+using System.Text;
 
 namespace UTH.Library.Application.UnitTests;
 
@@ -13,7 +16,7 @@ public sealed class BookServiceTests
         var service = new BookService(repository, TimeProvider.System);
 
         var result = await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 2),
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
             CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -27,11 +30,11 @@ public sealed class BookServiceTests
         var repository = new FakeBookRepository();
         var service = new BookService(repository, TimeProvider.System);
         await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 2),
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
             CancellationToken.None);
 
         var result = await service.CreateAsync(
-            new CreateBookCommand("Another Title", "Another Author", "978-0132350884", "Programming", 1),
+            new CreateBookCommand("Another Title", "Another Author", "978-0132350884", "Programming", 0),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -39,7 +42,67 @@ public sealed class BookServiceTests
         Assert.Single(repository.Books);
     }
 
-    private sealed class FakeBookRepository : IBookRepository
+    [Fact]
+    public async Task CreateAsync_PositiveQuantity_DoesNotCreateUnlocatedCopies()
+    {
+        var repository = new FakeBookRepository();
+        var service = new BookService(repository, TimeProvider.System);
+
+        var result = await service.CreateAsync(
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 2),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(BookFailure.Validation, result.Failure);
+        Assert.Empty(repository.Books);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_QuantityChange_DoesNotModifyBook()
+    {
+        var repository = new FakeBookRepository();
+        var service = new BookService(repository, TimeProvider.System);
+        var created = await service.CreateAsync(
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
+            CancellationToken.None);
+
+        var result = await service.UpdateAsync(created.Book!.Id,
+            new UpdateBookCommand("Updated title", "Robert C. Martin", "9780132350884", "Programming", 1),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(BookFailure.Validation, result.Failure);
+        Assert.Equal("Clean Code", repository.Books.Single().Title);
+    }
+
+    [Fact]
+    public async Task ImportPreview_PositiveQuantity_ReturnsRowError()
+    {
+        var service = new BookTransferService(new FakeBookRepository(), new FakeUnitOfWork(),
+            new FakeRequestContext(), TimeProvider.System);
+        var csv = Encoding.UTF8.GetBytes("Title,Author,ISBN,Category,Quantity\nClean Code,Robert C. Martin,9780132350884,Programming,2\n");
+
+        var preview = await service.PreviewImportAsync(csv, CancellationToken.None);
+
+        Assert.Contains(preview.Errors, error => error.Field == "quantity" && error.RowNumber == 2);
+    }
+
+    private sealed class FakeUnitOfWork : IUnitOfWork
+    {
+        public void AddAuditLog(AuditLog auditLog) { }
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+        public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation,
+            CancellationToken cancellationToken) => await operation(cancellationToken);
+    }
+
+    private sealed class FakeRequestContext : IRequestContext
+    {
+        public Guid? UserId => null;
+        public string CorrelationId => "test";
+        public string? IpAddress => null;
+    }
+
+    private sealed class FakeBookRepository : IBookRepository, IBookCatalogRepository
     {
         public List<Book> Books { get; } = [];
 
@@ -82,5 +145,36 @@ public sealed class BookServiceTests
         public void Remove(Book book) => Books.Remove(book);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<(IReadOnlyList<Book> Items, int TotalCount)> GetPageAsync(string? search, string? category,
+            int pageNumber, int pageSize, IReadOnlyCollection<Guid>? authorIds, IReadOnlyCollection<Guid>? categoryIds,
+            Guid? publisherId, RecordStatus? status, string sortBy, bool descending, CancellationToken cancellationToken) =>
+            GetPageAsync(search, category, pageNumber, pageSize, sortBy, descending, cancellationToken);
+
+        public Task<BookCatalogSnapshot> GetCatalogAsync(Guid bookId, CancellationToken cancellationToken) =>
+            Task.FromResult(new BookCatalogSnapshot([], [], null, 0));
+
+        public Task<IReadOnlyDictionary<Guid, BookCatalogSnapshot>> GetCatalogAsync(
+            IReadOnlyCollection<Guid> bookIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, BookCatalogSnapshot>>(
+                bookIds.ToDictionary(id => id, _ => new BookCatalogSnapshot([], [], null, 0)));
+
+        public Task<bool> ReferencesExistAsync(IReadOnlyCollection<Guid> authorIds, IReadOnlyCollection<Guid> categoryIds,
+            Guid? publisherId, CancellationToken cancellationToken) => Task.FromResult(true);
+
+        public Task ReplaceRelationshipsAsync(Guid bookId, IReadOnlyCollection<Guid> authorIds,
+            IReadOnlyCollection<Guid> categoryIds, Guid? publisherId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task NormalizeImportedBookAsync(Book book, string authorName, string categoryName,
+            CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task NormalizeBookAsync(Book book, string authorName, string categoryName,
+            string? publisherName, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<bool> HasActiveDependenciesAsync(Guid bookId, CancellationToken cancellationToken) => Task.FromResult(false);
+
+        public Task<IReadOnlyList<BookCatalogReference>> SearchReferencesAsync(string type, string? search,
+            int maximumResults, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BookCatalogReference>>([]);
     }
 }

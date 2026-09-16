@@ -36,7 +36,7 @@ const emptyForm: BookFormData = {
   author: '',
   isbn: '',
   category: '',
-  quantity: '1',
+  quantity: '0',
   publisherName: '',
   description: '',
   editionStatement: '',
@@ -209,12 +209,13 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
               />
               <datalist id="catalog-categories">{lookups.categories.map((name) => <option key={name} value={name} />)}</datalist>
             </EntityFormField>
-            <EntityFormField id="book-quantity" label="Số lượng" error={fieldErrors.quantity}>
+            <EntityFormField id="book-quantity" label="Bản sao khả dụng (tự tính)" error={fieldErrors.quantity}>
               <Input
                 id="book-quantity"
                 type="number"
                 min={0}
                 required
+                readOnly
                 aria-invalid={Boolean(fieldErrors.quantity)}
                 aria-describedby={fieldErrors.quantity ? 'book-quantity-error' : undefined}
                 value={form.quantity}
