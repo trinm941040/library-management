@@ -7,7 +7,11 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { routePermissions } from '@/app/navigation'
 import { NotFoundPage } from '@/pages/errors/NotFoundPage'
 import { safeIntendedDestination } from '@/shared/auth/intended-destination'
-import { ScreenState } from '@/common/components'
+import { LoadingBoundary, ScreenState } from '@/common/components'
+
+const routeLoading = (label = 'Đang tải trang') => (
+  <LoadingBoundary loading label={label} className="min-h-[40vh]" />
+)
 
 const ProfilePage = lazy(() =>
   import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
@@ -67,7 +71,7 @@ const ConfigurationPage = lazy(() =>
 
 const page = (path: string, element: ReactNode) => (
   <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
-    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>{element}</Suspense>
+    <Suspense fallback={routeLoading()}>{element}</Suspense>
   </ProtectedRoute>
 )
 
@@ -86,13 +90,13 @@ function LoginRoute() {
     )
 
   if (status === 'loading') {
-    return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
+    return routeLoading('Đang kiểm tra đăng nhập')
   }
 
   return status === 'authenticated' ? (
     <Navigate to={safeIntendedDestination(location.state?.from)} replace />
   ) : (
-    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+    <Suspense fallback={routeLoading()}>
       <LoginPage />
     </Suspense>
   )
@@ -134,7 +138,7 @@ export function AppRoutes() {
         <Route
           path="/profile"
           element={
-            <Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}>
+            <Suspense fallback={routeLoading('Đang tải hồ sơ')}>
               <ProfilePage />
             </Suspense>
           }
@@ -142,7 +146,7 @@ export function AppRoutes() {
         <Route
           path="/profile/change-password"
           element={
-            <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+            <Suspense fallback={routeLoading()}>
               <ChangePasswordPage />
             </Suspense>
           }

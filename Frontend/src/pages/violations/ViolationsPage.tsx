@@ -157,8 +157,8 @@ export function ViolationsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
+            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại vi phạm" onClick={() => refresh()}>
+              <RefreshCw />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['violations.create']}>
