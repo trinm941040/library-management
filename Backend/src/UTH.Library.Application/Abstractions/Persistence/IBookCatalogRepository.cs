@@ -12,6 +12,8 @@ public interface IBookCatalogRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        string sortBy,
+        bool descending,
         CancellationToken cancellationToken);
 
     Task<BookCatalogSnapshot> GetCatalogAsync(Guid bookId, CancellationToken cancellationToken);
@@ -31,6 +33,20 @@ public interface IBookCatalogRepository
         IReadOnlyCollection<Guid> authorIds,
         IReadOnlyCollection<Guid> categoryIds,
         Guid? publisherId,
+        CancellationToken cancellationToken);
+
+    Task SetAvailableCopyCountAsync(
+        Guid bookId,
+        int availableCopyCount,
+        DateTime acquiredAtUtc,
+        CancellationToken cancellationToken);
+
+    Task NormalizeImportedBookAsync(
+        Book book,
+        string authorName,
+        string categoryName,
+        int availableCopyCount,
+        DateTime acquiredAtUtc,
         CancellationToken cancellationToken);
 }
 

@@ -54,18 +54,16 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         Guid? publisherId,
         CancellationToken cancellationToken)
     {
+        var book = dbContext.Books.Local.SingleOrDefault(item => item.Id == bookId)
+            ?? await dbContext.Books.SingleAsync(item => item.Id == bookId, cancellationToken);
         var existingAuthors = await dbContext.BookAuthors
             .Where(link => link.BookId == bookId)
             .ToListAsync(cancellationToken);
         var existingCategories = await dbContext.BookCategories
             .Where(link => link.BookId == bookId)
             .ToListAsync(cancellationToken);
-        var existingPublishers = await dbContext.BookPublishers
-            .Where(link => link.BookId == bookId)
-            .ToListAsync(cancellationToken);
         dbContext.BookAuthors.RemoveRange(existingAuthors);
         dbContext.BookCategories.RemoveRange(existingCategories);
-        dbContext.BookPublishers.RemoveRange(existingPublishers);
 
         await dbContext.BookAuthors.AddRangeAsync(
             authorIds.Distinct().Select(authorId => BookAuthor.Create(bookId, authorId)),
@@ -73,9 +71,66 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         await dbContext.BookCategories.AddRangeAsync(
             categoryIds.Distinct().Select(categoryId => BookCategory.Create(bookId, categoryId)),
             cancellationToken);
-        if (publisherId is not null)
-            await dbContext.BookPublishers.AddAsync(
-                BookPublisher.Create(bookId, publisherId.Value), cancellationToken);
+        book.SetPublicationMetadata(publisherId, book.EditionStatement, book.Description, book.PublicationYear);
+    }
+
+    public async Task SetAvailableCopyCountAsync(
+        Guid bookId,
+        int availableCopyCount,
+        DateTime acquiredAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var availableCopies = await dbContext.BookCopies
+            .Where(copy => copy.BookId == bookId && copy.Status == CopyStatus.Available)
+            .OrderBy(copy => copy.Id)
+            .ToListAsync(cancellationToken);
+
+        if (availableCopies.Count < availableCopyCount)
+        {
+            var copies = Enumerable.Range(0, availableCopyCount - availableCopies.Count)
+                .Select(_ => BookCopy.Create(bookId, $"CPY-{Guid.NewGuid():N}", acquiredAtUtc));
+            await dbContext.BookCopies.AddRangeAsync(copies, cancellationToken);
+        }
+        else
+        {
+            foreach (var copy in availableCopies.Skip(availableCopyCount))
+                copy.Withdraw();
+        }
+    }
+
+    public async Task NormalizeImportedBookAsync(
+        Book book,
+        string authorName,
+        string categoryName,
+        int availableCopyCount,
+        DateTime acquiredAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var normalizedAuthorName = authorName.Trim();
+        var author = dbContext.Authors.Local.FirstOrDefault(
+            item => string.Equals(item.FullName, normalizedAuthorName, StringComparison.OrdinalIgnoreCase))
+            ?? await dbContext.Authors.FirstOrDefaultAsync(
+                item => EF.Functions.ILike(item.FullName, normalizedAuthorName), cancellationToken);
+        if (author is null)
+        {
+            author = Author.Create(normalizedAuthorName);
+            await dbContext.Authors.AddAsync(author, cancellationToken);
+        }
+
+        var normalizedCategoryName = categoryName.Trim();
+        var category = dbContext.Categories.Local.FirstOrDefault(
+            item => string.Equals(item.Name, normalizedCategoryName, StringComparison.OrdinalIgnoreCase))
+            ?? await dbContext.Categories.FirstOrDefaultAsync(
+                item => EF.Functions.ILike(item.Name, normalizedCategoryName), cancellationToken);
+        if (category is null)
+        {
+            category = Category.Create(normalizedCategoryName);
+            await dbContext.Categories.AddAsync(category, cancellationToken);
+        }
+
+        await dbContext.BookAuthors.AddAsync(BookAuthor.Create(book.Id, author.Id), cancellationToken);
+        await dbContext.BookCategories.AddAsync(BookCategory.Create(book.Id, category.Id), cancellationToken);
+        await SetAvailableCopyCountAsync(book.Id, availableCopyCount, acquiredAtUtc, cancellationToken);
     }
 
     public async Task<(IReadOnlyList<Book> Items, int TotalCount)> GetPageAsync(
@@ -129,7 +184,9 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
 
     private IQueryable<Book> Filter(string? search, string? category)
     {
-        var query = dbContext.Books.AsNoTracking().AsQueryable();
+        var query = dbContext.Books.AsNoTracking()
+            .Where(book => book.Status == RecordStatus.Active)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -154,6 +211,8 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        string sortBy,
+        bool descending,
         CancellationToken cancellationToken)
     {
         var query = dbContext.Books
@@ -187,12 +246,10 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
             query = query.Where(book => dbContext.BookCategories.Any(link =>
                 link.BookId == book.Id && categoryIds.Contains(link.CategoryId)));
         if (publisherId is not null)
-            query = query.Where(book => dbContext.BookPublishers.Any(link =>
-                link.BookId == book.Id && link.PublisherId == publisherId));
+            query = query.Where(book => book.PublisherId == publisherId);
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderBy(book => book.Title)
+        var items = await SortCatalog(query, sortBy, descending)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -214,6 +271,13 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
             (_, true) => query.OrderByDescending(book => book.Title).ThenByDescending(book => book.Id),
             _ => query.OrderBy(book => book.Title).ThenBy(book => book.Id)
         };
+
+    private IOrderedQueryable<Book> SortCatalog(IQueryable<Book> query, string sortBy, bool descending) =>
+        sortBy == "quantity"
+            ? descending
+                ? query.OrderByDescending(book => dbContext.BookCopies.Count(copy => copy.BookId == book.Id && copy.Status == CopyStatus.Available)).ThenByDescending(book => book.Id)
+                : query.OrderBy(book => dbContext.BookCopies.Count(copy => copy.BookId == book.Id && copy.Status == CopyStatus.Available)).ThenBy(book => book.Id)
+            : Sort(query, sortBy, descending);
 
     public void Remove(Book book) => dbContext.Books.Remove(book);
 
@@ -251,15 +315,15 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
                     Reference = new BookCatalogReference(category.Id, category.Name)
                 })
             .ToListAsync(cancellationToken);
-        var publishers = await dbContext.BookPublishers
-            .Where(link => bookIds.Contains(link.BookId))
+        var publishers = await dbContext.Books
+            .Where(book => bookIds.Contains(book.Id) && book.PublisherId != null)
             .Join(
                 dbContext.Publishers,
-                link => link.PublisherId,
+                book => book.PublisherId,
                 publisher => publisher.Id,
-                (link, publisher) => new
+                (book, publisher) => new
                 {
-                    link.BookId,
+                    BookId = book.Id,
                     Reference = new BookCatalogReference(publisher.Id, publisher.Name)
                 })
             .ToListAsync(cancellationToken);

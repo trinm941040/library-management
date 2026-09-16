@@ -26,6 +26,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 query.AuthorIds,
                 query.CategoryIds,
                 query.PublisherId,
+                sortBy,
+                query.SortDirection == SortDirection.Desc,
                 cancellationToken);
 
         var catalogs = catalogRepository is null
@@ -80,6 +82,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         command.CategoryIds ?? [],
                         command.PublisherId,
                         ct);
+                if (catalogRepository is not null)
+                    await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, book.CreatedAtUtc, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.created", nameof(Book), book.Id, null, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
                 return BookResult.Success(Map(
                     book,
@@ -125,6 +129,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         command.CategoryIds ?? [],
                         command.PublisherId,
                         ct);
+                if (catalogRepository is not null)
+                    await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, timeProvider.GetUtcNow().UtcDateTime, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.updated", nameof(Book), book.Id, before, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
                 return BookResult.Success(Map(
                     book,
@@ -174,7 +180,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
             book.Author,
             book.Isbn,
             book.Category,
-            book.Quantity,
+            catalog?.AvailableCopyCount ?? book.Quantity,
             book.CreatedAtUtc,
             book.UpdatedAtUtc,
             catalog?.Authors.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),

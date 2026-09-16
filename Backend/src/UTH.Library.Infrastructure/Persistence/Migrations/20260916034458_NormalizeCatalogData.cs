@@ -67,30 +67,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "book_publishers",
-                columns: table => new
-                {
-                    BookId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PublisherId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_book_publishers", x => new { x.BookId, x.PublisherId });
-                    table.ForeignKey(
-                        name: "FK_book_publishers_books_BookId",
-                        column: x => x.BookId,
-                        principalTable: "books",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_book_publishers_publishers_PublisherId",
-                        column: x => x.PublisherId,
-                        principalTable: "publishers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
             migrationBuilder.Sql("""
                 INSERT INTO authors ("Id", "FullName", "Status")
                 SELECT md5('author:' || lower(trim(source."Author")))::uuid,
@@ -175,11 +151,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                 table: "books",
                 column: "Status");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_book_publishers_PublisherId",
-                table: "book_publishers",
-                column: "PublisherId");
-
             migrationBuilder.AddForeignKey(
                 name: "FK_books_publishers_PublisherId",
                 table: "books",
@@ -195,9 +166,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_books_publishers_PublisherId",
                 table: "books");
-
-            migrationBuilder.DropTable(
-                name: "book_publishers");
 
             migrationBuilder.DropTable(
                 name: "catalog_migration_issues");

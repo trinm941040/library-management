@@ -431,21 +431,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.ToTable("book_copies", (string)null);
                 });
 
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookPublisher", b =>
-                {
-                    b.Property<Guid>("BookId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("PublisherId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("BookId", "PublisherId");
-
-                    b.HasIndex("PublisherId");
-
-                    b.ToTable("book_publishers", (string)null);
-                });
-
             modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2910,21 +2895,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("StockReceiptItemId")
                         .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("UTH.Library.Domain.Entities.BookPublisher", b =>
-                {
-                    b.HasOne("UTH.Library.Domain.Entities.Book", null)
-                        .WithMany()
-                        .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("UTH.Library.Domain.Entities.Publisher", null)
-                        .WithMany()
-                        .HasForeignKey("PublisherId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Borrowing", b =>

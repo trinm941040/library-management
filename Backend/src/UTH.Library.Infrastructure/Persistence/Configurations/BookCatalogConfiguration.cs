@@ -58,14 +58,3 @@ internal sealed class BookCategoryConfiguration : IEntityTypeConfiguration<BookC
         builder.HasOne<Category>().WithMany().HasForeignKey(link => link.CategoryId).OnDelete(DeleteBehavior.Restrict);
     }
 }
-
-internal sealed class BookPublisherConfiguration : IEntityTypeConfiguration<BookPublisher>
-{
-    public void Configure(EntityTypeBuilder<BookPublisher> builder)
-    {
-        builder.ToTable("book_publishers");
-        builder.HasKey(link => new { link.BookId, link.PublisherId });
-        builder.HasOne<Book>().WithMany().HasForeignKey(link => link.BookId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne<Publisher>().WithMany().HasForeignKey(link => link.PublisherId).OnDelete(DeleteBehavior.Restrict);
-    }
-}

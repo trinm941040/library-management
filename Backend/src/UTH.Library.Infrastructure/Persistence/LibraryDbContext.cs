@@ -38,7 +38,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<BookAuthor> BookAuthors => Set<BookAuthor>();
     public DbSet<BookCategory> BookCategories => Set<BookCategory>();
-    public DbSet<BookPublisher> BookPublishers => Set<BookPublisher>();
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Shelf> Shelves => Set<Shelf>();
     public DbSet<BookCopy> BookCopies => Set<BookCopy>();
