@@ -44,6 +44,7 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(borrowing => borrowing.BorrowedAtUtc)
+            .ThenByDescending(borrowing => borrowing.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

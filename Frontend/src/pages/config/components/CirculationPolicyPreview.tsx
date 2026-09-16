@@ -68,9 +68,9 @@ export function CirculationPolicyPreview() {
               Kiểm tra trực tiếp kết quả phân giải chính sách (Resolver), giới hạn mượn và mức phạt với dữ liệu mẫu.
             </CardDescription>
           </div>
-          <Button onClick={handleRunPreview} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Đang tính toán...' : 'Chạy xem trước'}
+          <Button onClick={handleRunPreview} loading={isLoading} loadingLabel="Đang tính toán chính sách">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Chạy xem trước
           </Button>
         </div>
       </CardHeader>

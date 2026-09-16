@@ -249,8 +249,8 @@ export function EmployeePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} /> Làm mới
+            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại nhân viên" onClick={() => refresh()}>
+              <RefreshCw /> Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['employees.create']}>
               <Button onClick={openCreateForm}>
@@ -537,7 +537,7 @@ function LoadingRows() {
   return Array.from({ length: 5 }, (_, index) => (
     <TableRow key={index}>
       <TableCell colSpan={6}>
-        <div className="h-10 animate-pulse rounded-md bg-muted" />
+        <div className="h-10 rounded-md bg-muted motion-safe:animate-pulse" />
       </TableCell>
     </TableRow>
   ))

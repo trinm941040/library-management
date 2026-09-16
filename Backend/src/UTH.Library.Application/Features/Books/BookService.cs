@@ -14,10 +14,10 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
 
     public async Task<BookPageModel> GetAsync(BookListQuery query, CancellationToken cancellationToken)
     {
-        var pageNumber = Math.Max(query.PageNumber, 1);
-        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var (pageNumber, pageSize) = CollectionLimits.NormalizePage(query.PageNumber, query.PageSize);
+        var sortBy = BookTransferService.NormalizeSort(query.SortBy);
         var (items, totalCount) = catalogRepository is null
-            ? await repository.GetPageAsync(query.Search, query.Category, pageNumber, pageSize, cancellationToken)
+            ? await repository.GetPageAsync(query.Search, query.Category, pageNumber, pageSize, query.SortBy, query.SortDirection == SortDirection.Desc, cancellationToken)
             : await catalogRepository.GetPageAsync(
                 query.Search,
                 query.Category,

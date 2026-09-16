@@ -47,10 +47,11 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={destructive ? 'destructive' : 'default'}
-            disabled={isPending}
+            loading={isPending}
+            loadingLabel="Đang xử lý xác nhận"
             onClick={onConfirm}
           >
-            {isPending ? 'Đang xử lý...' : confirmLabel}
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
