@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<IBookCopyRepository, BookCopyRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }
