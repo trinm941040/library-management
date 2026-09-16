@@ -74,36 +74,10 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         book.SetPublicationMetadata(publisherId, book.EditionStatement, book.Description, book.PublicationYear);
     }
 
-    public async Task SetAvailableCopyCountAsync(
-        Guid bookId,
-        int availableCopyCount,
-        DateTime acquiredAtUtc,
-        CancellationToken cancellationToken)
-    {
-        var availableCopies = await dbContext.BookCopies
-            .Where(copy => copy.BookId == bookId && copy.Status == CopyStatus.Available)
-            .OrderBy(copy => copy.Id)
-            .ToListAsync(cancellationToken);
-
-        if (availableCopies.Count < availableCopyCount)
-        {
-            var copies = Enumerable.Range(0, availableCopyCount - availableCopies.Count)
-                .Select(_ => BookCopy.Create(bookId, $"CPY-{Guid.NewGuid():N}", acquiredAtUtc));
-            await dbContext.BookCopies.AddRangeAsync(copies, cancellationToken);
-        }
-        else
-        {
-            foreach (var copy in availableCopies.Skip(availableCopyCount))
-                copy.Withdraw();
-        }
-    }
-
     public async Task NormalizeImportedBookAsync(
         Book book,
         string authorName,
         string categoryName,
-        int availableCopyCount,
-        DateTime acquiredAtUtc,
         CancellationToken cancellationToken)
     {
         var normalizedAuthorName = authorName.Trim();
@@ -130,7 +104,6 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
 
         await dbContext.BookAuthors.AddAsync(BookAuthor.Create(book.Id, author.Id), cancellationToken);
         await dbContext.BookCategories.AddAsync(BookCategory.Create(book.Id, category.Id), cancellationToken);
-        await SetAvailableCopyCountAsync(book.Id, availableCopyCount, acquiredAtUtc, cancellationToken);
     }
 
     public async Task NormalizeBookAsync(

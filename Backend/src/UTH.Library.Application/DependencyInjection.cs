@@ -9,6 +9,8 @@ using UTH.Library.Application.Common;
 using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Application.Features.AuditLogs;
 using UTH.Library.Application.Features.Locations;
+using UTH.Library.Application.Features.Copies;
+using UTH.Library.Application.Features.Suppliers;
 
 namespace UTH.Library.Application;
 
@@ -31,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();
         services.AddScoped<AuditLogService>();
         services.AddScoped<LocationService>();
+        services.AddScoped<CopyService>();
+        services.AddScoped<SupplierService>();
         return services;
     }
 }

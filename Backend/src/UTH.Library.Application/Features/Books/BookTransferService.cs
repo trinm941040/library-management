@@ -88,8 +88,8 @@ public sealed class BookTransferService(
                 errors.Add(new(rowNumber, "row", $"Cần đúng {Header.Length} cột."));
                 continue;
             }
-            if (!int.TryParse(record[4].Trim(), out var quantity) || quantity is < 0 or > 100_000)
-                errors.Add(new(rowNumber, "quantity", "Số lượng phải là số nguyên từ 0 đến 100000."));
+            if (!int.TryParse(record[4].Trim(), out var quantity) || quantity != 0)
+                errors.Add(new(rowNumber, "quantity", "Import biểu ghi chỉ nhận số lượng 0; bản sao cần mã vạch và kệ hợp lệ."));
             ValidateRequired(record[0], rowNumber, "title", 200, errors);
             ValidateRequired(record[1], rowNumber, "author", 200, errors);
             ValidateRequired(record[2], rowNumber, "isbn", 32, errors);
@@ -127,8 +127,8 @@ public sealed class BookTransferService(
             ValidateRequired(row.Title, row.RowNumber, "title", 200, validationErrors);
             ValidateRequired(row.Author, row.RowNumber, "author", 200, validationErrors);
             ValidateRequired(row.Category, row.RowNumber, "category", 100, validationErrors);
-            if (row.Quantity is < 0 or > 100_000)
-                validationErrors.Add(new(row.RowNumber, "quantity", "Số lượng phải là số nguyên từ 0 đến 100000."));
+            if (row.Quantity != 0)
+                validationErrors.Add(new(row.RowNumber, "quantity", "Import biểu ghi chỉ nhận số lượng 0; bản sao cần mã vạch và kệ hợp lệ."));
             try { _ = IsbnValue.Create(row.Isbn); }
             catch (ArgumentException) { validationErrors.Add(new(row.RowNumber, "isbn", "ISBN-10 hoặc ISBN-13 không hợp lệ.")); }
         }
@@ -152,11 +152,11 @@ public sealed class BookTransferService(
         {
             foreach (var row in command.Rows)
             {
-                var book = Book.Create(row.Title, row.Author, row.Isbn, row.Category, row.Quantity, now);
+                var book = Book.Create(row.Title, row.Author, row.Isbn, row.Category, 0, now);
                 await repository.AddAsync(book, ct);
                 if (catalogRepository is not null)
                     await catalogRepository.NormalizeImportedBookAsync(
-                        book, row.Author, row.Category, row.Quantity, now, ct);
+                        book, row.Author, row.Category, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.imported", nameof(Book), book.Id,
                     null, JsonSerializer.Serialize(book), now, requestContext.CorrelationId));
             }

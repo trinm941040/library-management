@@ -37,18 +37,10 @@ public interface IBookCatalogRepository
         Guid? publisherId,
         CancellationToken cancellationToken);
 
-    Task SetAvailableCopyCountAsync(
-        Guid bookId,
-        int availableCopyCount,
-        DateTime acquiredAtUtc,
-        CancellationToken cancellationToken);
-
     Task NormalizeImportedBookAsync(
         Book book,
         string authorName,
         string categoryName,
-        int availableCopyCount,
-        DateTime acquiredAtUtc,
         CancellationToken cancellationToken);
 
     Task NormalizeBookAsync(

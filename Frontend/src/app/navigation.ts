@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
   Clock,
+  Barcode,
+  Building2,
   KeyRound,
   LayoutDashboard,
   Layers,
@@ -62,6 +64,8 @@ export const navigationGroups: readonly NavigationGroup[] = [
     items: [
       { path: '/catalog', label: 'Biểu ghi sách', icon: Layers, requiredPermissions: ['books.read'] },
       { path: '/branches', label: 'Chi nhánh và kệ', icon: MapPinned, requiredPermissions: ['locations.read'] },
+      { path: '/copies', label: 'Bản sao và mã vạch', icon: Barcode, requiredPermissions: ['copies.read'] },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Building2, requiredPermissions: ['suppliers.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',
