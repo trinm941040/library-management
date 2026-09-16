@@ -39,6 +39,9 @@ const BranchesPage = lazy(() =>
 const CopiesPage = lazy(() =>
   import('../pages/copies/CopiesPage').then((m) => ({ default: m.CopiesPage })),
 )
+const SuppliersPage = lazy(() =>
+  import('../pages/suppliers/SuppliersPage').then((m) => ({ default: m.SuppliersPage })),
+)
 const BorrowingsPage = lazy(() =>
   import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
 )
@@ -134,6 +137,7 @@ export function AppRoutes() {
         <Route path="/catalog/:bookId" element={page('/catalog', <CatalogDetailPage />)} />
         <Route path="/branches" element={page('/branches', <BranchesPage />)} />
         <Route path="/copies" element={page('/copies', <CopiesPage />)} />
+        <Route path="/suppliers" element={page('/suppliers', <SuppliersPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
