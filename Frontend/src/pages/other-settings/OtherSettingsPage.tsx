@@ -64,9 +64,9 @@ export function OtherSettingsPage() {
         </div>
         <PermissionBoundary requiredPermissions={['settings.update']}>
           <div className="flex gap-3">
-            <Button onClick={handleSave} disabled={isSaving}>
-              <Save className={`mr-2 h-4 w-4 ${isSaving ? 'animate-pulse' : ''}`} />
-              {isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}
+            <Button onClick={handleSave} loading={isSaving} loadingLabel="Đang lưu cài đặt">
+              <Save className="mr-2 h-4 w-4" />
+              Lưu cài đặt
             </Button>
           </div>
         </PermissionBoundary>

@@ -18,6 +18,7 @@ public sealed class MemberRestriction
         DateTime startsAtUtc, DateTime? endsAtUtc, Guid? actorUserId)
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Restriction reason is required.");
+        if (!Enum.IsDefined(type)) throw new ArgumentException("Restriction type is invalid.");
         if (endsAtUtc <= startsAtUtc) throw new ArgumentException("Restriction end must be after its start.");
         return new MemberRestriction { Id = Guid.NewGuid(), MemberId = memberId, Type = type, Reason = reason.Trim(), StartsAtUtc = startsAtUtc, EndsAtUtc = endsAtUtc, CreatedByUserId = actorUserId };
     }
