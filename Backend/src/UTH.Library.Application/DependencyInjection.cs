@@ -10,6 +10,7 @@ using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Application.Features.AuditLogs;
 using UTH.Library.Application.Features.Payments;
 using UTH.Library.Application.Features.Adjustments;
+using UTH.Library.Application.Features.Dashboard;
 
 namespace UTH.Library.Application;
 
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();
         services.AddScoped<AuditLogService>();
         services.AddScoped<FinePaymentService>();
+        services.AddScoped<DashboardService>();
         return services;
     }
 }
