@@ -119,8 +119,8 @@ export function RoleFormDialog({ open, role, onOpenChange, onSave }: RoleFormDia
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : role ? 'Lưu thay đổi' : 'Tạo vai trò'}
+            <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu vai trò">
+              {role ? 'Lưu thay đổi' : 'Tạo vai trò'}
             </Button>
           </DialogFooter>
         </form>
@@ -240,8 +240,8 @@ export function PermissionFormDialog({
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : permission ? 'Lưu thay đổi' : 'Tạo quyền'}
+            <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu quyền">
+              {permission ? 'Lưu thay đổi' : 'Tạo quyền'}
             </Button>
           </DialogFooter>
         </form>
@@ -498,10 +498,8 @@ export function PermissionAssignmentDialog({
           >
             Hủy
           </Button>
-          <Button type="button" disabled={isSubmitting} onClick={save}>
-            {isSubmitting
-              ? 'Đang lưu...'
-              : isConfirming
+          <Button type="button" loading={isSubmitting} loadingLabel="Đang lưu ma trận quyền" onClick={save}>
+            {isConfirming
                 ? `Xác nhận ${selectedIds.size} quyền`
                 : `Lưu ${selectedIds.size} quyền`}
           </Button>

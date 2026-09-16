@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookOpen, Download, Layers, Pencil, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-react'
+import {
+  BookOpen,
+  Download,
+  Layers,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import {
   BulkResultSummary,
@@ -32,13 +42,21 @@ import {
   type BookPageResponse,
   type LibraryBook,
 } from './book-api'
-import { downloadResponse, parseTableUrlState, updateSearchParams, type BulkResult } from '@/shared/data/table-contracts'
+import {
+  downloadResponse,
+  parseTableUrlState,
+  updateSearchParams,
+  type BulkResult,
+} from '@/shared/data/table-contracts'
 
 const bookSortFields = ['title', 'author', 'isbn', 'category', 'quantity', 'createdAtUtc'] as const
 
 export function BooksPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tableState = useMemo(() => parseTableUrlState(searchParams, bookSortFields, 'title'), [searchParams])
+  const tableState = useMemo(
+    () => parseTableUrlState(searchParams, bookSortFields, 'title'),
+    [searchParams],
+  )
   const { search, pageNumber: currentPage, pageSize, sortBy, sortDirection } = tableState
   const [page, setPage] = useState<BookPageResponse | null>(null)
   const [searchInput, setSearchInput] = useState(search)
@@ -56,12 +74,17 @@ export function BooksPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] = useState<BookImportPreview | null>(null)
-  const [transferPending, setTransferPending] = useState(false)
+  const [transferAction, setTransferAction] = useState<'export' | 'preview' | 'confirm' | null>(
+    null,
+  )
   const { showToast } = useToast()
 
-  const updateUrl = useCallback((changes: Record<string, string | number | undefined>) => {
-    setSearchParams((current) => updateSearchParams(current, changes))
-  }, [setSearchParams])
+  const updateUrl = useCallback(
+    (changes: Record<string, string | number | undefined>) => {
+      setSearchParams((current) => updateSearchParams(current, changes))
+    },
+    [setSearchParams],
+  )
 
   useEffect(() => setSearchInput(search), [search])
 
@@ -153,44 +176,70 @@ export function BooksPage() {
       refresh(`Đã xóa ${result.succeededCount} sách; ${result.failedCount} thất bại.`)
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : 'Không thể xóa hàng loạt.')
-    } finally { setIsDeleting(false) }
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleExport = async () => {
-    setTransferPending(true)
+    setTransferAction('export')
     try {
-      await downloadResponse(await exportBooks({
-        search: search || undefined,
-        pageNumber: 1,
-        pageSize,
-        sortBy: sortBy as (typeof bookSortFields)[number],
-        sortDirection,
-      }), 'books.csv')
-    } catch (error) { showToast(error instanceof Error ? error.message : 'Không thể xuất dữ liệu.', { tone: 'error' }) }
-    finally { setTransferPending(false) }
+      await downloadResponse(
+        await exportBooks({
+          search: search || undefined,
+          pageNumber: 1,
+          pageSize,
+          sortBy: sortBy as (typeof bookSortFields)[number],
+          sortDirection,
+        }),
+        'books.csv',
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể xuất dữ liệu.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
+    }
   }
 
   const handlePreviewImport = async () => {
     if (!importFile) return
-    setTransferPending(true)
-    try { setImportPreview(await previewBookImport(importFile)) }
-    catch (error) { showToast(error instanceof Error ? error.message : 'Không thể đọc tệp nhập.', { tone: 'error' }) }
-    finally { setTransferPending(false) }
+    setTransferAction('preview')
+    try {
+      setImportPreview(await previewBookImport(importFile))
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể đọc tệp nhập.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
+    }
   }
 
   const handleConfirmImport = async () => {
     if (!importPreview) return
-    setTransferPending(true)
+    setTransferAction('confirm')
     try {
       const result = await confirmBookImport(importPreview)
       if (result.errors.length > 0) {
-        setImportPreview((value) => value ? { ...value, errors: result.errors, canConfirm: false } : value)
+        setImportPreview((value) =>
+          value ? { ...value, errors: result.errors, canConfirm: false } : value,
+        )
       } else {
-        setImportOpen(false); setImportFile(null); setImportPreview(null)
-        updateUrl({ pageNumber: 1 }); refresh(`Đã nhập ${result.importedCount} đầu sách.`)
+        setImportOpen(false)
+        setImportFile(null)
+        setImportPreview(null)
+        updateUrl({ pageNumber: 1 })
+        refresh(`Đã nhập ${result.importedCount} đầu sách.`)
       }
-    } catch (error) { showToast(error instanceof Error ? error.message : 'Không thể nhập dữ liệu.', { tone: 'error' }) }
-    finally { setTransferPending(false) }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể nhập dữ liệu.', {
+        tone: 'error',
+      })
+    } finally {
+      setTransferAction(null)
+    }
   }
 
   const confirmDelete = async () => {
@@ -293,13 +342,17 @@ export function BooksPage() {
               variant="outline"
               aria-label="Tải lại danh sách sách"
               disabled={isLoading}
+              loading={isLoading && Boolean(page)}
+              loadingLabel="Đang tải lại danh sách sách"
               onClick={() => refresh()}
             >
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['books.create']}>
-              <Button variant="outline" onClick={() => setImportOpen(true)}><Upload /> Nhập CSV</Button>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload /> Nhập CSV
+              </Button>
               <Button
                 onClick={() => {
                   setEditingBook(null)
@@ -310,7 +363,14 @@ export function BooksPage() {
               </Button>
             </PermissionBoundary>
             <PermissionBoundary requiredPermissions={['books.read']}>
-              <Button variant="outline" disabled={transferPending} onClick={() => void handleExport()}><Download /> Xuất CSV</Button>
+              <Button
+                variant="outline"
+                loading={transferAction === 'export'}
+                loadingLabel="Đang xuất danh mục sách"
+                onClick={() => void handleExport()}
+              >
+                <Download /> Xuất CSV
+              </Button>
             </PermissionBoundary>
           </>
         }
@@ -361,7 +421,16 @@ export function BooksPage() {
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
               bulkActions={
-                <><PermissionBoundary requiredPermissions={['books.delete']}><Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>Xóa mục đã chọn</Button></PermissionBoundary><Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>Bỏ chọn tất cả</Button></>
+                <>
+                  <PermissionBoundary requiredPermissions={['books.delete']}>
+                    <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                      Xóa mục đã chọn
+                    </Button>
+                  </PermissionBoundary>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    Bỏ chọn tất cả
+                  </Button>
+                </>
               }
               filters={
                 <FilterPanel
@@ -385,7 +454,9 @@ export function BooksPage() {
                 </FilterPanel>
               }
               sort={{ columnId: sortBy, direction: sortDirection as SortDirection }}
-              onSortChange={(columnId, direction) => updateUrl({ sortBy: columnId, sortDirection: direction, pageNumber: 1 })}
+              onSortChange={(columnId, direction) =>
+                updateUrl({ sortBy: columnId, sortDirection: direction, pageNumber: 1 })
+              }
               page={page?.pageNumber}
               totalPages={page?.totalPages}
               totalCount={page?.totalCount}
@@ -395,7 +466,11 @@ export function BooksPage() {
                 updateUrl({ pageNumber: 1, pageSize: size })
               }}
             />
-            {bulkResult ? <div className="mt-3"><BulkResultSummary result={bulkResult} /></div> : null}
+            {bulkResult ? (
+              <div className="mt-3">
+                <BulkResultSummary result={bulkResult} />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </PageShell>
@@ -410,7 +485,17 @@ export function BooksPage() {
       </PermissionBoundary>
 
       <PermissionBoundary requiredPermissions={['books.delete']}>
-        <ConfirmDialog open={bulkDeleteOpen} title="Xóa các sách đã chọn?" description={`${selectedIds.size} sách sẽ được xử lý. Các dòng không thể xóa sẽ được báo riêng.`} confirmLabel="Xóa hàng loạt" destructive isPending={isDeleting} error={deleteError} onConfirm={confirmBulkDelete} onOpenChange={setBulkDeleteOpen} />
+        <ConfirmDialog
+          open={bulkDeleteOpen}
+          title="Xóa các sách đã chọn?"
+          description={`${selectedIds.size} sách sẽ được xử lý. Các dòng không thể xóa sẽ được báo riêng.`}
+          confirmLabel="Xóa hàng loạt"
+          destructive
+          isPending={isDeleting}
+          error={deleteError}
+          onConfirm={confirmBulkDelete}
+          onOpenChange={setBulkDeleteOpen}
+        />
         <ConfirmDialog
           open={deletingBook !== null}
           title="Xóa sách?"
@@ -429,8 +514,52 @@ export function BooksPage() {
       </PermissionBoundary>
 
       <PermissionBoundary requiredPermissions={['books.create']}>
-        <ImportPreviewDialog open={importOpen} title="Nhập danh mục sách" description="CSV gồm các cột Title, Author, ISBN, Category, Quantity. Dữ liệu chỉ được lưu sau khi xác nhận." file={importFile} errors={importPreview?.errors ?? []} canConfirm={importPreview?.canConfirm ?? false} pending={transferPending} onOpenChange={setImportOpen} onFileChange={(file) => { setImportFile(file); setImportPreview(null) }} onPreview={() => void handlePreviewImport()} onConfirm={() => void handleConfirmImport()}>
-          {importPreview ? <div className="max-h-64 overflow-auto rounded-md border"><table className="w-full min-w-[680px] text-left text-sm"><thead className="sticky top-0 bg-background"><tr><th className="p-2">Dòng</th><th className="p-2">Tên sách</th><th className="p-2">Tác giả</th><th className="p-2">ISBN</th><th className="p-2">Thể loại</th><th className="p-2">SL</th></tr></thead><tbody>{importPreview.rows.map((row) => <tr key={row.rowNumber} className="border-t"><td className="p-2">{row.rowNumber}</td><td className="p-2">{row.title}</td><td className="p-2">{row.author}</td><td className="p-2 font-mono">{row.isbn}</td><td className="p-2">{row.category}</td><td className="p-2">{row.quantity}</td></tr>)}</tbody></table></div> : null}
+        <ImportPreviewDialog
+          open={importOpen}
+          title="Nhập danh mục sách"
+          description="CSV gồm các cột Title, Author, ISBN, Category, Quantity. Dữ liệu chỉ được lưu sau khi xác nhận."
+          file={importFile}
+          errors={importPreview?.errors ?? []}
+          canConfirm={importPreview?.canConfirm ?? false}
+          pendingAction={
+            transferAction === 'preview' || transferAction === 'confirm' ? transferAction : null
+          }
+          onOpenChange={setImportOpen}
+          onFileChange={(file) => {
+            setImportFile(file)
+            setImportPreview(null)
+          }}
+          onPreview={() => void handlePreviewImport()}
+          onConfirm={() => void handleConfirmImport()}
+        >
+          {importPreview ? (
+            <div className="max-h-64 overflow-auto rounded-md border">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="sticky top-0 bg-background">
+                  <tr>
+                    <th className="p-2">Dòng</th>
+                    <th className="p-2">Tên sách</th>
+                    <th className="p-2">Tác giả</th>
+                    <th className="p-2">ISBN</th>
+                    <th className="p-2">Thể loại</th>
+                    <th className="p-2">SL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.rows.map((row) => (
+                    <tr key={row.rowNumber} className="border-t">
+                      <td className="p-2">{row.rowNumber}</td>
+                      <td className="p-2">{row.title}</td>
+                      <td className="p-2">{row.author}</td>
+                      <td className="p-2 font-mono">{row.isbn}</td>
+                      <td className="p-2">{row.category}</td>
+                      <td className="p-2">{row.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </ImportPreviewDialog>
       </PermissionBoundary>
     </>

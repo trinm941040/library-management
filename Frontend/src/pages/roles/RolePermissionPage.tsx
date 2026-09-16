@@ -280,8 +280,8 @@ export function RolePermissionPage({ initialView }: { initialView: RolePermissio
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
-              <RefreshCw className={isLoading ? 'animate-spin' : ''} /> Làm mới
+            <Button variant="outline" disabled={isLoading} loading={isLoading && (roles.length > 0 || permissions.length > 0)} loadingLabel="Đang tải lại vai trò và quyền" onClick={() => refresh()}>
+              <RefreshCw /> Làm mới
             </Button>
             <PermissionBoundary
               requiredPermissions={[view === 'roles' ? 'roles.create' : 'permissions.create']}
@@ -824,7 +824,7 @@ function LoadingRows({ columns }: { columns: number }) {
   return Array.from({ length: 5 }, (_, index) => (
     <TableRow key={index}>
       <TableCell colSpan={columns}>
-        <div className="h-9 animate-pulse rounded-md bg-muted" />
+        <div className="h-9 rounded-md bg-muted motion-safe:animate-pulse" />
       </TableCell>
     </TableRow>
   ))

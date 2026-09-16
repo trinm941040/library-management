@@ -187,7 +187,7 @@ export function ActivityLogPage() {
       eyebrow="Quản lý hệ thống"
       title="Nhật ký kiểm toán"
       description="Tra cứu lịch sử thay đổi bất biến theo người thực hiện, đối tượng và yêu cầu."
-      actions={<><Button variant="outline" disabled={isLoading} onClick={() => setReloadKey((value) => value + 1)}><RefreshCw className={isLoading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={totalCount === 0} onClick={() => void exportFiltered()}><Download />Xuất kết quả đã lọc</Button></PermissionBoundary></>}
+      actions={<><Button variant="outline" disabled={isLoading} loading={isLoading && items.length > 0} loadingLabel="Đang tải lại nhật ký" onClick={() => setReloadKey((value) => value + 1)}><RefreshCw />Làm mới</Button><PermissionBoundary requiredPermissions={['audit-logs.export']}><Button disabled={totalCount === 0} onClick={() => void exportFiltered()}><Download />Xuất kết quả đã lọc</Button></PermissionBoundary></>}
     >
       <Card>
         <CardHeader><CardTitle>Danh sách bản ghi</CardTitle><p className="text-sm text-muted-foreground">{totalCount} bản ghi phù hợp với bộ lọc.</p></CardHeader>

@@ -25,7 +25,7 @@ export function ProtectedRoute({ children, requiredPermissions = [] }: Protected
     )
 
   if (status === 'loading') {
-    return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
+    return <ScreenState kind="loading" title="Đang kiểm tra đăng nhập" />
   }
 
   if (status === 'unauthenticated') {

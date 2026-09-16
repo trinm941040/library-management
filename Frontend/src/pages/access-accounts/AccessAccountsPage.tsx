@@ -98,7 +98,7 @@ export function AccessAccountsPage() {
   return (
     <PageShell eyebrow="Quản lý người dùng" title="Tài khoản truy cập"
       description="Cấp tài khoản cho nhân viên, kiểm soát vai trò, trạng thái và phiên đăng nhập."
-      actions={<div className="flex gap-2"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading}><RefreshCw className={loading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
+      actions={<div className="flex gap-2"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading} loading={loading && Boolean(page)} loadingLabel="Đang tải lại tài khoản"><RefreshCw />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
       <Card>
         <CardHeader className="gap-4">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
