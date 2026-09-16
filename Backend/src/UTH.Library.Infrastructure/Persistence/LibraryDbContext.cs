@@ -38,6 +38,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<BookAuthor> BookAuthors => Set<BookAuthor>();
     public DbSet<BookCategory> BookCategories => Set<BookCategory>();
+    public DbSet<BookPublisher> BookPublishers => Set<BookPublisher>();
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Shelf> Shelves => Set<Shelf>();
     public DbSet<BookCopy> BookCopies => Set<BookCopy>();
@@ -74,21 +75,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.HasKey(todo => todo.Id);
             entity.Property(todo => todo.Title).HasMaxLength(200).IsRequired();
             entity.Property(todo => todo.CreatedAtUtc).IsRequired();
-        });
-
-        modelBuilder.Entity<Book>(entity =>
-        {
-            entity.ToTable("books");
-            entity.HasKey(book => book.Id);
-            entity.Property(book => book.Title).HasMaxLength(200).IsRequired();
-            entity.Property(book => book.Author).HasMaxLength(200).IsRequired();
-            entity.Property(book => book.Isbn).HasMaxLength(32).IsRequired();
-            entity.Property(book => book.Category).HasMaxLength(100).IsRequired();
-            entity.Property(book => book.Quantity).IsRequired();
-            entity.Property(book => book.CreatedAtUtc).IsRequired();
-            entity.HasIndex(book => book.Isbn).IsUnique();
-            entity.HasIndex(book => book.Title);
-            entity.Property(book => book.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
         });
 
         modelBuilder.Entity<Borrowing>(entity =>

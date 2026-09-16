@@ -9,13 +9,22 @@ public sealed record BookModel(
     string Category,
     int Quantity,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    IReadOnlyCollection<BookReferenceModel>? Authors = null,
+    IReadOnlyCollection<BookReferenceModel>? Categories = null,
+    BookReferenceModel? Publisher = null,
+    int? AvailableCopyCount = null);
+
+public sealed record BookReferenceModel(Guid Id, string Name);
 
 public sealed record BookListQuery(
     string? Search,
     string? Category,
     int PageNumber,
-    int PageSize) : IQuery<BookPageModel>;
+    int PageSize,
+    IReadOnlyCollection<Guid>? AuthorIds = null,
+    IReadOnlyCollection<Guid>? CategoryIds = null,
+    Guid? PublisherId = null) : IQuery<BookPageModel>;
 
 public sealed record BookPageModel(
     IReadOnlyList<BookModel> Items,
@@ -28,14 +37,20 @@ public sealed record CreateBookCommand(
     string Author,
     string Isbn,
     string Category,
-    int Quantity) : ICommand<BookResult>;
+    int Quantity,
+    IReadOnlyCollection<Guid>? AuthorIds = null,
+    IReadOnlyCollection<Guid>? CategoryIds = null,
+    Guid? PublisherId = null) : ICommand<BookResult>;
 
 public sealed record UpdateBookCommand(
     string Title,
     string Author,
     string Isbn,
     string Category,
-    int Quantity);
+    int Quantity,
+    IReadOnlyCollection<Guid>? AuthorIds = null,
+    IReadOnlyCollection<Guid>? CategoryIds = null,
+    Guid? PublisherId = null);
 
 public enum BookFailure
 {
