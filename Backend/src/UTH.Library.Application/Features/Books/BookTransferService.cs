@@ -5,6 +5,7 @@ using UTH.Library.Application.Abstractions;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.ValueObjects;
 
 namespace UTH.Library.Application.Features.Books;
 
@@ -19,13 +20,28 @@ public sealed class BookTransferService(
     public async Task<Stream> ExportAsync(BookListQuery query, CancellationToken cancellationToken)
     {
         var sortBy = NormalizeSort(query.SortBy);
-        var books = await repository.GetForExportAsync(
-            query.Search,
-            query.Category,
-            sortBy,
-            query.SortDirection == SortDirection.Desc,
-            CollectionLimits.MaximumExportRows,
-            cancellationToken);
+        var books = catalogRepository is null
+            ? await repository.GetForExportAsync(
+                query.Search,
+                query.Category,
+                sortBy,
+                query.SortDirection == SortDirection.Desc,
+                CollectionLimits.MaximumExportRows,
+                cancellationToken)
+            : (await catalogRepository.GetPageAsync(
+                query.Search,
+                query.Category,
+                1,
+                CollectionLimits.MaximumExportRows,
+                query.AuthorIds,
+                query.CategoryIds,
+                query.PublisherId,
+                sortBy,
+                query.SortDirection == SortDirection.Desc,
+                cancellationToken)).Items;
+        var catalogs = catalogRepository is null
+            ? new Dictionary<Guid, BookCatalogSnapshot>()
+            : await catalogRepository.GetCatalogAsync(books.Select(book => book.Id).ToArray(), cancellationToken);
         var stream = new MemoryStream();
         await using (var writer = new StreamWriter(stream, new UTF8Encoding(true), leaveOpen: true))
         {
@@ -34,7 +50,8 @@ public sealed class BookTransferService(
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await writer.WriteLineAsync(string.Join(',',
-                    Csv(book.Title), Csv(book.Author), Csv(book.Isbn), Csv(book.Category), book.Quantity));
+                    Csv(book.Title), Csv(book.Author), Csv(book.Isbn), Csv(book.Category),
+                    catalogs.TryGetValue(book.Id, out var catalog) ? catalog.AvailableCopyCount : book.Quantity));
             }
         }
         stream.Position = 0;
@@ -75,6 +92,8 @@ public sealed class BookTransferService(
             ValidateRequired(record[0], rowNumber, "title", 200, errors);
             ValidateRequired(record[1], rowNumber, "author", 200, errors);
             ValidateRequired(record[2], rowNumber, "isbn", 32, errors);
+            try { _ = IsbnValue.Create(record[2]); }
+            catch (ArgumentException) { errors.Add(new(rowNumber, "isbn", "ISBN-10 hoặc ISBN-13 không hợp lệ.")); }
             ValidateRequired(record[3], rowNumber, "category", 100, errors);
             rows.Add(new(rowNumber, record[0].Trim(), record[1].Trim(), NormalizeIsbn(record[2]), record[3].Trim(), quantity));
         }
@@ -101,12 +120,29 @@ public sealed class BookTransferService(
             !CryptographicOperations.FixedTimeEquals(suppliedChecksum, expectedChecksum))
             return new(0, [new(1, "checksum", "Dữ liệu xác nhận không khớp với bản xem trước.")], requestContext.CorrelationId);
 
-        var duplicateIsbns = command.Rows.GroupBy(row => row.Isbn, StringComparer.Ordinal)
+        var validationErrors = new List<ImportFieldError>();
+        foreach (var row in command.Rows)
+        {
+            ValidateRequired(row.Title, row.RowNumber, "title", 200, validationErrors);
+            ValidateRequired(row.Author, row.RowNumber, "author", 200, validationErrors);
+            ValidateRequired(row.Category, row.RowNumber, "category", 100, validationErrors);
+            if (row.Quantity is < 0 or > 100_000)
+                validationErrors.Add(new(row.RowNumber, "quantity", "Số lượng phải là số nguyên từ 0 đến 100000."));
+            try { _ = IsbnValue.Create(row.Isbn); }
+            catch (ArgumentException) { validationErrors.Add(new(row.RowNumber, "isbn", "ISBN-10 hoặc ISBN-13 không hợp lệ.")); }
+        }
+        if (validationErrors.Count > 0)
+            return new(0, validationErrors, requestContext.CorrelationId);
+
+        var normalizedRows = command.Rows
+            .Select(row => (Row: row, Isbn: IsbnValue.Create(row.Isbn).Value))
+            .ToArray();
+        var duplicateIsbns = normalizedRows.Select(item => item.Isbn).GroupBy(isbn => isbn, StringComparer.Ordinal)
             .Where(group => group.Count() > 1).Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
-        var existingIsbns = await repository.GetExistingIsbnsAsync(command.Rows.Select(row => row.Isbn), cancellationToken);
-        var errors = command.Rows
-            .Where(row => duplicateIsbns.Contains(row.Isbn) || existingIsbns.Contains(row.Isbn))
-            .Select(row => new ImportFieldError(row.RowNumber, "isbn", "ISBN bị trùng hoặc đã được thêm sau khi xem trước."))
+        var existingIsbns = await repository.GetExistingIsbnsAsync(normalizedRows.Select(item => item.Isbn), cancellationToken);
+        var errors = normalizedRows
+            .Where(item => duplicateIsbns.Contains(item.Isbn) || existingIsbns.Contains(item.Isbn))
+            .Select(item => new ImportFieldError(item.Row.RowNumber, "isbn", "ISBN bị trùng hoặc đã được thêm sau khi xem trước."))
             .ToArray();
         if (errors.Length > 0) return new(0, errors, requestContext.CorrelationId);
 
@@ -117,6 +153,9 @@ public sealed class BookTransferService(
             {
                 var book = Book.Create(row.Title, row.Author, row.Isbn, row.Category, row.Quantity, now);
                 await repository.AddAsync(book, ct);
+                if (catalogRepository is not null)
+                    await catalogRepository.NormalizeImportedBookAsync(
+                        book, row.Author, row.Category, row.Quantity, now, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.imported", nameof(Book), book.Id,
                     null, JsonSerializer.Serialize(book), now, requestContext.CorrelationId));
             }
@@ -137,18 +176,14 @@ public sealed class BookTransferService(
                 results.Add(new(id, false, "Không tìm thấy sách."));
                 continue;
             }
-            if (await repository.HasDependenciesAsync(id, cancellationToken))
-            {
-                results.Add(new(id, false, "Sách đang có dữ liệu mượn hoặc đặt trước nên không thể xóa."));
-                continue;
-            }
             try
             {
                 await unitOfWork.ExecuteAsync(ct =>
                 {
-                    repository.Remove(book);
-                    unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.deleted", nameof(Book), book.Id,
-                        JsonSerializer.Serialize(book), null, timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
+                    var before = JsonSerializer.Serialize(book);
+                    book.Deactivate(timeProvider.GetUtcNow().UtcDateTime);
+                    unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.deactivated", nameof(Book), book.Id,
+                        before, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
                     return Task.FromResult(true);
                 }, cancellationToken);
                 results.Add(new(id, true));
@@ -215,4 +250,6 @@ public sealed class BookTransferService(
         if (field.Length > 0 || row.Count > 0) { row.Add(field.ToString()); records.Add(row); }
         return records;
     }
+
+    private IBookCatalogRepository? catalogRepository => repository as IBookCatalogRepository;
 }

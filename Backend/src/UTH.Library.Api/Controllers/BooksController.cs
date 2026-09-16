@@ -24,7 +24,7 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var page = await listHandler.HandleAsync(
-            new BookListQuery(request.Search, request.Category, request.PageNumber, request.PageSize, request.SortBy, request.SortDirection),
+            new BookListQuery(request.Search, request.Category, request.PageNumber, request.PageSize, request.AuthorIds, request.CategoryIds, request.PublisherId, request.SortBy, request.SortDirection),
             cancellationToken);
 
         var totalPages = page.TotalCount == 0
@@ -45,7 +45,7 @@ public sealed class BooksController(
     public async Task<IActionResult> Export([FromQuery] BookFilterRequest request, CancellationToken cancellationToken)
     {
         var stream = await transferService.ExportAsync(
-            new BookListQuery(request.Search, request.Category, 1, CollectionLimits.MaximumPageSize, request.SortBy, request.SortDirection),
+            new BookListQuery(request.Search, request.Category, 1, CollectionLimits.MaximumPageSize, null, null, null, request.SortBy, request.SortDirection),
             cancellationToken);
         return File(stream, "text/csv; charset=utf-8", $"books-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv");
     }
@@ -106,7 +106,7 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var result = await createHandler.HandleAsync(
-            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity),
+            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId),
             cancellationToken);
 
         if (!result.Succeeded || result.Book is null)
@@ -128,7 +128,7 @@ public sealed class BooksController(
     {
         var result = await bookService.UpdateAsync(
             id,
-            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity),
+            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity, request.AuthorIds, request.CategoryIds, request.PublisherId),
             cancellationToken);
 
         return result.Succeeded && result.Book is not null
@@ -156,7 +156,19 @@ public sealed class BooksController(
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
 
     private static BookResponse ToResponse(BookModel book) =>
-        new(book.Id, book.Title, book.Author, book.Isbn, book.Category, book.Quantity, book.CreatedAtUtc, book.UpdatedAtUtc);
+        new(
+            book.Id,
+            book.Title,
+            book.Author,
+            book.Isbn,
+            book.Category,
+            book.Quantity,
+            book.CreatedAtUtc,
+            book.UpdatedAtUtc,
+            book.Authors?.Select(reference => new BookReferenceResponse(reference.Id, reference.Name)).ToArray(),
+            book.Categories?.Select(reference => new BookReferenceResponse(reference.Id, reference.Name)).ToArray(),
+            book.Publisher is null ? null : new BookReferenceResponse(book.Publisher.Id, book.Publisher.Name),
+            book.AvailableCopyCount);
 
     private static ImportFieldErrorResponse Map(ImportFieldError error) =>
         new(error.RowNumber, error.Field, error.Message);
