@@ -1,4 +1,5 @@
 using UTH.Library.Application.Common;
+using UTH.Library.Domain.Enums;
 namespace UTH.Library.Application.Features.Books;
 
 public sealed record BookModel(
@@ -13,7 +14,14 @@ public sealed record BookModel(
     IReadOnlyCollection<BookReferenceModel>? Authors = null,
     IReadOnlyCollection<BookReferenceModel>? Categories = null,
     BookReferenceModel? Publisher = null,
-    int? AvailableCopyCount = null);
+    int? AvailableCopyCount = null,
+    RecordStatus Status = RecordStatus.Active,
+    Guid ConcurrencyToken = default,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    string? Language = null,
+    int? PageCount = null);
 
 public sealed record BookReferenceModel(Guid Id, string Name);
 
@@ -25,6 +33,7 @@ public sealed record BookListQuery(
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
     Guid? PublisherId = null,
+    RecordStatus? Status = RecordStatus.Active,
     string SortBy = "title",
     SortDirection SortDirection = SortDirection.Asc) : IQuery<BookPageModel>;
 
@@ -59,7 +68,13 @@ public sealed record CreateBookCommand(
     int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null) : ICommand<BookResult>;
+    Guid? PublisherId = null,
+    string? PublisherName = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    string? Language = null,
+    int? PageCount = null) : ICommand<BookResult>;
 
 public sealed record UpdateBookCommand(
     string Title,
@@ -69,7 +84,14 @@ public sealed record UpdateBookCommand(
     int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
-    Guid? PublisherId = null);
+    Guid? PublisherId = null,
+    string? PublisherName = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    string? Language = null,
+    int? PageCount = null,
+    Guid? ConcurrencyToken = null);
 
 public enum BookFailure
 {

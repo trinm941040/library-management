@@ -133,6 +133,87 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         await SetAvailableCopyCountAsync(book.Id, availableCopyCount, acquiredAtUtc, cancellationToken);
     }
 
+    public async Task NormalizeBookAsync(
+        Book book,
+        string authorName,
+        string categoryName,
+        string? publisherName,
+        CancellationToken cancellationToken)
+    {
+        var normalizedAuthorName = authorName.Trim();
+        var author = dbContext.Authors.Local.FirstOrDefault(item =>
+            string.Equals(item.FullName, normalizedAuthorName, StringComparison.OrdinalIgnoreCase))
+            ?? await dbContext.Authors.FirstOrDefaultAsync(item =>
+                EF.Functions.ILike(item.FullName, normalizedAuthorName), cancellationToken);
+        if (author is null)
+        {
+            author = Author.Create(normalizedAuthorName);
+            await dbContext.Authors.AddAsync(author, cancellationToken);
+        }
+
+        var normalizedCategoryName = categoryName.Trim();
+        var category = dbContext.Categories.Local.FirstOrDefault(item =>
+            string.Equals(item.Name, normalizedCategoryName, StringComparison.OrdinalIgnoreCase))
+            ?? await dbContext.Categories.FirstOrDefaultAsync(item =>
+                EF.Functions.ILike(item.Name, normalizedCategoryName), cancellationToken);
+        if (category is null)
+        {
+            category = Category.Create(normalizedCategoryName);
+            await dbContext.Categories.AddAsync(category, cancellationToken);
+        }
+
+        Guid? publisherId = null;
+        if (!string.IsNullOrWhiteSpace(publisherName))
+        {
+            var normalizedPublisherName = publisherName.Trim();
+            var publisher = dbContext.Publishers.Local.FirstOrDefault(item =>
+                string.Equals(item.Name, normalizedPublisherName, StringComparison.OrdinalIgnoreCase))
+                ?? await dbContext.Publishers.FirstOrDefaultAsync(item =>
+                    EF.Functions.ILike(item.Name, normalizedPublisherName), cancellationToken);
+            if (publisher is null)
+            {
+                publisher = Publisher.Create(normalizedPublisherName);
+                await dbContext.Publishers.AddAsync(publisher, cancellationToken);
+            }
+            publisherId = publisher.Id;
+        }
+
+        await ReplaceRelationshipsAsync(book.Id, [author.Id], [category.Id], publisherId, cancellationToken);
+    }
+
+    public async Task<bool> HasActiveDependenciesAsync(Guid bookId, CancellationToken cancellationToken) =>
+        await dbContext.BookCopies.AnyAsync(copy => copy.BookId == bookId && copy.Status != CopyStatus.Withdrawn, cancellationToken) ||
+        await dbContext.Borrowings.AnyAsync(item => item.BookId == bookId && item.ReturnedAtUtc == null, cancellationToken) ||
+        await dbContext.Reservations.AnyAsync(item => item.BookId == bookId && item.FulfilledAtUtc == null && item.CancelledAtUtc == null, cancellationToken);
+
+    public async Task<IReadOnlyList<BookCatalogReference>> SearchReferencesAsync(
+        string type,
+        string? search,
+        int maximumResults,
+        CancellationToken cancellationToken)
+    {
+        var keyword = search?.Trim();
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "authors" => await dbContext.Authors.AsNoTracking()
+                .Where(item => item.Status == RecordStatus.Active &&
+                    (keyword == null || EF.Functions.ILike(item.FullName, $"%{keyword}%")))
+                .OrderBy(item => item.FullName).Take(maximumResults)
+                .Select(item => new BookCatalogReference(item.Id, item.FullName)).ToListAsync(cancellationToken),
+            "publishers" => await dbContext.Publishers.AsNoTracking()
+                .Where(item => item.Status == RecordStatus.Active &&
+                    (keyword == null || EF.Functions.ILike(item.Name, $"%{keyword}%")))
+                .OrderBy(item => item.Name).Take(maximumResults)
+                .Select(item => new BookCatalogReference(item.Id, item.Name)).ToListAsync(cancellationToken),
+            "categories" => await dbContext.Categories.AsNoTracking()
+                .Where(item => item.Status == RecordStatus.Active &&
+                    (keyword == null || EF.Functions.ILike(item.Name, $"%{keyword}%")))
+                .OrderBy(item => item.Name).Take(maximumResults)
+                .Select(item => new BookCatalogReference(item.Id, item.Name)).ToListAsync(cancellationToken),
+            _ => []
+        };
+    }
+
     public async Task<(IReadOnlyList<Book> Items, int TotalCount)> GetPageAsync(
         string? search,
         string? category,
@@ -211,13 +292,14 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         IReadOnlyCollection<Guid>? authorIds,
         IReadOnlyCollection<Guid>? categoryIds,
         Guid? publisherId,
+        RecordStatus? status,
         string sortBy,
         bool descending,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Books
-            .Where(book => book.Status == RecordStatus.Active)
-            .AsQueryable();
+        var query = dbContext.Books.AsQueryable();
+        if (status is not null)
+            query = query.Where(book => book.Status == status);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -231,7 +313,9 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
                         EF.Functions.ILike(author.FullName, $"%{keyword}%"))) ||
                 dbContext.BookCategories.Any(link => link.BookId == book.Id &&
                     dbContext.Categories.Any(bookCategory => bookCategory.Id == link.CategoryId &&
-                        EF.Functions.ILike(bookCategory.Name, $"%{keyword}%"))));
+                        EF.Functions.ILike(bookCategory.Name, $"%{keyword}%"))) ||
+                (book.PublisherId != null && dbContext.Publishers.Any(publisher =>
+                    publisher.Id == book.PublisherId && EF.Functions.ILike(publisher.Name, $"%{keyword}%"))));
         }
 
         if (!string.IsNullOrWhiteSpace(category))

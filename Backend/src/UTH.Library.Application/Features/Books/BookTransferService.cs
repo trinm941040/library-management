@@ -36,6 +36,7 @@ public sealed class BookTransferService(
                 query.AuthorIds,
                 query.CategoryIds,
                 query.PublisherId,
+                query.Status,
                 sortBy,
                 query.SortDirection == SortDirection.Desc,
                 cancellationToken)).Items;
@@ -174,6 +175,11 @@ public sealed class BookTransferService(
             if (book is null)
             {
                 results.Add(new(id, false, "Không tìm thấy sách."));
+                continue;
+            }
+            if (catalogRepository is not null && await catalogRepository.HasActiveDependenciesAsync(id, cancellationToken))
+            {
+                results.Add(new(id, false, "Biểu ghi còn bản sao, lượt mượn hoặc đặt trước đang hoạt động."));
                 continue;
             }
             try

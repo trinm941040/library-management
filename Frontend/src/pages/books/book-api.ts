@@ -3,9 +3,16 @@ import { authenticatedFetch, guidSchema, readResponse } from '@/auth/auth-api'
 import { bulkResultSchema, importFieldErrorSchema } from '@/shared/data/table-contracts'
 
 const BOOKS_URL = '/api/v1/books'
+const referenceSchema = z.object({ id: guidSchema, name: z.string() })
 const bookSchema = z.object({
   id: guidSchema, title: z.string(), author: z.string(), isbn: z.string(), category: z.string(),
   quantity: z.number().int().nonnegative(), createdAtUtc: z.string(), updatedAtUtc: z.string().nullable(),
+  authors: z.array(referenceSchema).nullish(), categories: z.array(referenceSchema).nullish(),
+  publisher: referenceSchema.nullish(), availableCopyCount: z.number().int().nonnegative().nullish(),
+  status: z.enum(['Active', 'Inactive']), concurrencyToken: guidSchema,
+  description: z.string().nullable(), editionStatement: z.string().nullable(),
+  publicationYear: z.number().int().nullable(), language: z.string().nullable(),
+  pageCount: z.number().int().positive().nullable(),
 })
 const bookPageSchema = z.object({
   items: z.array(bookSchema), pageNumber: z.number().int().positive(),
@@ -29,6 +36,7 @@ export type LibraryBook = z.infer<typeof bookSchema>
 export type BookPageResponse = z.infer<typeof bookPageSchema>
 export type BookImportPreview = z.infer<typeof importPreviewSchema>
 export type BookImportResult = z.infer<typeof importResultSchema>
+export type BookReference = z.infer<typeof referenceSchema>
 export type BookFilters = {
   search?: string
   category?: string
@@ -36,8 +44,14 @@ export type BookFilters = {
   pageSize?: number
   sortBy?: 'title' | 'author' | 'isbn' | 'category' | 'quantity' | 'createdAtUtc'
   sortDirection?: 'asc' | 'desc'
+  status?: 'Active' | 'Inactive'
 }
-export type BookInput = { title: string; author: string; isbn: string; category: string; quantity: number }
+export type BookInput = {
+  title: string; author: string; isbn: string; category: string; quantity: number
+  publisherName?: string | null; description?: string | null; editionStatement?: string | null
+  publicationYear?: number | null; language?: string | null; pageCount?: number | null
+  concurrencyToken?: string
+}
 
 function queryString(filters: BookFilters) {
   const query = new URLSearchParams()
@@ -51,6 +65,15 @@ function queryString(filters: BookFilters) {
 
 export async function getBooks(filters: BookFilters, signal?: AbortSignal) {
   return readResponse(await authenticatedFetch(`${BOOKS_URL}?${queryString(filters)}`, { signal }), bookPageSchema)
+}
+export async function getBook(id: string, signal?: AbortSignal) {
+  return readResponse(await authenticatedFetch(`${BOOKS_URL}/${id}`, { signal }), bookSchema)
+}
+export async function getCatalogReferences(type: 'authors' | 'publishers' | 'categories', signal?: AbortSignal) {
+  return readResponse(
+    await authenticatedFetch(`${BOOKS_URL}/catalog-references?type=${type}`, { signal }),
+    z.array(referenceSchema),
+  )
 }
 export async function createBook(input: BookInput) {
   return readResponse(await authenticatedFetch(BOOKS_URL, {

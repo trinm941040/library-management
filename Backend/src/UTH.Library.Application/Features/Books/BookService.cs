@@ -26,6 +26,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 query.AuthorIds,
                 query.CategoryIds,
                 query.PublisherId,
+                query.Status,
                 sortBy,
                 query.SortDirection == SortDirection.Desc,
                 cancellationToken);
@@ -53,6 +54,14 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 : await catalogRepository.GetCatalogAsync(id, cancellationToken));
     }
 
+    public Task<IReadOnlyList<BookCatalogReference>> SearchReferencesAsync(
+        string type,
+        string? search,
+        CancellationToken cancellationToken) =>
+        catalogRepository is null
+            ? Task.FromResult<IReadOnlyList<BookCatalogReference>>([])
+            : catalogRepository.SearchReferencesAsync(type, search, 30, cancellationToken);
+
     public async Task<BookResult> CreateAsync(CreateBookCommand command, CancellationToken cancellationToken)
     {
         var errors = validator.Validate(command);
@@ -68,6 +77,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Category,
                 command.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
+            book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
+                command.PublicationYear, command.Language, command.PageCount);
 
             if (await repository.IsbnExistsAsync(book.Isbn, null, cancellationToken))
                 return BookResult.Fail(BookFailure.Conflict, "A book with this ISBN already exists.");
@@ -82,6 +93,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         command.CategoryIds ?? [],
                         command.PublisherId,
                         ct);
+                else if (catalogRepository is not null)
+                    await catalogRepository.NormalizeBookAsync(book, command.Author, command.Category, command.PublisherName, ct);
                 if (catalogRepository is not null)
                     await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, book.CreatedAtUtc, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.created", nameof(Book), book.Id, null, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
@@ -105,6 +118,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
             return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
+        if (command.ConcurrencyToken is not null && command.ConcurrencyToken != book.ConcurrencyToken)
+            return BookResult.Fail(BookFailure.Conflict, "Biểu ghi đã thay đổi. Vui lòng tải lại trước khi lưu.");
 
         try
         {
@@ -120,6 +135,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Category,
                 command.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
+            book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
+                command.PublicationYear, command.Language, command.PageCount);
             return await unitOfWork.ExecuteAsync(async ct =>
             {
                 if (catalogRepository is not null && HasNormalizedReferences(command))
@@ -129,6 +146,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                         command.CategoryIds ?? [],
                         command.PublisherId,
                         ct);
+                else if (catalogRepository is not null)
+                    await catalogRepository.NormalizeBookAsync(book, command.Author, command.Category, command.PublisherName, ct);
                 if (catalogRepository is not null)
                     await catalogRepository.SetAvailableCopyCountAsync(book.Id, command.Quantity, timeProvider.GetUtcNow().UtcDateTime, ct);
                 unitOfWork.AddAuditLog(AuditLog.Create(requestContext.UserId, "book.updated", nameof(Book), book.Id, before, JsonSerializer.Serialize(book), timeProvider.GetUtcNow().UtcDateTime, requestContext.CorrelationId));
@@ -148,6 +167,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
             return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
+        if (catalogRepository is not null && await catalogRepository.HasActiveDependenciesAsync(id, cancellationToken))
+            return BookResult.Fail(BookFailure.Conflict, "Không thể ngừng sử dụng biểu ghi khi còn bản sao, lượt mượn hoặc đặt trước đang hoạt động.");
 
         return await unitOfWork.ExecuteAsync(ct =>
         {
@@ -186,7 +207,14 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
             catalog?.Authors.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),
             catalog?.Categories.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),
             catalog?.Publisher is null ? null : new BookReferenceModel(catalog.Publisher.Id, catalog.Publisher.Name),
-            catalog?.AvailableCopyCount);
+            catalog?.AvailableCopyCount,
+            book.Status,
+            book.ConcurrencyToken,
+            book.Description,
+            book.EditionStatement,
+            book.PublicationYear,
+            book.Language,
+            book.PageCount);
 
     private IBookCatalogRepository? catalogRepository => repository as IBookCatalogRepository;
 

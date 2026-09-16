@@ -30,6 +30,9 @@ const DashboardPage = lazy(() =>
 const BooksPage = lazy(() =>
   import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
 )
+const CatalogDetailPage = lazy(() =>
+  import('../pages/books/CatalogDetailPage').then((m) => ({ default: m.CatalogDetailPage })),
+)
 const BorrowingsPage = lazy(() =>
   import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
 )
@@ -120,7 +123,9 @@ export function AppRoutes() {
           element={page('/access-accounts', <AccessAccountsPage />)}
         />
         <Route path="/users" element={<Navigate to="/access-accounts" replace />} />
-        <Route path="/books" element={page('/books', <BooksPage />)} />
+        <Route path="/books" element={<Navigate to="/catalog" replace />} />
+        <Route path="/catalog" element={page('/catalog', <BooksPage />)} />
+        <Route path="/catalog/:bookId" element={page('/catalog', <CatalogDetailPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />

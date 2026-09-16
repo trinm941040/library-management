@@ -53,6 +53,8 @@ public sealed class Book
     public string? EditionStatement { get; private set; }
     public string? Description { get; private set; }
     public int? PublicationYear { get; private set; }
+    public string? Language { get; private set; }
+    public int? PageCount { get; private set; }
 
     public static Book Create(
         string title,
@@ -77,17 +79,23 @@ public sealed class Book
         Guid? publisherId,
         string? editionStatement,
         string? description,
-        int? publicationYear)
+        int? publicationYear,
+        string? language = null,
+        int? pageCount = null)
     {
         if (publisherId == Guid.Empty)
             throw new ArgumentException("Publisher is invalid.", nameof(publisherId));
         if (publicationYear is < 0 or > 9999)
             throw new ArgumentOutOfRangeException(nameof(publicationYear), "Publication year is invalid.");
+        if (pageCount is <= 0 or > 100_000)
+            throw new ArgumentOutOfRangeException(nameof(pageCount), "Page count is invalid.");
 
         PublisherId = publisherId;
         EditionStatement = string.IsNullOrWhiteSpace(editionStatement) ? null : editionStatement.Trim();
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         PublicationYear = publicationYear;
+        Language = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        PageCount = pageCount;
     }
 
     public void Deactivate(DateTime updatedAtUtc)
