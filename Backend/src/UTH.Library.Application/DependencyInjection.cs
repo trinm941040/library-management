@@ -11,6 +11,7 @@ using UTH.Library.Application.Features.AuditLogs;
 using UTH.Library.Application.Features.Payments;
 using UTH.Library.Application.Features.Adjustments;
 using UTH.Library.Application.Features.Dashboard;
+using UTH.Library.Application.Features.Reports;
 
 namespace UTH.Library.Application;
 
@@ -34,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<AuditLogService>();
         services.AddScoped<FinePaymentService>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<ReportService>();
+        services.AddScoped<SavedFilterService>();
         return services;
     }
 }

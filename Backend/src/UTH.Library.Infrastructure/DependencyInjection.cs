@@ -75,6 +75,8 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<ISavedFilterRepository, SavedFilterRepository>();
         return services;
     }
 }

@@ -64,24 +64,24 @@ public sealed class DashboardRepository(
         // Calculate period window
         var localNow = nowUtc.AddMinutes(-offsetMinutes);
         DateTime periodStartUtc;
-        DateTime periodEndUtc = nowUtc;
+        DateTime periodEndUtc = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc);
 
         switch (timeRange)
         {
             case "today":
-                var startOfTodayLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Unspecified);
-                periodStartUtc = startOfTodayLocal.AddMinutes(offsetMinutes);
+                var startOfTodayLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Utc);
+                periodStartUtc = DateTime.SpecifyKind(startOfTodayLocal.AddMinutes(offsetMinutes), DateTimeKind.Utc);
                 break;
             case "30d":
-                periodStartUtc = nowUtc.AddDays(-30);
+                periodStartUtc = DateTime.SpecifyKind(nowUtc.AddDays(-30), DateTimeKind.Utc);
                 break;
             case "month":
-                var startOfMonthLocal = new DateTime(localNow.Year, localNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
-                periodStartUtc = startOfMonthLocal.AddMinutes(offsetMinutes);
+                var startOfMonthLocal = new DateTime(localNow.Year, localNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                periodStartUtc = DateTime.SpecifyKind(startOfMonthLocal.AddMinutes(offsetMinutes), DateTimeKind.Utc);
                 break;
             case "7d":
             default:
-                periodStartUtc = nowUtc.AddDays(-7);
+                periodStartUtc = DateTime.SpecifyKind(nowUtc.AddDays(-7), DateTimeKind.Utc);
                 break;
         }
 

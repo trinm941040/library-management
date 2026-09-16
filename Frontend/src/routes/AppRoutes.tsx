@@ -23,6 +23,9 @@ const ChangePasswordPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('../pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
+const ReportsPage = lazy(() =>
+  import('../pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+)
 const BooksPage = lazy(() =>
   import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
 )
@@ -137,6 +140,7 @@ export function AppRoutes() {
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/payments" element={page('/payments', <PaymentsPage />)} />
+        <Route path="/reports" element={page('/reports', <ReportsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
