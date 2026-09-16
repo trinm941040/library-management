@@ -8,8 +8,8 @@ using UTH.Library.Application.Features.Members;
 using UTH.Library.Application.Common;
 using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Application.Features.AuditLogs;
-
 using UTH.Library.Application.Features.Payments;
+using UTH.Library.Application.Features.Adjustments;
 
 namespace UTH.Library.Application;
 
@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<BorrowingService>();
         services.AddScoped<ReservationService>();
         services.AddScoped<ViolationService>();
+        services.AddScoped<FineAdjustmentService>();
         services.AddScoped<MemberService>();
         services.AddScoped<CirculationPolicyService>();
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();

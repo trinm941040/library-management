@@ -33,6 +33,10 @@ public interface IViolationRepository
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken);
+    Task AddAdjustmentAsync(FineAdjustment adjustment, CancellationToken cancellationToken);
+    Task<IReadOnlyList<FineAdjustment>> GetAdjustmentsByViolationIdAsync(Guid violationId, CancellationToken cancellationToken);
+    Task<decimal> GetTotalAdjustedAsync(Guid violationId, CancellationToken cancellationToken);
+    Task<decimal> GetTotalPaidAsync(Guid violationId, CancellationToken cancellationToken);
     Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

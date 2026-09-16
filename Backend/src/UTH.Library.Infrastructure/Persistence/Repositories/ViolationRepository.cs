@@ -205,6 +205,25 @@ public sealed class ViolationRepository(LibraryDbContext dbContext) : IViolation
         return (items, totalCount);
     }
 
+    public Task AddAdjustmentAsync(FineAdjustment adjustment, CancellationToken cancellationToken) =>
+        dbContext.FineAdjustments.AddAsync(adjustment, cancellationToken).AsTask();
+
+    public async Task<IReadOnlyList<FineAdjustment>> GetAdjustmentsByViolationIdAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FineAdjustments
+            .Where(adjustment => adjustment.ViolationId == violationId)
+            .OrderByDescending(adjustment => adjustment.AdjustedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public async Task<decimal> GetTotalAdjustedAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FineAdjustments
+            .Where(adjustment => adjustment.ViolationId == violationId)
+            .SumAsync(adjustment => (decimal?)adjustment.AmountDelta, cancellationToken) ?? 0m;
+
+    public async Task<decimal> GetTotalPaidAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FinePayments
+            .Where(payment => payment.ViolationId == violationId)
+            .SumAsync(payment => (decimal?)payment.Amount, cancellationToken) ?? 0m;
+
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
 

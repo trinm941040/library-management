@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UTH.Library.Api.Contracts.Adjustments;
 using UTH.Library.Api.Contracts.Violations;
 using UTH.Library.Api.Contracts.Payments;
 using UTH.Library.Application.Abstractions.Identity;
 using UTH.Library.Application.Features.Payments;
+using UTH.Library.Application.Features.Adjustments;
 using UTH.Library.Application.Features.Violations;
 
 namespace UTH.Library.Api.Controllers;
@@ -12,7 +14,10 @@ namespace UTH.Library.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/violations")]
-public sealed class ViolationsController(ViolationService violationService, FinePaymentService paymentService) : ControllerBase
+public sealed class ViolationsController(
+    ViolationService violationService,
+    FinePaymentService paymentService,
+    FineAdjustmentService adjustmentService) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = Permissions.ViolationsRead)]
@@ -218,15 +223,95 @@ public sealed class ViolationsController(ViolationService violationService, Fine
                 null));
     }
 
-    [HttpPost("{id:guid}/waive")]
-    [Authorize(Policy = Permissions.ViolationsResolve)]
-    [ProducesResponseType(typeof(ViolationResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ViolationResponse>> Waive(Guid id, CancellationToken cancellationToken)
+    [HttpPost("{id:guid}/adjustment-preview")]
+    [Authorize(Policy = Permissions.ViolationsRead)]
+    [ProducesResponseType(typeof(FineAdjustmentPreviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FineAdjustmentPreviewResponse>> GetAdjustmentPreview(
+        Guid id,
+        [FromBody] FineAdjustmentPreviewRequest request,
+        CancellationToken cancellationToken)
     {
-        var result = await violationService.WaiveAsync(id, cancellationToken);
-        return result.Succeeded && result.Violation is not null
-            ? Ok(ToResponse(result.Violation))
-            : MapFailure(result);
+        var preview = await adjustmentService.GetPreviewAsync(id, request.AmountDelta, cancellationToken);
+        if (preview is null)
+            return NotFound(CreateProblem("Không tìm thấy thông tin vi phạm."));
+
+        return Ok(new FineAdjustmentPreviewResponse(
+            preview.ViolationId,
+            preview.OriginalFineAmount,
+            preview.TotalAdjusted,
+            preview.TotalPaid,
+            preview.CurrentBalance,
+            preview.AdjustmentAmountDelta,
+            preview.ProjectedBalance,
+            preview.ProjectedStatus,
+            preview.IsAllowed,
+            preview.ValidationMessage));
+    }
+
+    [HttpPost("{id:guid}/adjust")]
+    [Authorize(Policy = Permissions.ViolationsAdjust)]
+    [ProducesResponseType(typeof(FineAdjustmentResultResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FineAdjustmentResultResponse>> Adjust(
+        Guid id,
+        [FromBody] CreateFineAdjustmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorId = GetActorUserId();
+        var result = await adjustmentService.AdjustAsync(
+            new CreateFineAdjustmentCommand(id, request.AmountDelta, request.Reason, actorId),
+            cancellationToken);
+
+        if (!result.Succeeded)
+            return MapAdjustmentFailure(result);
+
+        return Ok(new FineAdjustmentResultResponse(
+            true,
+            result.Adjustment is not null ? ToAdjustmentResponse(result.Adjustment) : null,
+            result.NewBalance,
+            result.Status,
+            []));
+    }
+
+    [HttpPost("{id:guid}/waive")]
+    [Authorize(Policy = Permissions.ViolationsWaive)]
+    [ProducesResponseType(typeof(FineAdjustmentResultResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FineAdjustmentResultResponse>> Waive(
+        Guid id,
+        [FromBody] WaiveViolationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorId = GetActorUserId();
+        var result = await adjustmentService.WaiveAsync(
+            new WaiveViolationCommand(id, request.Reason, actorId),
+            cancellationToken);
+
+        if (!result.Succeeded)
+            return MapAdjustmentFailure(result);
+
+        return Ok(new FineAdjustmentResultResponse(
+            true,
+            result.Adjustment is not null ? ToAdjustmentResponse(result.Adjustment) : null,
+            result.NewBalance,
+            result.Status,
+            []));
+    }
+
+    [HttpGet("{id:guid}/adjustments")]
+    [Authorize(Policy = Permissions.ViolationsRead)]
+    [ProducesResponseType(typeof(IReadOnlyList<FineAdjustmentResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<FineAdjustmentResponse>>> GetAdjustments(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var adjustments = await adjustmentService.GetAdjustmentsAsync(id, cancellationToken);
+        return Ok(adjustments.Select(ToAdjustmentResponse).ToArray());
     }
 
     private ActionResult MapFailure(ViolationResult result) => result.Failure switch
@@ -236,12 +321,19 @@ public sealed class ViolationsController(ViolationService violationService, Fine
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu yêu cầu không hợp lệ."))
     };
 
+    private ActionResult MapAdjustmentFailure(FineAdjustmentResult result) => result.Failure switch
+    {
+        FineAdjustmentFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy vi phạm.")),
+        FineAdjustmentFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu xung đột với thao tác đồng thời.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Yêu cầu điều chỉnh không hợp lệ."))
+    };
+
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
 
-    private Guid GetActorUserId()
+    private Guid? GetActorUserId()
     {
         var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
+        return Guid.TryParse(raw, out var id) ? id : null;
     }
 
     private static ViolationResponse ToResponse(ViolationModel violation) =>
@@ -290,4 +382,14 @@ public sealed class ViolationsController(ViolationService violationService, Fine
                 a.Reason,
                 a.AdjustedAtUtc,
                 a.AdjustedByUserId)).ToArray());
+
+    private static FineAdjustmentResponse ToAdjustmentResponse(FineAdjustmentItemModel a) =>
+        new(
+            a.Id,
+            a.MemberId,
+            a.ViolationId,
+            a.AmountDelta,
+            a.Reason,
+            a.AdjustedAtUtc,
+            a.AdjustedByUserId);
 }

@@ -37,6 +37,15 @@ public sealed class ViolationService(
         return new ViolationPageModel(models, pageNumber, pageSize, totalCount);
     }
 
+    public async Task<ViolationModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var item = await violations.GetByIdAsync(id, cancellationToken);
+        if (item is null)
+            return null;
+
+        return await MapAsync(item, cancellationToken);
+    }
+
     public async Task<ViolationDetailModel?> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var violation = await violations.GetByIdAsync(id, cancellationToken);

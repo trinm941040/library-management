@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
+  Calculator,
   CircleAlert,
   Eye,
   Filter,
+  History,
   Plus,
   RefreshCw,
   Search,
+  ShieldAlert,
 } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
@@ -31,7 +34,10 @@ import {
 } from '@/common/components/ui/table'
 import { ViolationFormDialog, type ViolationFormData } from './components/ViolationFormDialog'
 import { ViolationDetailDialog } from './components/ViolationDetailDialog'
+import { ViolationAdjustmentDialog } from './components/ViolationAdjustmentDialog'
+import { ViolationAdjustmentsHistoryDialog } from './components/ViolationAdjustmentsHistoryDialog'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { useAuth } from '@/auth/AuthProvider'
 import {
   createViolation,
   getViolations,
@@ -66,6 +72,14 @@ const typeLabels: Record<string, string> = {
 }
 
 export function ViolationsPage() {
+  const { user } = useAuth()
+  const canAdjust = Boolean(user?.permissions?.includes('violations.adjust') || user?.permissions?.includes('violations.resolve'))
+  const canWaive = Boolean(user?.permissions?.includes('violations.waive') || user?.permissions?.includes('violations.resolve'))
+  const canRead = Boolean(user?.permissions?.includes('violations.read'))
+
+  const [adjustmentViolation, setAdjustmentViolation] = useState<LibraryViolation | null>(null)
+  const [historyViolation, setHistoryViolation] = useState<LibraryViolation | null>(null)
+
   const [searchParams, setSearchParams] = useSearchParams()
 
   const urlSearch = searchParams.get('search') ?? ''
@@ -74,7 +88,6 @@ export function ViolationsPage() {
   const urlHasBalance = searchParams.get('hasBalance') === 'true'
   const urlPage = Number(searchParams.get('page')) || 1
   const urlPageSize = Number(searchParams.get('pageSize')) || 20
-
   const [page, setPage] = useState<ViolationPageResponse | null>(null)
   const [searchInput, setSearchInput] = useState(urlSearch)
   const [search, setSearch] = useState(urlSearch)
@@ -452,6 +465,30 @@ export function ViolationsPage() {
                               <span className="hidden sm:inline ml-1">Chi tiết</span>
                             </Button>
 
+                            {!isSettled && (canAdjust || canWaive) ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1 text-xs"
+                                onClick={() => setAdjustmentViolation(item)}
+                              >
+                                <Calculator className="size-3.5" />
+                                <span className="hidden sm:inline">Điều chỉnh</span>
+                              </Button>
+                            ) : null}
+
+                            {canRead ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1 text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => setHistoryViolation(item)}
+                              >
+                                <History className="size-3.5" />
+                                <span className="hidden sm:inline">Lịch sử</span>
+                              </Button>
+                            ) : null}
+
                             {!isSettled && (
                               <PermissionBoundary requiredPermissions={['violations.resolve']}>
                                 <Button
@@ -526,6 +563,24 @@ export function ViolationsPage() {
         receipt={currentReceipt}
         open={paymentReceiptOpen}
         onOpenChange={setPaymentReceiptOpen}
+      />
+
+      <ViolationAdjustmentDialog
+        violation={adjustmentViolation}
+        open={Boolean(adjustmentViolation)}
+        onOpenChange={(open) => !open && setAdjustmentViolation(null)}
+        onSuccess={(msg) => {
+          setNotice(msg)
+          refresh()
+        }}
+        canAdjust={canAdjust}
+        canWaive={canWaive}
+      />
+
+      <ViolationAdjustmentsHistoryDialog
+        violation={historyViolation}
+        open={Boolean(historyViolation)}
+        onOpenChange={(open) => !open && setHistoryViolation(null)}
       />
     </>
   )

@@ -44,6 +44,8 @@ public static class Permissions
     public const string ViolationsRead = "violations.read";
     public const string ViolationsCreate = "violations.create";
     public const string ViolationsResolve = "violations.resolve";
+    public const string ViolationsAdjust = "violations.adjust";
+    public const string ViolationsWaive = "violations.waive";
     public const string MembersRead = "members.read";
     public const string MembersCreate = "members.create";
     public const string MembersUpdate = "members.update";
@@ -67,7 +69,7 @@ public static class Permissions
         BooksRead, BooksCreate, BooksUpdate, BooksDelete,
         BorrowingsRead, BorrowingsCreate, BorrowingsReturn, BorrowingsRenew,
         ReservationsRead, ReservationsCreate, ReservationsCancel, ReservationsFulfill,
-        ViolationsRead, ViolationsCreate, ViolationsResolve,
+        ViolationsRead, ViolationsCreate, ViolationsResolve, ViolationsAdjust, ViolationsWaive,
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate,
