@@ -41,6 +41,7 @@ public sealed class ViolationRepository(LibraryDbContext dbContext) : IViolation
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(violation => violation.RecordedAtUtc)
+            .ThenByDescending(violation => violation.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

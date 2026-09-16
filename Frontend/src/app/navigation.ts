@@ -1,9 +1,11 @@
 import {
   AlertTriangle,
   Clock,
+  Barcode,
   KeyRound,
   LayoutDashboard,
   Layers,
+  MapPinned,
   RefreshCw,
   Settings,
   ShieldCheck,
@@ -59,7 +61,9 @@ export const navigationGroups: readonly NavigationGroup[] = [
   {
     label: 'Quản lý tác vụ',
     items: [
-      { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/catalog', label: 'Biểu ghi sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/branches', label: 'Chi nhánh và kệ', icon: MapPinned, requiredPermissions: ['locations.read'] },
+      { path: '/copies', label: 'Bản sao và mã vạch', icon: Barcode, requiredPermissions: ['copies.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',

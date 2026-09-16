@@ -8,6 +8,8 @@ using UTH.Library.Application.Features.Members;
 using UTH.Library.Application.Common;
 using UTH.Library.Application.Features.CirculationPolicies;
 using UTH.Library.Application.Features.AuditLogs;
+using UTH.Library.Application.Features.Locations;
+using UTH.Library.Application.Features.Copies;
 
 namespace UTH.Library.Application;
 
@@ -18,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<EmployeeService>();
         services.AddScoped<BookService>();
+        services.AddScoped<BookTransferService>();
         services.AddScoped<BookCommandValidator>();
         services.AddScoped<IQueryHandler<BookListQuery, BookPageModel>>(provider => provider.GetRequiredService<BookService>());
         services.AddScoped<ICommandHandler<CreateBookCommand, BookResult>>(provider => provider.GetRequiredService<BookService>());
@@ -28,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<CirculationPolicyService>();
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();
         services.AddScoped<AuditLogService>();
+        services.AddScoped<LocationService>();
+        services.AddScoped<CopyService>();
         return services;
     }
 }
