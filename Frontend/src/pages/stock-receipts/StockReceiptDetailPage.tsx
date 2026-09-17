@@ -10,6 +10,7 @@ import { getActiveSuppliers, type Supplier } from '@/pages/suppliers/supplier-ap
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
 import { getBooks } from '@/pages/books/book-api'
 import { createReceipt, getReceipt, updateReceipt, type ReceiptInput, type StockReceipt } from './receipt-api'
+import { ConfirmReceiptPanel } from './ConfirmReceiptPanel'
 
 type Line = { id?: string; bookId: string; title: string; isbn: string; expected: string;
   received: string; damaged: string; cost: string }
@@ -82,7 +83,7 @@ export function StockReceiptDetailPage() {
     const quantity = (value: string) => Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 1_000_000
     if (!supplierId || !branchId || !receivedAt || lines.length === 0 || lines.some(row =>
       !row.bookId || !quantity(row.expected) || !quantity(row.received) || !quantity(row.damaged) ||
-      Number(row.received) > Number(row.expected) || Number(row.damaged) > Number(row.received) ||
+      Number(row.damaged) > Number(row.received) ||
       (row.cost !== '' && (!Number.isFinite(Number(row.cost)) || Number(row.cost) < 0)))) {
       setError('Chọn nhà cung cấp, chi nhánh và sách; kiểm tra số lượng, hỏng và đơn giá từng dòng.'); return
     }
@@ -127,5 +128,6 @@ export function StockReceiptDetailPage() {
         {editable ? <Button disabled={saving} onClick={() => void save()}><Save /> {saving ? 'Đang lưu...' : 'Lưu phiếu nhập'}</Button> : null}</div>
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     </div>
+    {receipt ? <div className="mt-5"><ConfirmReceiptPanel key={receipt.concurrencyToken} receipt={receipt} onConfirmed={setReceipt} /></div> : null}
   </PageShell>
 }

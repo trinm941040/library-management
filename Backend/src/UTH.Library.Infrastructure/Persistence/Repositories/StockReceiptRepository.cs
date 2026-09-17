@@ -56,11 +56,38 @@ internal sealed class StockReceiptRepository(LibraryDbContext db) : IStockReceip
     public Task<bool> ReceiptNumberExistsAsync(string number, CancellationToken cancellationToken) =>
         db.StockReceipts.AnyAsync(x => x.ReceiptNumber == number, cancellationToken);
 
+    public async Task<IReadOnlySet<Guid>> GetActiveShelfIdsAsync(Guid branchId,
+        IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        (await (from shelf in db.Shelves.AsNoTracking()
+            join area in db.Areas.AsNoTracking() on shelf.AreaId equals area.Id
+            join branch in db.Branches.AsNoTracking() on area.BranchId equals branch.Id
+            where ids.Contains(shelf.Id) && shelf.Status == ShelfStatus.Active &&
+                area.IsActive && branch.IsActive && branch.Id == branchId
+            select shelf.Id).ToArrayAsync(cancellationToken)).ToHashSet();
+
+    public Task<bool> AnyBarcodeExistsAsync(IReadOnlyCollection<string> barcodes, CancellationToken cancellationToken) =>
+        db.BookCopies.AnyAsync(copy => barcodes.Contains(copy.Barcode.Trim().ToUpper()), cancellationToken);
+
+    public async Task<IReadOnlyList<BookCopy>> GetReceiptCopiesAsync(Guid receiptId, CancellationToken cancellationToken) =>
+        await db.BookCopies.AsNoTracking().Where(copy => copy.StockReceiptItemId != null &&
+            db.StockReceiptItems.Any(item => item.Id == copy.StockReceiptItemId && item.StockReceiptId == receiptId))
+            .OrderBy(copy => copy.Barcode).ToArrayAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<DiscrepancyReport>> GetDiscrepanciesAsync(Guid receiptId, CancellationToken cancellationToken) =>
+        await db.DiscrepancyReports.AsNoTracking().Where(report => report.StockReceiptId == receiptId)
+            .OrderBy(report => report.CreatedAtUtc).ToArrayAsync(cancellationToken);
+
     public Task AddAsync(StockReceipt receipt, CancellationToken cancellationToken) =>
         db.StockReceipts.AddAsync(receipt, cancellationToken).AsTask();
 
     public Task AddItemAsync(StockReceiptItem item, CancellationToken cancellationToken) =>
         db.StockReceiptItems.AddAsync(item, cancellationToken).AsTask();
+
+    public Task AddCopyAsync(BookCopy copy, CancellationToken cancellationToken) =>
+        db.BookCopies.AddAsync(copy, cancellationToken).AsTask();
+
+    public Task AddDiscrepancyAsync(DiscrepancyReport report, CancellationToken cancellationToken) =>
+        db.DiscrepancyReports.AddAsync(report, cancellationToken).AsTask();
 
     public void RemoveItem(StockReceiptItem item) => db.StockReceiptItems.Remove(item);
 

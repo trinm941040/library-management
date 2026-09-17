@@ -770,6 +770,9 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.DiscrepancyReport", b =>
                 {
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
@@ -797,6 +800,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("StockReceiptId");
 
@@ -2959,6 +2964,11 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.DiscrepancyReport", b =>
                 {
+                    b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("UTH.Library.Domain.Entities.StockReceipt", null)
                         .WithMany()
                         .HasForeignKey("StockReceiptId")

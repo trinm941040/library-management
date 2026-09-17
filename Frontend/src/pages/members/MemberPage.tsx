@@ -118,6 +118,7 @@ export function MemberPage() {
     if (!routeMemberId) return
     const controller = new AbortController()
     setError('')
+    setSelected(null)
     getMember(routeMemberId, controller.signal)
       .then(setSelected)
       .catch((requestError: unknown) => {

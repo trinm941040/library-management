@@ -22,7 +22,13 @@ public interface IStockReceiptRepository
     Task<IReadOnlySet<Guid>> GetActiveBookIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
     Task<bool> HasCopyReferencesAsync(Guid itemId, CancellationToken cancellationToken);
     Task<bool> ReceiptNumberExistsAsync(string number, CancellationToken cancellationToken);
+    Task<IReadOnlySet<Guid>> GetActiveShelfIdsAsync(Guid branchId, IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+    Task<bool> AnyBarcodeExistsAsync(IReadOnlyCollection<string> barcodes, CancellationToken cancellationToken);
+    Task<IReadOnlyList<BookCopy>> GetReceiptCopiesAsync(Guid receiptId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<DiscrepancyReport>> GetDiscrepanciesAsync(Guid receiptId, CancellationToken cancellationToken);
     Task AddAsync(StockReceipt receipt, CancellationToken cancellationToken);
     Task AddItemAsync(StockReceiptItem item, CancellationToken cancellationToken);
+    Task AddCopyAsync(BookCopy copy, CancellationToken cancellationToken);
+    Task AddDiscrepancyAsync(DiscrepancyReport report, CancellationToken cancellationToken);
     void RemoveItem(StockReceiptItem item);
 }
