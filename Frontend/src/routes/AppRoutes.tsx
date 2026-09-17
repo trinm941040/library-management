@@ -26,6 +26,9 @@ const DashboardPage = lazy(() =>
 const ReportsPage = lazy(() =>
   import('../pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 )
+const NotificationsPage = lazy(() =>
+  import('../pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+)
 const BooksPage = lazy(() =>
   import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
 )
@@ -141,6 +144,7 @@ export function AppRoutes() {
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/payments" element={page('/payments', <PaymentsPage />)} />
         <Route path="/reports" element={page('/reports', <ReportsPage />)} />
+        <Route path="/notifications" element={page('/notifications', <NotificationsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />

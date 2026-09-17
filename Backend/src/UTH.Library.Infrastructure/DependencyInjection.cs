@@ -77,6 +77,10 @@ public static class DependencyInjection
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ISavedFilterRepository, SavedFilterRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<UTH.Library.Application.Features.Notifications.Adapters.INotificationSenderAdapter, UTH.Library.Infrastructure.Notifications.InAppNotificationSenderAdapter>();
+        services.AddScoped<UTH.Library.Application.Features.Notifications.Adapters.INotificationSenderAdapter, UTH.Library.Infrastructure.Notifications.EmailNotificationSenderAdapter>();
+        services.AddScoped<UTH.Library.Application.Features.Notifications.Adapters.INotificationSenderAdapter, UTH.Library.Infrastructure.Notifications.SmsNotificationSenderAdapter>();
         return services;
     }
 }

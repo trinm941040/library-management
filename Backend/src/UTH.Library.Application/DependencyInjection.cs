@@ -12,6 +12,7 @@ using UTH.Library.Application.Features.Payments;
 using UTH.Library.Application.Features.Adjustments;
 using UTH.Library.Application.Features.Dashboard;
 using UTH.Library.Application.Features.Reports;
+using UTH.Library.Application.Features.Notifications;
 
 namespace UTH.Library.Application;
 
@@ -37,6 +38,8 @@ public static class DependencyInjection
         services.AddScoped<DashboardService>();
         services.AddScoped<ReportService>();
         services.AddScoped<SavedFilterService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<NotificationService>();
         return services;
     }
 }

@@ -58,6 +58,9 @@ public static class Permissions
     public const string SettingsUpdate = "settings.update";
     public const string CirculationPoliciesRead = "circulation-policies.read";
     public const string CirculationPoliciesManage = "circulation-policies.manage";
+    public const string NotificationsRead = "notifications.read";
+    public const string NotificationsManage = "notifications.manage";
+    public const string NotificationTemplatesManage = "notification-templates.manage";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -73,7 +76,8 @@ public static class Permissions
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate,
-        CirculationPoliciesRead, CirculationPoliciesManage
+        CirculationPoliciesRead, CirculationPoliciesManage,
+        NotificationsRead, NotificationsManage, NotificationTemplatesManage
     ];
 }
 

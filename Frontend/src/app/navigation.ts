@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Barcode,
+  Bell,
   Clock,
   CreditCard,
   FileSpreadsheet,
@@ -104,6 +105,12 @@ export const navigationGroups: readonly NavigationGroup[] = [
         path: '/reports',
         label: 'Báo cáo & Xuất tệp',
         icon: FileSpreadsheet,
+        requiredPermissions: [],
+      },
+      {
+        path: '/notifications',
+        label: 'Thông báo',
+        icon: Bell,
         requiredPermissions: [],
       },
     ],
