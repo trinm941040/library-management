@@ -48,6 +48,12 @@ const StockReceiptsPage = lazy(() =>
 const StockReceiptDetailPage = lazy(() =>
   import('../pages/stock-receipts/StockReceiptDetailPage').then((m) => ({ default: m.StockReceiptDetailPage })),
 )
+const InventoryAuditsPage = lazy(() =>
+  import('../pages/inventory-audits/InventoryAuditsPage').then((m) => ({ default: m.InventoryAuditsPage })),
+)
+const InventoryAuditDetailPage = lazy(() =>
+  import('../pages/inventory-audits/InventoryAuditDetailPage').then((m) => ({ default: m.InventoryAuditDetailPage })),
+)
 const BorrowingsPage = lazy(() =>
   import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
 )
@@ -147,6 +153,8 @@ export function AppRoutes() {
         <Route path="/stock-receipts" element={page('/stock-receipts', <StockReceiptsPage />)} />
         <Route path="/stock-receipts/new" element={page('/stock-receipts/new', <StockReceiptDetailPage />)} />
         <Route path="/stock-receipts/:id" element={page('/stock-receipts', <StockReceiptDetailPage />)} />
+        <Route path="/inventory-audits" element={page('/inventory-audits', <InventoryAuditsPage />)} />
+        <Route path="/inventory-audits/:id" element={page('/inventory-audits', <InventoryAuditDetailPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />

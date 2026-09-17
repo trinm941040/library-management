@@ -1007,6 +1007,9 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAudit", b =>
                 {
+                    b.Property<Guid?>("AreaId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
@@ -1027,6 +1030,9 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid?>("ShelfId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("StartedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1044,17 +1050,29 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId", "Status");
 
+                    b.HasIndex("AreaId", "ShelfId", "Status");
+
+                    b.HasIndex("ShelfId");
+
                     b.ToTable("inventory_audits", (string)null);
                 });
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAuditItem", b =>
                 {
+                    b.Property<string>("ActualCondition")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ActualShelfId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ActualStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("BookCopyId")
                         .HasColumnType("uuid");
@@ -1068,8 +1086,21 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ExpectedShelfId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ExpectedCondition")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ExpectedStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<Guid>("InventoryAuditId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsExpected")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Result")
                         .IsRequired()
@@ -3033,11 +3064,21 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.InventoryAudit", b =>
                 {
+                    b.HasOne("UTH.Library.Domain.Entities.Area", null)
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("UTH.Library.Domain.Entities.Branch", null)
                         .WithMany()
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("UTH.Library.Domain.Entities.Shelf", null)
+                        .WithMany()
+                        .HasForeignKey("ShelfId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UTH.Library.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()

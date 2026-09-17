@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<IStockReceiptRepository, StockReceiptRepository>();
         services.AddScoped<IBookCopyRepository, BookCopyRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IInventoryAuditRepository, InventoryAuditRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }

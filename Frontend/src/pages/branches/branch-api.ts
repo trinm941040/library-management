@@ -24,7 +24,7 @@ export type LocationNode = {
   children: LocationNode[]
 }
 
-const locationSchema: z.ZodType<LocationNode> = z.lazy(() =>
+export const locationSchema: z.ZodType<LocationNode> = z.lazy(() =>
   z.object({
     id: guidSchema,
     type: z.enum(['Branch', 'Area', 'Shelf']),
