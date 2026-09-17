@@ -55,6 +55,21 @@ public static class Permissions
     public const string SettingsUpdate = "settings.update";
     public const string CirculationPoliciesRead = "circulation-policies.read";
     public const string CirculationPoliciesManage = "circulation-policies.manage";
+    public const string LocationsRead = "locations.read";
+    public const string LocationsCreate = "locations.create";
+    public const string LocationsUpdate = "locations.update";
+    public const string LocationsDeactivate = "locations.deactivate";
+    public const string CopiesRead = "copies.read";
+    public const string CopiesCreate = "copies.create";
+    public const string CopiesUpdate = "copies.update";
+    public const string SuppliersRead = "suppliers.read";
+    public const string SuppliersCreate = "suppliers.create";
+    public const string SuppliersUpdate = "suppliers.update";
+    public const string SuppliersDeactivate = "suppliers.deactivate";
+    public const string StockReceiptsRead = "stock-receipts.read";
+    public const string StockReceiptsCreate = "stock-receipts.create";
+    public const string StockReceiptsUpdate = "stock-receipts.update";
+    public const string StockReceiptsConfirm = "stock-receipts.confirm";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -70,7 +85,11 @@ public static class Permissions
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate,
-        CirculationPoliciesRead, CirculationPoliciesManage
+        CirculationPoliciesRead, CirculationPoliciesManage,
+        LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
+        CopiesRead, CopiesCreate, CopiesUpdate,
+        SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
+        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm
     ];
 }
 

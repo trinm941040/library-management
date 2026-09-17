@@ -76,21 +76,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(todo => todo.CreatedAtUtc).IsRequired();
         });
 
-        modelBuilder.Entity<Book>(entity =>
-        {
-            entity.ToTable("books");
-            entity.HasKey(book => book.Id);
-            entity.Property(book => book.Title).HasMaxLength(200).IsRequired();
-            entity.Property(book => book.Author).HasMaxLength(200).IsRequired();
-            entity.Property(book => book.Isbn).HasMaxLength(32).IsRequired();
-            entity.Property(book => book.Category).HasMaxLength(100).IsRequired();
-            entity.Property(book => book.Quantity).IsRequired();
-            entity.Property(book => book.CreatedAtUtc).IsRequired();
-            entity.HasIndex(book => book.Isbn).IsUnique();
-            entity.HasIndex(book => book.Title);
-            entity.Property(book => book.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");
-        });
-
         modelBuilder.Entity<Borrowing>(entity =>
         {
             entity.ToTable("borrowings");

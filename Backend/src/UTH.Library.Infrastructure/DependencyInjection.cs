@@ -71,6 +71,10 @@ public static class DependencyInjection
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<IStockReceiptRepository, StockReceiptRepository>();
+        services.AddScoped<IBookCopyRepository, BookCopyRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }
