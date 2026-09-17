@@ -10,6 +10,7 @@ import { getActiveSuppliers, type Supplier } from '@/pages/suppliers/supplier-ap
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
 import { getBooks } from '@/pages/books/book-api'
 import { createReceipt, getReceipt, updateReceipt, type ReceiptInput, type StockReceipt } from './receipt-api'
+import { ConfirmReceiptPanel } from './ConfirmReceiptPanel'
 
 type Line = { id?: string; bookId: string; title: string; isbn: string; expected: string;
   received: string; damaged: string; cost: string }
@@ -127,5 +128,6 @@ export function StockReceiptDetailPage() {
         {editable ? <Button disabled={saving} onClick={() => void save()}><Save /> {saving ? 'Đang lưu...' : 'Lưu phiếu nhập'}</Button> : null}</div>
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     </div>
+    {receipt ? <div className="mt-5"><ConfirmReceiptPanel key={receipt.concurrencyToken} receipt={receipt} onConfirmed={setReceipt} /></div> : null}
   </PageShell>
 }

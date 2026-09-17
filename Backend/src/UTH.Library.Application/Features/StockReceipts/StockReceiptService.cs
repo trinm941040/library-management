@@ -95,6 +95,98 @@ public sealed class StockReceiptService(IStockReceiptRepository repository, IUni
             return result;
         }, cancellationToken);
 
+    public Task<ConfirmStockReceiptResult> ConfirmAsync(Guid id, ConfirmStockReceiptCommand command,
+        CancellationToken cancellationToken) => unitOfWork.ExecuteAsync(async ct =>
+    {
+        var receipt = await repository.GetTrackedAsync(id, ct)
+            ?? throw new ResourceNotFoundException("Không tìm thấy phiếu nhập.");
+        if (receipt.Status == StockReceiptStatus.Confirmed)
+            return await ConfirmationResultAsync(id, ct);
+        if (receipt.Status == StockReceiptStatus.Cancelled)
+            throw new ResourceConflictException("Phiếu đã hủy không thể xác nhận.");
+        if (command.ConcurrencyToken == Guid.Empty || command.ConcurrencyToken != receipt.ConcurrencyToken)
+            throw new OptimisticConcurrencyException("Phiếu đã thay đổi. Vui lòng tải lại.");
+        var actorId = requestContext.UserId ?? throw new UnauthorizedAccessException("Không xác định được người xác nhận.");
+        var items = await repository.GetTrackedItemsAsync(id, ct);
+        if (command.Items is null || command.Items.Count != items.Count ||
+            command.Items.Select(row => row.StockReceiptItemId).Distinct().Count() != items.Count ||
+            command.Items.Any(row => !items.Any(item => item.Id == row.StockReceiptItemId)))
+            throw Validation("items", "Phải xác nhận chính xác một lần cho từng dòng phiếu.");
+        if (items.Sum(item => (long)item.ReceivedQuantity) > 1000)
+            throw Validation("items", "Một lần xác nhận tối đa 1000 bản sao.");
+        if ((await repository.GetReceiptCopiesAsync(id, ct)).Count > 0)
+            throw new ResourceConflictException("Phiếu đã có bản sao; cần kiểm tra dữ liệu trước khi xác nhận.");
+
+        var copies = new List<(StockReceiptItem Item, ConfirmReceiptCopyCommand Command, string Barcode)>();
+        foreach (var item in items)
+        {
+            var row = command.Items.Single(value => value.StockReceiptItemId == item.Id);
+            if (row.Copies is null || row.Copies.Count != item.ReceivedQuantity)
+                throw Validation("items", $"Dòng {item.Id} phải có đúng {item.ReceivedQuantity} bản sao.");
+            if (row.Copies.Count(copy => copy.Condition == CopyCondition.Damaged) != item.DamagedQuantity)
+                throw Validation("items", $"Dòng {item.Id} phải có đúng {item.DamagedQuantity} bản sao hỏng.");
+            foreach (var copy in row.Copies)
+            {
+                if (!Enum.IsDefined(copy.Condition) || copy.Condition == CopyCondition.Lost)
+                    throw Validation("items", "Tình trạng bản sao không hợp lệ khi nhập kho.");
+                try { copies.Add((item, copy, BookCopy.NormalizeBarcode(copy.Barcode))); }
+                catch (ArgumentException exception) { throw Validation("items", exception.Message); }
+            }
+        }
+        if (copies.Select(copy => copy.Barcode).Distinct(StringComparer.Ordinal).Count() != copies.Count ||
+            await repository.AnyBarcodeExistsAsync(copies.Select(copy => copy.Barcode).ToArray(), ct))
+            throw new ResourceConflictException("Mã vạch trùng trong phiếu hoặc đã tồn tại.");
+        var shelfIds = copies.Select(copy => copy.Command.ShelfId).ToHashSet();
+        var activeShelfIds = await repository.GetActiveShelfIdsAsync(receipt.BranchId, shelfIds, ct);
+        if (shelfIds.Any(shelfId => !activeShelfIds.Contains(shelfId)))
+            throw Validation("items", "Mỗi bản sao phải thuộc kệ đang hoạt động trong chi nhánh của phiếu.");
+
+        var before = JsonSerializer.Serialize(Map((await repository.GetByIdAsync(id, ct))!));
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        foreach (var (item, copy, barcode) in copies)
+        {
+            var entity = BookCopy.Create(item.BookId, barcode, copy.Condition, copy.ShelfId, item.Id, now);
+            if (copy.Condition == CopyCondition.Damaged) entity.ChangeStatus(CopyStatus.Damaged);
+            await repository.AddCopyAsync(entity, ct);
+        }
+        foreach (var item in items)
+        {
+            if (item.ExpectedQuantity != item.ReceivedQuantity)
+                await repository.AddDiscrepancyAsync(DiscrepancyReport.Create(id,
+                    item.ReceivedQuantity < item.ExpectedQuantity ? DiscrepancyType.Missing : DiscrepancyType.Excess,
+                    item.ExpectedQuantity, item.ReceivedQuantity,
+                    $"Dòng {item.Id}: dự kiến {item.ExpectedQuantity}, thực nhận {item.ReceivedQuantity}.", now, actorId), ct);
+            if (item.DamagedQuantity > 0)
+                await repository.AddDiscrepancyAsync(DiscrepancyReport.Create(id, DiscrepancyType.Damaged,
+                    item.ReceivedQuantity, item.ReceivedQuantity - item.DamagedQuantity,
+                    $"Dòng {item.Id}: {item.DamagedQuantity} bản sao hỏng trong {item.ReceivedQuantity} bản sao thực nhận.", now, actorId), ct);
+        }
+        receipt.Confirm(now);
+        await unitOfWork.SaveChangesAsync(ct);
+        var result = await ConfirmationResultAsync(id, ct);
+        Audit("stock-receipt.confirmed", id, before, result.Receipt);
+        return result;
+    }, cancellationToken);
+
+    public async Task<ConfirmStockReceiptResult?> GetConfirmationAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var snapshot = await repository.GetByIdAsync(id, cancellationToken);
+        return snapshot is null ? null : await ConfirmationResultAsync(id, cancellationToken);
+    }
+
+    private async Task<ConfirmStockReceiptResult> ConfirmationResultAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var receipt = Map((await repository.GetByIdAsync(id, cancellationToken))!);
+        var copies = await repository.GetReceiptCopiesAsync(id, cancellationToken);
+        var discrepancies = await repository.GetDiscrepanciesAsync(id, cancellationToken);
+        return new ConfirmStockReceiptResult(receipt,
+            copies.Select(copy => new ReceiptCopyModel(copy.Id, copy.StockReceiptItemId!.Value,
+                copy.Barcode, copy.ShelfId!.Value, copy.Condition, copy.Status)).ToArray(),
+            discrepancies.Select(report => new DiscrepancyModel(report.Id, report.Type,
+                report.ExpectedQuantity, report.ActualQuantity, report.Description,
+                report.CreatedAtUtc, report.CreatedByUserId)).ToArray());
+    }
+
     private async Task ValidateAsync(SaveStockReceiptCommand command,
         IReadOnlyList<StockReceiptItem> existingItems, CancellationToken cancellationToken)
     {

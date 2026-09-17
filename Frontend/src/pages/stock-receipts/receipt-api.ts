@@ -44,3 +44,22 @@ export async function updateReceipt(id: string, input: ReceiptInput) {
   return readResponse(await authenticatedFetch(`${URL}/${id}`, { method: 'PUT',
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }), receiptSchema)
 }
+
+const copySchema = z.object({ id: guidSchema, stockReceiptItemId: guidSchema, barcode: z.string(),
+  shelfId: guidSchema, condition: z.enum(['New', 'Good', 'Worn', 'Damaged', 'Lost']),
+  status: z.enum(['Available', 'Borrowed', 'Reserved', 'InTransit', 'Lost', 'Damaged', 'Withdrawn']) })
+const discrepancySchema = z.object({ id: guidSchema, type: z.enum(['Missing', 'Excess', 'Damaged', 'Other']),
+  expectedQuantity: z.number().int().nonnegative(), actualQuantity: z.number().int().nonnegative(),
+  description: z.string(), createdAtUtc: z.string(), createdByUserId: guidSchema.nullable() })
+const confirmationSchema = z.object({ receipt: receiptSchema, copies: z.array(copySchema),
+  discrepancies: z.array(discrepancySchema) })
+export type ReceiptConfirmation = z.infer<typeof confirmationSchema>
+export type ConfirmReceiptInput = { concurrencyToken: string; items: Array<{ stockReceiptItemId: string;
+  copies: Array<{ barcode: string; shelfId: string; condition: 'New' | 'Good' | 'Worn' | 'Damaged' }> }> }
+export async function getReceiptConfirmation(id: string, signal?: AbortSignal) {
+  return readResponse(await authenticatedFetch(`${URL}/${id}/confirmation`, { signal }), confirmationSchema)
+}
+export async function confirmReceipt(id: string, input: ConfirmReceiptInput) {
+  return readResponse(await authenticatedFetch(`${URL}/${id}/confirm`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }), confirmationSchema)
+}

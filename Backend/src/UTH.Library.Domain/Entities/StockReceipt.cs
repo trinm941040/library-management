@@ -51,4 +51,13 @@ public sealed class StockReceipt
         Notes = normalizedNotes;
         ConcurrencyToken = Guid.NewGuid();
     }
+
+    public void Confirm(DateTime confirmedAtUtc)
+    {
+        if (Status is not (StockReceiptStatus.Draft or StockReceiptStatus.Received))
+            throw new InvalidOperationException("Phiếu đã xác nhận hoặc hủy không thể xác nhận lại.");
+        Status = StockReceiptStatus.Confirmed;
+        ConfirmedAtUtc = confirmedAtUtc.Kind == DateTimeKind.Utc ? confirmedAtUtc : confirmedAtUtc.ToUniversalTime();
+        ConcurrencyToken = Guid.NewGuid();
+    }
 }

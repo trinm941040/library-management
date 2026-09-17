@@ -44,6 +44,25 @@ public sealed class StockReceiptsController(StockReceiptService service) : Contr
         Guid id, SaveStockReceiptRequest request, CancellationToken cancellationToken) =>
         Ok(Map(await service.UpdateAsync(id, ToCommand(request), cancellationToken)));
 
+    [HttpGet("{id:guid}/confirmation")]
+    [Authorize(Policy = Permissions.StockReceiptsRead)]
+    public async Task<ActionResult<ConfirmStockReceiptResponse>> GetConfirmation(Guid id,
+        CancellationToken cancellationToken) =>
+        (await service.GetConfirmationAsync(id, cancellationToken)) is { } result
+            ? Ok(MapConfirmation(result)) : NotFound();
+
+    [HttpPost("{id:guid}/confirm")]
+    [Authorize(Policy = Permissions.StockReceiptsConfirm)]
+    public async Task<ActionResult<ConfirmStockReceiptResponse>> Confirm(Guid id,
+        ConfirmStockReceiptRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.ConfirmAsync(id, new ConfirmStockReceiptCommand(request.ConcurrencyToken,
+            request.Items.Select(item => new ConfirmReceiptItemCommand(item.StockReceiptItemId,
+                item.Copies.Select(copy => new ConfirmReceiptCopyCommand(copy.Barcode, copy.ShelfId,
+                    copy.Condition)).ToArray())).ToArray()), cancellationToken);
+        return Ok(MapConfirmation(result));
+    }
+
     private static SaveStockReceiptCommand ToCommand(SaveStockReceiptRequest request) =>
         new(request.SupplierId, request.BranchId, request.ReceivedAtUtc, request.Notes,
             request.Items.Select(row => new SaveStockReceiptItemCommand(row.Id, row.BookId,
@@ -58,4 +77,11 @@ public sealed class StockReceiptsController(StockReceiptService service) : Contr
             receipt.Items.Select(row => new StockReceiptItemResponse(row.Id, row.BookId,
                 row.BookTitle, row.Isbn, row.ExpectedQuantity, row.ReceivedQuantity,
                 row.DamagedQuantity, row.UnitCost, row.TotalValue, row.ConcurrencyToken)).ToArray());
+
+    private static ConfirmStockReceiptResponse MapConfirmation(ConfirmStockReceiptResult result) =>
+        new(Map(result.Receipt), result.Copies.Select(copy => new ReceiptCopyResponse(copy.Id,
+            copy.StockReceiptItemId, copy.Barcode, copy.ShelfId, copy.Condition, copy.Status)).ToArray(),
+            result.Discrepancies.Select(report => new DiscrepancyResponse(report.Id, report.Type,
+                report.ExpectedQuantity, report.ActualQuantity, report.Description,
+                report.CreatedAtUtc, report.CreatedByUserId)).ToArray());
 }
