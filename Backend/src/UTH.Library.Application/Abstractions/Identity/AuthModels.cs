@@ -66,6 +66,9 @@ public static class Permissions
     public const string SuppliersCreate = "suppliers.create";
     public const string SuppliersUpdate = "suppliers.update";
     public const string SuppliersDeactivate = "suppliers.deactivate";
+    public const string StockReceiptsRead = "stock-receipts.read";
+    public const string StockReceiptsCreate = "stock-receipts.create";
+    public const string StockReceiptsUpdate = "stock-receipts.update";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -84,7 +87,8 @@ public static class Permissions
         CirculationPoliciesRead, CirculationPoliciesManage,
         LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
         CopiesRead, CopiesCreate, CopiesUpdate,
-        SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate
+        SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
+        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate
     ];
 }
 
