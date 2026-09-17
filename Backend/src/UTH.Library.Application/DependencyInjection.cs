@@ -12,6 +12,7 @@ using UTH.Library.Application.Features.Locations;
 using UTH.Library.Application.Features.StockReceipts;
 using UTH.Library.Application.Features.Copies;
 using UTH.Library.Application.Features.Suppliers;
+using UTH.Library.Application.Features.InventoryAudits;
 
 namespace UTH.Library.Application;
 
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<StockReceiptService>();
         services.AddScoped<CopyService>();
         services.AddScoped<SupplierService>();
+        services.AddScoped<InventoryAuditService>();
         return services;
     }
 }

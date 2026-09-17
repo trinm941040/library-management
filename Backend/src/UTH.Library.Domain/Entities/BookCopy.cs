@@ -83,6 +83,14 @@ public sealed class BookCopy
         ConcurrencyToken = Guid.NewGuid();
     }
 
+    public void ChangeCondition(CopyCondition condition)
+    {
+        if (!Enum.IsDefined(condition)) throw new ArgumentOutOfRangeException(nameof(condition));
+        if (Condition == condition) return;
+        Condition = condition;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
     public void Withdraw()
     {
         ChangeStatus(CopyStatus.Withdrawn);

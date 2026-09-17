@@ -70,6 +70,12 @@ public static class Permissions
     public const string StockReceiptsCreate = "stock-receipts.create";
     public const string StockReceiptsUpdate = "stock-receipts.update";
     public const string StockReceiptsConfirm = "stock-receipts.confirm";
+    public const string InventoryAuditsRead = "inventory-audits.read";
+    public const string InventoryAuditsCreate = "inventory-audits.create";
+    public const string InventoryAuditsScan = "inventory-audits.scan";
+    public const string InventoryAuditsComplete = "inventory-audits.complete";
+    public const string InventoryAuditsExport = "inventory-audits.export";
+    public const string InventoryAuditsApply = "inventory-audits.apply";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -89,7 +95,9 @@ public static class Permissions
         LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
         CopiesRead, CopiesCreate, CopiesUpdate,
         SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
-        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm
+        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm,
+        InventoryAuditsRead, InventoryAuditsCreate, InventoryAuditsScan,
+        InventoryAuditsComplete, InventoryAuditsExport, InventoryAuditsApply
     ];
 }
 
