@@ -10,6 +10,9 @@ import { confirmReceipt, getReceiptConfirmation, type StockReceipt, type Receipt
 
 type DraftCopy = { barcode: string; shelfId: string; condition: 'New' | 'Good' | 'Worn' | 'Damaged' }
 const conditionNames = { New: 'Mới', Good: 'Tốt', Worn: 'Cũ', Damaged: 'Hỏng' }
+const statusNames: Record<string, string> = { Available: 'Có sẵn', Borrowed: 'Đang mượn',
+  Reserved: 'Đã đặt trước', InTransit: 'Đang chuyển', Lost: 'Thất lạc',
+  Damaged: 'Hỏng', Withdrawn: 'Đã thanh lý' }
 const seed = (receipt: StockReceipt) => Object.fromEntries(receipt.items.map(item => [item.id,
   Array.from({ length: receipt.items.reduce((sum, row) => sum + row.receivedQuantity, 0) > 1000 ? 0 : item.receivedQuantity }, (_, index): DraftCopy => ({ barcode: '', shelfId: '',
     condition: index < item.damagedQuantity ? 'Damaged' : 'Good' }))])) as Record<string, DraftCopy[]>
@@ -78,7 +81,13 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
   if (receipt.status === 'Confirmed') return <section className="grid gap-3 rounded-xl border bg-card p-4" aria-label="Kết quả nhập kho">
     <h2 className="flex items-center gap-2 text-lg font-semibold"><CheckCircle2 /> Đã xác nhận nhập kho</h2>
     <p>{confirmation?.copies.length ?? 0} bản sao · {confirmation?.discrepancies.length ?? 0} báo cáo sai lệch.</p>
-    {confirmation?.copies.map(copy => <p className="text-sm" key={copy.id}>{copy.barcode} · {copy.condition} · {copy.status}</p>)}
+    {confirmation?.receipt.items.map(item => {
+      const itemCopies = confirmation.copies.filter(copy => copy.stockReceiptItemId === item.id)
+      return <div className="grid gap-1 rounded-md border p-3" key={item.id}>
+        <h3 className="font-medium">{item.bookTitle} · {itemCopies.length} bản sao</h3>
+        {itemCopies.map(copy => <p className="text-sm" key={copy.id}>{copy.barcode} · {conditionNames[copy.condition as keyof typeof conditionNames] ?? copy.condition} · {statusNames[copy.status] ?? copy.status}</p>)}
+      </div>
+    })}
     {confirmation?.discrepancies.map(report => <p className="text-sm" key={report.id}>{report.type}: {report.expectedQuantity} → {report.actualQuantity} · {report.description} · {new Date(report.createdAtUtc).toLocaleString('vi-VN')}</p>)}
   </section>
   if (receipt.status === 'Cancelled' || !mayConfirm) return null

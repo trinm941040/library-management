@@ -19,7 +19,7 @@ public sealed record StockReceiptItemRequest(Guid? Id, Guid BookId,
     [Range(0, 1_000_000)] int ExpectedQuantity,
     [Range(0, 1_000_000)] int ReceivedQuantity,
     [Range(0, 1_000_000)] int DamagedQuantity,
-    [Range(typeof(decimal), "0", "9999999999999999.99")] decimal? UnitCost);
+    [Range(typeof(decimal), "0", "9999999999999999.99", ParseLimitsInInvariantCulture = true)] decimal? UnitCost);
 
 public sealed record SaveStockReceiptRequest(Guid SupplierId, Guid BranchId, DateTime ReceivedAtUtc,
     [StringLength(2000)] string? Notes, [Required] IReadOnlyList<StockReceiptItemRequest> Items,

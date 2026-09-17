@@ -26,8 +26,8 @@ public sealed class StockReceiptItem
     public void Update(int expectedQuantity, int receivedQuantity, int damagedQuantity, decimal? unitCost)
     {
         if (expectedQuantity < 0 || receivedQuantity < 0 || damagedQuantity < 0 ||
-            receivedQuantity > expectedQuantity || damagedQuantity > receivedQuantity)
-            throw new ArgumentException("Số thực nhận phải không vượt dự kiến; số hỏng phải không vượt thực nhận.");
+            damagedQuantity > receivedQuantity)
+            throw new ArgumentException("Số lượng phải không âm; số hỏng không được vượt thực nhận.");
         if (unitCost is < 0 or > 9999999999999999.99m ||
             (unitCost is not null && decimal.Round(unitCost.Value, 2) != unitCost.Value))
             throw new ArgumentException("Đơn giá phải không âm và có tối đa 2 chữ số thập phân.");
