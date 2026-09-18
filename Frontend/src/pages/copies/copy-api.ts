@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { authenticatedFetch, guidSchema, readResponse } from '@/auth/auth-api'
+import { downloadResponse } from '@/shared/data/table-contracts'
 
 const URL = '/api/v1/copies'
 export const copyStatusSchema = z.enum(['Available', 'Borrowed', 'Reserved', 'InTransit', 'Lost', 'Damaged', 'Withdrawn'])
@@ -30,6 +31,16 @@ export type CopyFilters = {
   condition?: CopyCondition; status?: CopyStatus; pageNumber?: number; pageSize?: number
 }
 export type CreateCopyInput = { bookId: string; barcode: string; condition: CopyCondition; shelfId: string }
+export type CopyBulkOperation = 'relocate' | 'status' | 'condition' | 'withdraw'
+export type CopyBulkRow = { copyId: string; concurrencyToken: string; status?: CopyStatus;
+  condition?: CopyCondition; shelfId?: string; reason?: string }
+export type CopyImportRow = { barcode: string; bookId: string; shelfId: string; condition: CopyCondition }
+const bulkResultSchema = z.array(z.object({ copyId: guidSchema, succeeded: z.boolean(),
+  error: z.string().nullable(), copy: copySchema.nullable() }))
+const importPreviewSchema = z.array(z.object({ rowNumber: z.number().int().positive(),
+  barcode: z.string(), valid: z.boolean(), error: z.string().nullable() }))
+export type CopyBulkResult = z.infer<typeof bulkResultSchema>[number]
+export type CopyImportPreview = z.infer<typeof importPreviewSchema>[number]
 
 export async function getCopies(filters: CopyFilters, signal?: AbortSignal) {
   const query = new URLSearchParams()
@@ -64,4 +75,30 @@ export async function relocateCopy(copy: BookCopy, shelfId: string) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ shelfId, concurrencyToken: copy.concurrencyToken }),
   }), copySchema)
+}
+
+export async function runCopyBulk(operation: CopyBulkOperation, rows: CopyBulkRow[]) {
+  return readResponse(await authenticatedFetch(`${URL}/bulk/${operation}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }),
+  }), bulkResultSchema)
+}
+
+export async function previewCopyImport(rows: CopyImportRow[]) {
+  return readResponse(await authenticatedFetch(`${URL}/import/preview`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }),
+  }), importPreviewSchema)
+}
+
+export async function confirmCopyImport(rows: CopyImportRow[]) {
+  return readResponse(await authenticatedFetch(`${URL}/import/confirm`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }),
+  }), z.array(copySchema))
+}
+
+export async function exportCopies(filters: CopyFilters) {
+  const query = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value))
+  })
+  await downloadResponse(await authenticatedFetch(`${URL}/export?${query}`), 'book-copies.csv')
 }

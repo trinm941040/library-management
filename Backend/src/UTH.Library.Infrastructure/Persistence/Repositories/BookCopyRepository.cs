@@ -10,6 +10,19 @@ internal sealed class BookCopyRepository(LibraryDbContext db) : IBookCopyReposit
 {
     public async Task<PageResult<BookCopySnapshot>> GetPageAsync(BookCopyQuery query, CancellationToken cancellationToken)
     {
+        var copies = Filter(query);
+        var total = await copies.CountAsync(cancellationToken);
+        var items = await SnapshotQuery(copies.OrderBy(copy => copy.Barcode).ThenBy(copy => copy.Id)
+            .Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize)).ToListAsync(cancellationToken);
+        return new PageResult<BookCopySnapshot>(items, query.PageNumber, query.PageSize, total);
+    }
+
+    public async Task<IReadOnlyList<BookCopySnapshot>> GetExportAsync(BookCopyQuery query, CancellationToken cancellationToken) =>
+        await SnapshotQuery(Filter(query).OrderBy(copy => copy.Barcode).ThenBy(copy => copy.Id))
+            .ToListAsync(cancellationToken);
+
+    private IQueryable<BookCopy> Filter(BookCopyQuery query)
+    {
         var copies = db.BookCopies.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -26,19 +39,7 @@ internal sealed class BookCopyRepository(LibraryDbContext db) : IBookCopyReposit
         if (query.Condition is CopyCondition condition) copies = copies.Where(copy => copy.Condition == condition);
         if (query.Status is CopyStatus status) copies = copies.Where(copy => copy.Status == status);
 
-        var total = await copies.CountAsync(cancellationToken);
-        var items = await copies.OrderBy(copy => copy.Barcode).ThenBy(copy => copy.Id)
-            .Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize)
-            .Select(copy => new BookCopySnapshot(copy,
-                db.Books.Where(book => book.Id == copy.BookId).Select(book => book.Title).First(),
-                db.Shelves.Where(shelf => shelf.Id == copy.ShelfId).Select(shelf => shelf.Code).FirstOrDefault(),
-                (from shelf in db.Shelves join area in db.Areas on shelf.AreaId equals area.Id
-                 where shelf.Id == copy.ShelfId select (Guid?)area.BranchId).FirstOrDefault(),
-                (from shelf in db.Shelves join area in db.Areas on shelf.AreaId equals area.Id
-                 join branch in db.Branches on area.BranchId equals branch.Id
-                 where shelf.Id == copy.ShelfId select branch.Code).FirstOrDefault()))
-            .ToListAsync(cancellationToken);
-        return new PageResult<BookCopySnapshot>(items, query.PageNumber, query.PageSize, total);
+        return copies;
     }
 
     public Task<BookCopySnapshot?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
@@ -85,6 +86,13 @@ internal sealed class BookCopyRepository(LibraryDbContext db) : IBookCopyReposit
 
     public Task AddAsync(BookCopy copy, CancellationToken cancellationToken) =>
         db.BookCopies.AddAsync(copy, cancellationToken).AsTask();
+
+    public void DiscardPendingChanges()
+    {
+        foreach (var entry in db.ChangeTracker.Entries().Where(entry =>
+            entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            entry.State = EntityState.Detached;
+    }
 
     private IQueryable<BookCopySnapshot> SnapshotQuery(IQueryable<BookCopy> copies) =>
         from copy in copies
