@@ -19,6 +19,8 @@ public sealed record CreateCopyRequest(Guid BookId, [Required, StringLength(64)]
     CopyCondition Condition, Guid ShelfId, Guid? StockReceiptItemId = null);
 public sealed record ChangeCopyStatusRequest(CopyStatus Status, Guid ConcurrencyToken);
 public sealed record RelocateCopyRequest(Guid ShelfId, Guid ConcurrencyToken);
+public sealed record ChangeCopyConditionRequest(CopyCondition Condition, Guid ConcurrencyToken);
+public sealed record WithdrawCopyRequest(Guid ConcurrencyToken, [Required, StringLength(500)] string Reason);
 
 public sealed record CopyResponse(Guid Id, Guid BookId, string BookTitle, string Barcode,
     CopyCondition Condition, CopyStatus Status, DateTime AcquiredAtUtc, Guid? ShelfId,

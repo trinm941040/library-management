@@ -13,6 +13,7 @@ public sealed record BookCopySnapshot(BookCopy Copy, string BookTitle, string? S
 public interface IBookCopyRepository
 {
     Task<PageResult<BookCopySnapshot>> GetPageAsync(BookCopyQuery query, CancellationToken cancellationToken);
+    Task<IReadOnlyList<BookCopySnapshot>> GetExportAsync(BookCopyQuery query, CancellationToken cancellationToken);
     Task<BookCopySnapshot?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<BookCopySnapshot?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken);
     Task<BookCopy?> GetTrackedAsync(Guid id, CancellationToken cancellationToken);
@@ -24,4 +25,5 @@ public interface IBookCopyRepository
     Task<bool> HasEditableReceiptAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken);
     Task<bool> HasActiveBorrowingForBookAsync(Guid bookId, CancellationToken cancellationToken);
     Task AddAsync(BookCopy copy, CancellationToken cancellationToken);
+    void DiscardPendingChanges();
 }

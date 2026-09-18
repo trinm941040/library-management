@@ -62,6 +62,7 @@ public static class Permissions
     public const string CopiesRead = "copies.read";
     public const string CopiesCreate = "copies.create";
     public const string CopiesUpdate = "copies.update";
+    public const string CopiesWithdraw = "copies.withdraw";
     public const string SuppliersRead = "suppliers.read";
     public const string SuppliersCreate = "suppliers.create";
     public const string SuppliersUpdate = "suppliers.update";
@@ -93,7 +94,7 @@ public static class Permissions
         SettingsRead, SettingsUpdate,
         CirculationPoliciesRead, CirculationPoliciesManage,
         LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
-        CopiesRead, CopiesCreate, CopiesUpdate,
+        CopiesRead, CopiesCreate, CopiesUpdate, CopiesWithdraw,
         SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
         StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm,
         InventoryAuditsRead, InventoryAuditsCreate, InventoryAuditsScan,
