@@ -11,3 +11,9 @@ public sealed record CreateCopyCommand(Guid BookId, string Barcode, CopyConditio
 
 public sealed record ChangeCopyStatusCommand(CopyStatus Status, Guid ConcurrencyToken);
 public sealed record RelocateCopyCommand(Guid ShelfId, Guid ConcurrencyToken);
+public sealed record ChangeCopyConditionCommand(CopyCondition Condition, Guid ConcurrencyToken);
+public sealed record WithdrawCopyCommand(Guid ConcurrencyToken, string Reason);
+public sealed record CopyOperationRow(Guid CopyId, Guid ConcurrencyToken, CopyStatus? Status, CopyCondition? Condition, Guid? ShelfId, string? Reason);
+public sealed record CopyOperationResult(Guid CopyId, bool Succeeded, string? Error, CopyModel? Copy);
+public sealed record ImportCopyRow(string Barcode, Guid BookId, Guid ShelfId, CopyCondition Condition);
+public sealed record ImportCopyPreviewRow(int RowNumber, string Barcode, bool Valid, string? Error);

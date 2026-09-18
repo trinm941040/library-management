@@ -45,6 +45,8 @@ public sealed class CopyServiceTests
         public BookCopy? Added { get; private set; }
         public Task<PageResult<BookCopySnapshot>> GetPageAsync(BookCopyQuery query, CancellationToken cancellationToken) =>
             Task.FromResult(new PageResult<BookCopySnapshot>([], 1, 20, 0));
+        public Task<IReadOnlyList<BookCopySnapshot>> GetExportAsync(BookCopyQuery query, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BookCopySnapshot>>([]);
         public Task<BookCopySnapshot?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Added is { } copy && copy.Id == id ?
                 new BookCopySnapshot(copy, "Sách kiểm thử", "K1", Guid.NewGuid(), "CN1") : null);
@@ -60,6 +62,7 @@ public sealed class CopyServiceTests
         public Task<bool> HasEditableReceiptAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<bool> HasActiveBorrowingForBookAsync(Guid bookId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task AddAsync(BookCopy copy, CancellationToken cancellationToken) { Added = copy; return Task.CompletedTask; }
+        public void DiscardPendingChanges() { }
     }
 
     private sealed class FakeUnitOfWork : IUnitOfWork
