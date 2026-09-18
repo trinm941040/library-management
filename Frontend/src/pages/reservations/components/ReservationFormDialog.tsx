@@ -148,8 +148,8 @@ export function ReservationFormDialog({ open, onOpenChange, onSave }: Reservatio
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting || !form.bookId || !form.reserverId}>
-              {isSubmitting ? 'Đang lưu...' : 'Tạo phiếu đặt trước'}
+            <Button type="submit" disabled={!form.bookId || !form.reserverId} loading={isSubmitting} loadingLabel="Đang tạo phiếu đặt trước">
+              Tạo phiếu đặt trước
             </Button>
           </DialogFooter>
         </form>

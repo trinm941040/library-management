@@ -54,6 +54,7 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(reservation => reservation.ReservedAtUtc)
+            .ThenByDescending(reservation => reservation.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
