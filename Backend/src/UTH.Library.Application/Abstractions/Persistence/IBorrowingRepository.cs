@@ -19,6 +19,7 @@ public interface IBorrowingRepository
     Task<Borrowing?> GetActiveBorrowingByCopyIdAsync(Guid bookCopyId, CancellationToken cancellationToken);
     Task<BookCopy?> GetBookCopyByBarcodeAsync(string barcode, CancellationToken cancellationToken);
     Task<BookCopy?> GetBookCopyByIdAsync(Guid copyId, CancellationToken cancellationToken);
+    Task<decimal?> GetCopyUnitCostAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken);
     Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken);
     Task<Guid?> GetEmployeeIdByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);

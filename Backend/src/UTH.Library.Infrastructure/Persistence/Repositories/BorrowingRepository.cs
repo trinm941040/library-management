@@ -84,6 +84,11 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
             copy => copy.Id == copyId,
             cancellationToken);
 
+    public Task<decimal?> GetCopyUnitCostAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken) =>
+        dbContext.StockReceiptItems.Where(item => item.Id == stockReceiptItemId)
+            .Select(item => item.UnitCost)
+            .SingleOrDefaultAsync(cancellationToken);
+
     public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
         dbContext.BookCopies.Where(copy => copy.BookId == bookId && copy.Status == CopyStatus.Available &&
             !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))

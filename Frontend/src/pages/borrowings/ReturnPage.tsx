@@ -21,6 +21,7 @@ import { PageShell, useToast } from '@/common/components'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
 import { can } from '@/shared/auth/permissions'
@@ -54,8 +55,6 @@ export function ReturnPage() {
   const [barcodeInput, setBarcodeInput] = useState('')
   const [condition, setCondition] = useState<'Good' | 'Worn' | 'Damaged' | 'Lost'>('Good')
   const [note, setNote] = useState('')
-  const [customDamageFine, setCustomDamageFine] = useState<string>('')
-  const [customLostFine, setCustomLostFine] = useState<string>('')
 
   // Lookup & Return state
   const [copyData, setCopyData] = useState<BookCopyReturnLookup | null>(null)
@@ -63,6 +62,7 @@ export function ReturnPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // Success result & Session history for continuous scanning
   const [lastResult, setLastResult] = useState<ReturnExecutionResult | null>(null)
@@ -92,8 +92,6 @@ export function ReturnPage() {
       setCopyData(data)
       setCondition('Good')
       setNote('')
-      setCustomDamageFine(data.fixedDamageFine > 0 ? String(data.fixedDamageFine) : '50000')
-      setCustomLostFine(data.estimatedLostFine > 0 ? String(data.estimatedLostFine) : '150000')
     } catch (err: unknown) {
       setCopyData(null)
       const message = err instanceof Error ? err.message : 'Không tìm thấy bản sao sách hoặc bản sao không đang được mượn.'
@@ -112,8 +110,8 @@ export function ReturnPage() {
 
   // Calculate current fine based on condition and overdue
   const currentOverdueFine = copyData?.isOverdue ? copyData.estimatedOverdueFine : 0
-  const currentDamageFine = condition === 'Damaged' ? Number(customDamageFine || 0) : 0
-  const currentLostFine = condition === 'Lost' ? Number(customLostFine || 0) : 0
+  const currentDamageFine = condition === 'Damaged' ? (copyData?.fixedDamageFine ?? 0) : 0
+  const currentLostFine = condition === 'Lost' ? (copyData?.estimatedLostFine ?? 0) : 0
   const totalEstimatedFine = currentOverdueFine + currentDamageFine + currentLostFine
 
   const handleConfirmReturn = async (e: FormEvent) => {
@@ -125,6 +123,12 @@ export function ReturnPage() {
       return
     }
 
+    setConfirmOpen(true)
+  }
+
+  const executeReturn = async () => {
+    if (!copyData || isSubmitting) return
+
     setIsSubmitting(true)
     setSubmitError(null)
 
@@ -133,13 +137,14 @@ export function ReturnPage() {
         barcode: copyData.barcode,
         condition,
         note: note.trim() ? note.trim() : null,
-        customDamageFine: condition === 'Damaged' ? Number(customDamageFine || 0) : null,
-        customLostFine: condition === 'Lost' ? Number(customLostFine || 0) : null,
+        customDamageFine: null,
+        customLostFine: null,
         concurrencyToken: copyData.concurrencyToken,
       })
 
       showToast(`Đã nhận trả sách "${copyData.title}" thành công!`, 'success')
       setLastResult(result)
+      setConfirmOpen(false)
       setSessionHistory((prev) => [result, ...prev])
       setCopyData(null)
       setBarcodeInput('')
@@ -151,6 +156,7 @@ export function ReturnPage() {
         barcodeInputRef.current?.focus()
       }, 50)
     } catch (err: unknown) {
+      setConfirmOpen(false)
       const message = err instanceof Error ? err.message : 'Lỗi khi ghi nhận trả sách.'
       setSubmitError(message)
       showToast(message, 'error')
@@ -160,6 +166,7 @@ export function ReturnPage() {
   }
 
   const handleReset = () => {
+    setConfirmOpen(false)
     setBarcodeInput('')
     setCopyData(null)
     setSearchError(null)
@@ -356,22 +363,10 @@ export function ReturnPage() {
                     </div>
                   </div>
 
-                  {/* Dynamic Fine Inputs */}
+                  {/* Policy-derived fine preview */}
                   {condition === 'Damaged' && (
                     <div className="p-4 rounded-lg bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/60 space-y-2">
-                      <Label htmlFor="damage-fine-input" className="text-xs font-semibold text-orange-800 dark:text-orange-300">
-                        Tiền phạt bồi thường hư hỏng (VND):
-                      </Label>
-                      <Input
-                        id="damage-fine-input"
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={customDamageFine}
-                        onChange={(e) => setCustomDamageFine(e.target.value)}
-                        placeholder="Mặc định theo chính sách..."
-                        className="bg-white dark:bg-slate-900"
-                      />
+                      <p className="text-xs font-semibold text-orange-800 dark:text-orange-300">Tiền phạt hư hỏng theo chính sách: {formatCurrency(currentDamageFine)}</p>
                       <p className="text-xs text-orange-600 dark:text-orange-400">
                         * Bản sao sẽ chuyển trạng thái "Hư hỏng" và không đưa về giá khả dụng.
                       </p>
@@ -380,19 +375,7 @@ export function ReturnPage() {
 
                   {condition === 'Lost' && (
                     <div className="p-4 rounded-lg bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 space-y-2">
-                      <Label htmlFor="lost-fine-input" className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-                        Tiền phạt bồi thường mất sách (VND):
-                      </Label>
-                      <Input
-                        id="lost-fine-input"
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={customLostFine}
-                        onChange={(e) => setCustomLostFine(e.target.value)}
-                        placeholder="Mặc định theo chính sách..."
-                        className="bg-white dark:bg-slate-900"
-                      />
+                      <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">Tiền phạt mất sách theo chính sách: {formatCurrency(currentLostFine)}</p>
                       <p className="text-xs text-rose-600 dark:text-rose-400">
                         * Bản sao sẽ chuyển trạng thái "Mất sách" và không đưa về giá khả dụng.
                       </p>
@@ -601,6 +584,20 @@ export function ReturnPage() {
           </Card>
         </div>
       </div>
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!isSubmitting) setConfirmOpen(open) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận trả bản sao</DialogTitle>
+            <DialogDescription>
+              {copyData?.title} · {copyData?.barcode}. Tình trạng: {condition}. Tiền phạt dự kiến: {formatCurrency(totalEstimatedFine)}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => setConfirmOpen(false)}>Quay lại</Button>
+            <Button type="button" loading={isSubmitting} disabled={isSubmitting} onClick={() => void executeReturn()}>Xác nhận trả sách</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   )
 }
