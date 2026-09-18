@@ -6,8 +6,6 @@ import {
   XCircle,
   FileCode,
   ArrowRight,
-  ShieldAlert,
-  Layers,
   Loader2,
 } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
@@ -32,7 +30,6 @@ import {
   validateConfigurationPackage,
   importConfigurationPackage,
   type PackageValidationResult,
-  type SettingDiffItem,
 } from '../system-settings-api'
 
 type ConfigPackageDialogProps = {

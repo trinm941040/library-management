@@ -9,7 +9,6 @@ import {
   Clock,
   Coins,
   CreditCard,
-  FileText,
   History,
   RotateCcw,
   Search,

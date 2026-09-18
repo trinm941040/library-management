@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Infrastructure.Persistence.Repositories;
@@ -89,6 +90,15 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new OptimisticConcurrencyException("Khoản mượn đã bị thay đổi bởi thao tác khác.", exception);
+        }
+    }
 }
