@@ -1,11 +1,16 @@
 import {
   AlertTriangle,
   Clock,
+  Barcode,
+  Building2,
   KeyRound,
   LayoutDashboard,
   Layers,
+  MapPinned,
   RefreshCw,
   Settings,
+  ClipboardList,
+  ScanLine,
   ShieldCheck,
   UserRoundCog,
   Users,
@@ -59,7 +64,12 @@ export const navigationGroups: readonly NavigationGroup[] = [
   {
     label: 'Quản lý tác vụ',
     items: [
-      { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/catalog', label: 'Biểu ghi sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/branches', label: 'Chi nhánh và kệ', icon: MapPinned, requiredPermissions: ['locations.read'] },
+      { path: '/copies', label: 'Bản sao và mã vạch', icon: Barcode, requiredPermissions: ['copies.read'] },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Building2, requiredPermissions: ['suppliers.read'] },
+      { path: '/stock-receipts', label: 'Phiếu nhập', icon: ClipboardList, requiredPermissions: ['stock-receipts.read'] },
+      { path: '/inventory-audits', label: 'Kiểm kê', icon: ScanLine, requiredPermissions: ['inventory-audits.read'] },
       {
         path: '/borrowings',
         label: 'Mượn/trả',
@@ -116,4 +126,5 @@ export const routePermissions = new Map([
     group.items.map((item) => [item.path, item.requiredPermissions] as const),
   ),
   [settingsNavigationItem.path, settingsNavigationItem.requiredPermissions] as const,
+  ['/stock-receipts/new', ['stock-receipts.create']] as const,
 ])

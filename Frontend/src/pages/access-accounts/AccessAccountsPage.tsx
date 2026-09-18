@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/shared/auth/permissions'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { useUrlListState } from '@/shared/data/use-url-list-state'
 import { getAllRoles, type Role } from '@/pages/roles/role-permission-api'
 import {
   createAccessAccount,
@@ -36,14 +37,13 @@ const formatDate = (value: string | null) => value
   : '—'
 
 export function AccessAccountsPage() {
+  const urlState = useUrlListState()
+  const { search, pageNumber, pageSize, update } = urlState
+  const status = (['active', 'locked'].includes(urlState.status) ? urlState.status : 'all') as StatusFilter
   const { user } = useAuth()
   const permissions = user?.permissions ?? []
   const [page, setPage] = useState<AccessAccountPage | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<StatusFilter>('all')
-  const [pageNumber, setPageNumber] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(search)
   const [reload, setReload] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,10 +53,14 @@ export function AccessAccountsPage() {
   const [pending, setPending] = useState(false)
   const { showToast } = useToast()
 
+  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
-    const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPageNumber(1) }, 350)
+    const timer = window.setTimeout(() => {
+      const value = searchInput.trim()
+      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
+    }, 350)
     return () => window.clearTimeout(timer)
-  }, [searchInput])
+  }, [search, searchInput, update])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -69,7 +73,7 @@ export function AccessAccountsPage() {
     }, controller.signal)
       .then((value) => {
         setPage(value)
-        if (value.totalPages > 0 && pageNumber > value.totalPages) setPageNumber(value.totalPages)
+        if (value.totalPages > 0 && pageNumber > value.totalPages) update({ pageNumber: value.totalPages })
       })
       .catch((reason: unknown) => {
         if (!(reason instanceof DOMException && reason.name === 'AbortError'))
@@ -77,7 +81,7 @@ export function AccessAccountsPage() {
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [pageNumber, pageSize, reload, search, status])
+  }, [pageNumber, pageSize, reload, search, status, update])
 
   const changeStatus = async () => {
     if (!statusTarget) return
@@ -94,14 +98,14 @@ export function AccessAccountsPage() {
   return (
     <PageShell eyebrow="Quản lý người dùng" title="Tài khoản truy cập"
       description="Cấp tài khoản cho nhân viên, kiểm soát vai trò, trạng thái và phiên đăng nhập."
-      actions={<div className="flex gap-2"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading}><RefreshCw className={loading ? 'animate-spin' : ''} />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
+      actions={<div className="flex gap-2"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading} loading={loading && Boolean(page)} loadingLabel="Đang tải lại tài khoản"><RefreshCw />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
       <Card>
         <CardHeader className="gap-4">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div><CardTitle>Danh sách tài khoản</CardTitle><p className="mt-1 text-sm text-muted-foreground">{page?.totalCount ?? 0} tài khoản gắn với nhân viên.</p></div>
             <div className="relative md:w-80"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Tìm tên, email, mã nhân viên..." /></div>
           </div>
-          <Select value={status} onValueChange={(value) => { setStatus(value as StatusFilter); setPageNumber(1) }}><SelectTrigger className="w-52" aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem><SelectItem value="active">Đang hoạt động</SelectItem><SelectItem value="locked">Đã khóa</SelectItem></SelectContent></Select>
+          <Select value={status} onValueChange={(value) => update({ status: value, pageNumber: 1 })}><SelectTrigger className="w-52" aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem><SelectItem value="active">Đang hoạt động</SelectItem><SelectItem value="locked">Đã khóa</SelectItem></SelectContent></Select>
         </CardHeader>
         <CardContent>
           {error && !page ? <ScreenState kind="error" title="Không thể tải tài khoản" description={error} actionLabel="Thử lại" onAction={() => setReload((value) => value + 1)} /> : null}
@@ -118,10 +122,10 @@ export function AccessAccountsPage() {
               </TableRow>)}
             </TableBody></Table></div>
           )}
-          {page && page.totalPages > 0 ? <Pagination className="mt-4" currentPage={page.pageNumber} totalPages={page.totalPages} onPageChange={setPageNumber} pageSize={pageSize} onPageSizeChange={(size) => { setPageSize(size); setPageNumber(1) }} /> : null}
+          {page && page.totalPages > 0 ? <Pagination className="mt-4" currentPage={page.pageNumber} totalPages={page.totalPages} onPageChange={(value) => update({ pageNumber: value })} pageSize={pageSize} onPageSizeChange={(size) => update({ pageSize: size, pageNumber: 1 })} /> : null}
         </CardContent>
       </Card>
-      <CreateAccountDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={() => { setCreateOpen(false); setPageNumber(1); setReload((value) => value + 1); showToast('Đã cấp tài khoản truy cập.') }} />
+      <CreateAccountDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={() => { setCreateOpen(false); update({ pageNumber: 1 }); setReload((value) => value + 1); showToast('Đã cấp tài khoản truy cập.') }} />
       <AccountDetailDialog accountId={detailId} permissions={permissions} onOpenChange={(open) => !open && setDetailId(null)} onChanged={() => setReload((value) => value + 1)} />
       <ConfirmDialog open={!!statusTarget} title={statusTarget?.isActive ? 'Khóa tài khoản?' : 'Mở khóa tài khoản?'} description={statusTarget?.isActive ? 'Tài khoản sẽ ngừng truy cập và toàn bộ phiên hiện tại bị thu hồi trong cùng workflow.' : 'Tài khoản có thể đăng nhập lại, nhưng các phiên cũ không được khôi phục.'} confirmLabel={statusTarget?.isActive ? 'Khóa tài khoản' : 'Mở khóa'} destructive={statusTarget?.isActive} isPending={pending} error={error} onOpenChange={(open) => { if (!open) setStatusTarget(null) }} onConfirm={() => void changeStatus()} />
     </PageShell>

@@ -7,7 +7,11 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { routePermissions } from '@/app/navigation'
 import { NotFoundPage } from '@/pages/errors/NotFoundPage'
 import { safeIntendedDestination } from '@/shared/auth/intended-destination'
-import { ScreenState } from '@/common/components'
+import { LoadingBoundary, ScreenState } from '@/common/components'
+
+const routeLoading = (label = 'Đang tải trang') => (
+  <LoadingBoundary loading label={label} className="min-h-[40vh]" />
+)
 
 const ProfilePage = lazy(() =>
   import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
@@ -25,6 +29,30 @@ const DashboardPage = lazy(() =>
 )
 const BooksPage = lazy(() =>
   import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
+)
+const CatalogDetailPage = lazy(() =>
+  import('../pages/books/CatalogDetailPage').then((m) => ({ default: m.CatalogDetailPage })),
+)
+const BranchesPage = lazy(() =>
+  import('../pages/branches/BranchesPage').then((m) => ({ default: m.BranchesPage })),
+)
+const CopiesPage = lazy(() =>
+  import('../pages/copies/CopiesPage').then((m) => ({ default: m.CopiesPage })),
+)
+const SuppliersPage = lazy(() =>
+  import('../pages/suppliers/SuppliersPage').then((m) => ({ default: m.SuppliersPage })),
+)
+const StockReceiptsPage = lazy(() =>
+  import('../pages/stock-receipts/StockReceiptsPage').then((m) => ({ default: m.StockReceiptsPage })),
+)
+const StockReceiptDetailPage = lazy(() =>
+  import('../pages/stock-receipts/StockReceiptDetailPage').then((m) => ({ default: m.StockReceiptDetailPage })),
+)
+const InventoryAuditsPage = lazy(() =>
+  import('../pages/inventory-audits/InventoryAuditsPage').then((m) => ({ default: m.InventoryAuditsPage })),
+)
+const InventoryAuditDetailPage = lazy(() =>
+  import('../pages/inventory-audits/InventoryAuditDetailPage').then((m) => ({ default: m.InventoryAuditDetailPage })),
 )
 const BorrowingsPage = lazy(() =>
   import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
@@ -67,7 +95,7 @@ const ConfigurationPage = lazy(() =>
 
 const page = (path: string, element: ReactNode) => (
   <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
-    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>{element}</Suspense>
+    <Suspense fallback={routeLoading()}>{element}</Suspense>
   </ProtectedRoute>
 )
 
@@ -86,13 +114,13 @@ function LoginRoute() {
     )
 
   if (status === 'loading') {
-    return <p className="p-6 text-center">Đang kiểm tra đăng nhập...</p>
+    return routeLoading('Đang kiểm tra đăng nhập')
   }
 
   return status === 'authenticated' ? (
     <Navigate to={safeIntendedDestination(location.state?.from)} replace />
   ) : (
-    <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+    <Suspense fallback={routeLoading()}>
       <LoginPage />
     </Suspense>
   )
@@ -116,7 +144,17 @@ export function AppRoutes() {
           element={page('/access-accounts', <AccessAccountsPage />)}
         />
         <Route path="/users" element={<Navigate to="/access-accounts" replace />} />
-        <Route path="/books" element={page('/books', <BooksPage />)} />
+        <Route path="/books" element={<Navigate to="/catalog" replace />} />
+        <Route path="/catalog" element={page('/catalog', <BooksPage />)} />
+        <Route path="/catalog/:bookId" element={page('/catalog', <CatalogDetailPage />)} />
+        <Route path="/branches" element={page('/branches', <BranchesPage />)} />
+        <Route path="/copies" element={page('/copies', <CopiesPage />)} />
+        <Route path="/suppliers" element={page('/suppliers', <SuppliersPage />)} />
+        <Route path="/stock-receipts" element={page('/stock-receipts', <StockReceiptsPage />)} />
+        <Route path="/stock-receipts/new" element={page('/stock-receipts/new', <StockReceiptDetailPage />)} />
+        <Route path="/stock-receipts/:id" element={page('/stock-receipts', <StockReceiptDetailPage />)} />
+        <Route path="/inventory-audits" element={page('/inventory-audits', <InventoryAuditsPage />)} />
+        <Route path="/inventory-audits/:id" element={page('/inventory-audits', <InventoryAuditDetailPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
@@ -134,7 +172,7 @@ export function AppRoutes() {
         <Route
           path="/profile"
           element={
-            <Suspense fallback={<p className="p-6 text-center">Đang tải hồ sơ...</p>}>
+            <Suspense fallback={routeLoading('Đang tải hồ sơ')}>
               <ProfilePage />
             </Suspense>
           }
@@ -142,7 +180,7 @@ export function AppRoutes() {
         <Route
           path="/profile/change-password"
           element={
-            <Suspense fallback={<p className="p-6 text-center">Đang tải...</p>}>
+            <Suspense fallback={routeLoading()}>
               <ChangePasswordPage />
             </Suspense>
           }

@@ -55,10 +55,28 @@ public static class Permissions
     public const string SettingsUpdate = "settings.update";
     public const string CirculationPoliciesRead = "circulation-policies.read";
     public const string CirculationPoliciesManage = "circulation-policies.manage";
+    public const string LocationsRead = "locations.read";
+    public const string LocationsCreate = "locations.create";
+    public const string LocationsUpdate = "locations.update";
+    public const string LocationsDeactivate = "locations.deactivate";
     public const string CopiesRead = "copies.read";
     public const string CopiesCreate = "copies.create";
     public const string CopiesUpdate = "copies.update";
     public const string CopiesWithdraw = "copies.withdraw";
+    public const string SuppliersRead = "suppliers.read";
+    public const string SuppliersCreate = "suppliers.create";
+    public const string SuppliersUpdate = "suppliers.update";
+    public const string SuppliersDeactivate = "suppliers.deactivate";
+    public const string StockReceiptsRead = "stock-receipts.read";
+    public const string StockReceiptsCreate = "stock-receipts.create";
+    public const string StockReceiptsUpdate = "stock-receipts.update";
+    public const string StockReceiptsConfirm = "stock-receipts.confirm";
+    public const string InventoryAuditsRead = "inventory-audits.read";
+    public const string InventoryAuditsCreate = "inventory-audits.create";
+    public const string InventoryAuditsScan = "inventory-audits.scan";
+    public const string InventoryAuditsComplete = "inventory-audits.complete";
+    public const string InventoryAuditsExport = "inventory-audits.export";
+    public const string InventoryAuditsApply = "inventory-audits.apply";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -75,7 +93,12 @@ public static class Permissions
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate,
         CirculationPoliciesRead, CirculationPoliciesManage,
-        CopiesRead, CopiesCreate, CopiesUpdate, CopiesWithdraw
+        LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
+        CopiesRead, CopiesCreate, CopiesUpdate, CopiesWithdraw,
+        SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
+        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm,
+        InventoryAuditsRead, InventoryAuditsCreate, InventoryAuditsScan,
+        InventoryAuditsComplete, InventoryAuditsExport, InventoryAuditsApply
     ];
 }
 
