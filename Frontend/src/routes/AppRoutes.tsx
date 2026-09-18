@@ -63,6 +63,9 @@ const CheckoutPage = lazy(() =>
 const ReturnPage = lazy(() =>
   import('../pages/borrowings/ReturnPage').then((m) => ({ default: m.ReturnPage })),
 )
+const LoanDetailPage = lazy(() =>
+  import('../pages/borrowings/LoanDetailPage').then((m) => ({ default: m.LoanDetailPage })),
+)
 const ReservationsPage = lazy(() =>
   import('../pages/reservations/ReservationsPage').then((m) => ({ default: m.ReservationsPage })),
 )
@@ -162,6 +165,8 @@ export function AppRoutes() {
         <Route path="/inventory-audits" element={page('/inventory-audits', <InventoryAuditsPage />)} />
         <Route path="/inventory-audits/:id" element={page('/inventory-audits', <InventoryAuditDetailPage />)} />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
+        <Route path="/loans/:id" element={page('/loans/:id', <LoanDetailPage />)} />
+        <Route path="/borrowings/:id" element={page('/borrowings/:id', <LoanDetailPage />)} />
         <Route path="/circulation/checkout" element={page('/circulation/checkout', <CheckoutPage />)} />
         <Route path="/circulation/return" element={page('/circulation/return', <ReturnPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />

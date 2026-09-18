@@ -139,5 +139,7 @@ export const routePermissions = new Map([
     group.items.map((item) => [item.path, item.requiredPermissions] as const),
   ),
   [settingsNavigationItem.path, settingsNavigationItem.requiredPermissions] as const,
+  ['/loans/:id', ['borrowings.read']] as const,
+  ['/borrowings/:id', ['borrowings.read']] as const,
   ['/stock-receipts/new', ['stock-receipts.create']] as const,
 ])

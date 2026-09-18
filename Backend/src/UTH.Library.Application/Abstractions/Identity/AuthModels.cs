@@ -36,6 +36,7 @@ public static class Permissions
     public const string BorrowingsRead = "borrowings.read";
     public const string BorrowingsCreate = "borrowings.create";
     public const string BorrowingsReturn = "borrowings.return";
+    public const string BorrowingsRenew = "borrowings.renew";
     public const string ReservationsRead = "reservations.read";
     public const string ReservationsCreate = "reservations.create";
     public const string ReservationsCancel = "reservations.cancel";
@@ -86,7 +87,7 @@ public static class Permissions
         EmployeesRead, EmployeesCreate, EmployeesUpdate, EmployeesDelete,
         TodosRead, TodosCreate, TodosUpdate, TodosDelete,
         BooksRead, BooksCreate, BooksUpdate, BooksDelete,
-        BorrowingsRead, BorrowingsCreate, BorrowingsReturn,
+        BorrowingsRead, BorrowingsCreate, BorrowingsReturn, BorrowingsRenew,
         ReservationsRead, ReservationsCreate, ReservationsCancel, ReservationsFulfill,
         ViolationsRead, ViolationsCreate, ViolationsResolve,
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,

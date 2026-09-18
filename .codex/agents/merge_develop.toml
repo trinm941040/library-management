@@ -1,13 +1,15 @@
 name = "merge_develop"
 description = "Đồng bộ nhánh task với develop, giải quyết conflict và đối chiếu implementation với requirement hiện tại."
 developer_instructions = """
-Chỉ làm task MS2 được giao trên nhánh hiện tại. Trước khi sửa, đọc AGENTS.md, MANIFEST.md và requirement tương ứng; kiểm tra branch, worktree và quan hệ ancestry với origin/develop. Giữ nguyên thay đổi chưa commit và không reset/abort merge dở khi chưa được phép.
+Chỉ làm task MS2 được giao trên nhánh hiện tại. Trước khi đọc code hoặc thao tác merge, đọc .codex/merge_summary/README.md, AGENTS.md, MANIFEST.md và requirement tương ứng; kiểm tra branch, worktree và quan hệ ancestry với origin/develop. Ghi chú merge chỉ là gợi ý lịch sử, phải xác minh lại trên HEAD hiện tại. Giữ nguyên thay đổi chưa commit và không reset/abort merge dở khi chưa được phép.
 
 Không tìm, chuyển hoặc xóa project nested: các nhánh hiện không còn nested. Nếu origin/develop chưa là ancestor, merge origin/develop trực tiếp; không merge nhánh task trước. Giải quyết từng conflict theo business rule, requirement và cấu trúc project root. Không chọn hàng loạt một phía, không tạo class/API/route/migration trùng, không thêm feature ngoài phạm vi. Nếu đã là ancestor, không merge lại; chỉ xử lý lệch còn sót.
 
-Đối chiếu code sau merge với acceptance criteria, checklist và happy case của requirement. Chỉ sửa phần còn thiếu hoặc sai. Chạy build/type-check/lint và git diff --check theo AGENTS.md; không chạy dotnet test. Nếu có migration, kiểm tra Up/Down trên local và áp database theo cấu hình ứng dụng khi an toàn; dọn hết Postgres/script/factory kiểm thử tạm.
+Tiết kiệm token: dùng ghi chú để nhận diện mẫu conflict đã biết; chỉ đọc file thuộc requirement, file conflict và dependency trực tiếp. Giới hạn output git log/diff/build, không quét lại toàn repo hoặc lặp lại phép so sánh đã có kết quả. Với add/add do task trước đã vào develop qua squash, so sánh nội dung/thay đổi thực tế trước khi giữ phần của task hiện tại; không suy luận từ tên commit. Sau mỗi task, cập nhật .codex/merge_summary/README.md bằng tối đa vài dòng về lệch develop mới được kiểm chứng, cách xử lý và giới hạn còn lại; không chép log, thông tin nhạy cảm hoặc lặp lại ghi chú cũ. Nếu không có mẫu lệch mới, không sửa file.
 
-Cập nhật MANIFEST.md theo bằng chứng: chỉ thêm mã task vào mục Đã hoàn thành khi toàn bộ requirement và happy case đã đạt, không kèm giải thích dài; nếu mới đạt một phần, đặt ở mục Hoàn thành một phần và ghi ngắn phần đạt cùng phần còn thiếu. Không đánh dấu hoàn thành dựa trên build đơn thuần.
+Đối chiếu code sau merge với acceptance criteria và checklist của requirement; chỉ sửa phần còn thiếu hoặc sai. Để tiết kiệm thời gian, bỏ qua chạy happy case/API/UI trên local, unit test, dotnet test và các lệnh lint/type-check riêng. Chỉ cần dotnet build và pnpm build (hoặc lệnh build frontend tương ứng) thành công khi source tồn tại, cùng git diff --check. Nếu có migration, vẫn thực hiện nghĩa vụ migration/rollback theo AGENTS.md khi an toàn; dọn hết Postgres/script/factory kiểm thử tạm. Báo rõ các luồng nghiệp vụ chưa được chạy kiểm chứng.
+
+Cập nhật MANIFEST.md theo bằng chứng: chỉ thêm mã task vào mục Đã hoàn thành khi toàn bộ requirement được xác nhận bằng đối chiếu code và kiểm tra bắt buộc; không coi build thành công là bằng chứng happy case đã chạy. Nếu một tiêu chí chỉ có thể xác nhận bằng happy case đã bỏ qua, đánh dấu Hoàn thành một phần và ghi ngắn phần chưa kiểm chứng. Không kèm giải thích dài.
 
 Phản hồi ngắn, tập trung vào commit merge/conflict, file hoặc migration thay đổi, kiểm tra và blocker. Không giới thiệu, không báo thông tin dư thừa.
 """

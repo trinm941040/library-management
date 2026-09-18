@@ -13,6 +13,7 @@ export type LibraryBorrowing = {
   dueAtUtc: string
   returnedAtUtc: string | null
   status: 'borrowed' | 'overdue' | 'returned' | string
+  renewalCount: number
   bookCopyId?: string | null
   bookCopyBarcode?: string | null
 }
@@ -84,6 +85,15 @@ type ProblemDetails = {
   errors?: Record<string, string[]>
 }
 
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 async function readResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
     if (response.status === 204) return undefined as T
@@ -95,7 +105,8 @@ async function readResponse<T>(response: Response): Promise<T> {
     ? Object.values(problem.errors).flat().find(Boolean)
     : undefined
 
-  throw new Error(validationMessage ?? problem?.detail ?? problem?.title ?? 'Không thể xử lý yêu cầu.')
+  const message = validationMessage ?? problem?.detail ?? problem?.title ?? 'Không thể xử lý yêu cầu.'
+  throw new ApiError(message, response.status)
 }
 
 export async function getBorrowings(
@@ -223,4 +234,74 @@ export async function confirmReturn(payload: ConfirmReturnPayload): Promise<Retu
     body: JSON.stringify(payload),
   })
   return readResponse<ReturnExecutionResult>(response)
+}
+
+export type RenewalHistoryItem = {
+  id: string
+  borrowingId: string
+  previousDueAtUtc: string
+  newDueAtUtc: string
+  renewedByUserId: string
+  renewedByUserName: string | null
+  renewedAtUtc: string
+  appliedPolicyId: string | null
+  appliedPolicyVersion: number
+}
+
+export type RenewalPreview = {
+  borrowingId: string
+  bookId: string
+  bookTitle: string
+  borrowerId: string
+  borrowerName: string
+  currentDueAtUtc: string
+  proposedDueAtUtc: string
+  currentRenewalCount: number
+  maxRenewals: number
+  renewalPeriodDays: number
+  isEligible: boolean
+  ineligibilityReasons: string[]
+  policyName: string | null
+  concurrencyToken: string
+  history: RenewalHistoryItem[]
+}
+
+export type BorrowingDetail = {
+  borrowing: LibraryBorrowing
+  bookAuthor: string | null
+  bookIsbn: string | null
+  bookCategory: string | null
+  borrowerMemberCode: string | null
+  borrowerCardNumber: string | null
+  borrowerGroup: string | null
+  renewals: RenewalHistoryItem[]
+  renewalPreview: RenewalPreview
+}
+
+export async function getBorrowingDetail(
+  id: string,
+  signal?: AbortSignal,
+): Promise<BorrowingDetail> {
+  const response = await authenticatedFetch(`${BORROWINGS_URL}/${id}`, { signal })
+  return readResponse<BorrowingDetail>(response)
+}
+
+export async function getRenewalPreview(
+  id: string,
+  signal?: AbortSignal,
+): Promise<RenewalPreview> {
+  const response = await authenticatedFetch(`${BORROWINGS_URL}/${id}/renewal-preview`, { signal })
+  return readResponse<RenewalPreview>(response)
+}
+
+export async function renewBorrowing(
+  id: string,
+  concurrencyToken: string,
+): Promise<LibraryBorrowing> {
+  const response = await authenticatedFetch(`${BORROWINGS_URL}/${id}/renew`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ concurrencyToken }),
+  })
+  return readResponse<LibraryBorrowing>(response)
 }

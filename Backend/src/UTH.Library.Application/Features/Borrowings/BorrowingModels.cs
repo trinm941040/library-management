@@ -139,3 +139,42 @@ public sealed record ReturnResult(
     public static ReturnResult Fail(BorrowingFailure failure, params string[] errors) =>
         new(false, failure, null, errors);
 }
+
+public sealed record RenewalHistoryModel(
+    Guid Id,
+    Guid BorrowingId,
+    DateTime PreviousDueAtUtc,
+    DateTime NewDueAtUtc,
+    Guid RenewedByUserId,
+    string? RenewedByUserName,
+    DateTime RenewedAtUtc,
+    Guid? AppliedPolicyId,
+    int AppliedPolicyVersion);
+
+public sealed record RenewalPreviewResult(
+    Guid BorrowingId,
+    Guid BookId,
+    string BookTitle,
+    Guid BorrowerId,
+    string BorrowerName,
+    DateTime CurrentDueAtUtc,
+    DateTime ProposedDueAtUtc,
+    int CurrentRenewalCount,
+    int MaxRenewals,
+    int RenewalPeriodDays,
+    bool IsEligible,
+    IReadOnlyList<string> IneligibilityReasons,
+    string? PolicyName,
+    Guid ConcurrencyToken,
+    IReadOnlyList<RenewalHistoryModel> History);
+
+public sealed record BorrowingDetailModel(
+    BorrowingModel Borrowing,
+    string? BookAuthor,
+    string? BookIsbn,
+    string? BookCategory,
+    string? BorrowerMemberCode,
+    string? BorrowerCardNumber,
+    string? BorrowerGroup,
+    IReadOnlyList<RenewalHistoryModel> Renewals,
+    RenewalPreviewResult RenewalPreview);

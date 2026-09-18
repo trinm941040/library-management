@@ -282,6 +282,9 @@ export function BorrowingsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to={`/loans/${item.id}`}>Chi tiết</Link>
+                        </Button>
                         {item.status !== 'returned' ? (
                           <PermissionBoundary requiredPermissions={['borrowings.return']}>
                             {item.bookCopyId ? (
