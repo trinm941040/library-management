@@ -143,10 +143,11 @@ export function LoginPage() {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  loading={isSubmitting}
+                  loadingLabel="Đang đăng nhập"
                   className="h-11 w-full font-semibold shadow-md shadow-primary/20"
                 >
-                  {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                  Đăng nhập
                 </Button>
               </form>
               <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">

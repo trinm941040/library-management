@@ -1,3 +1,6 @@
+using UTH.Library.Domain.Enums;
+using UTH.Library.Domain.ValueObjects;
+
 namespace UTH.Library.Domain.Entities;
 
 public sealed class Book
@@ -45,6 +48,13 @@ public sealed class Book
 
     public DateTime? UpdatedAtUtc { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
+    public Guid? PublisherId { get; private set; }
+    public RecordStatus Status { get; private set; } = RecordStatus.Active;
+    public string? EditionStatement { get; private set; }
+    public string? Description { get; private set; }
+    public int? PublicationYear { get; private set; }
+    public string? Language { get; private set; }
+    public int? PageCount { get; private set; }
 
     public static Book Create(
         string title,
@@ -63,6 +73,36 @@ public sealed class Book
             category.Trim(),
             quantity,
             createdAtUtc);
+    }
+
+    public void SetPublicationMetadata(
+        Guid? publisherId,
+        string? editionStatement,
+        string? description,
+        int? publicationYear,
+        string? language = null,
+        int? pageCount = null)
+    {
+        if (publisherId == Guid.Empty)
+            throw new ArgumentException("Publisher is invalid.", nameof(publisherId));
+        if (publicationYear is < 0 or > 9999)
+            throw new ArgumentOutOfRangeException(nameof(publicationYear), "Publication year is invalid.");
+        if (pageCount is <= 0 or > 100_000)
+            throw new ArgumentOutOfRangeException(nameof(pageCount), "Page count is invalid.");
+
+        PublisherId = publisherId;
+        EditionStatement = string.IsNullOrWhiteSpace(editionStatement) ? null : editionStatement.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        PublicationYear = publicationYear;
+        Language = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        PageCount = pageCount;
+    }
+
+    public void Deactivate(DateTime updatedAtUtc)
+    {
+        Status = RecordStatus.Inactive;
+        UpdatedAtUtc = updatedAtUtc;
+        ConcurrencyToken = Guid.NewGuid();
     }
 
     public void Update(
@@ -114,6 +154,5 @@ public sealed class Book
             throw new ArgumentOutOfRangeException(nameof(quantity), "Book quantity cannot be negative.");
     }
 
-    private static string NormalizeIsbn(string isbn) =>
-        isbn.Trim().Replace("-", string.Empty, StringComparison.Ordinal).Replace(" ", string.Empty, StringComparison.Ordinal);
+    private static string NormalizeIsbn(string isbn) => IsbnValue.Create(isbn).Value;
 }

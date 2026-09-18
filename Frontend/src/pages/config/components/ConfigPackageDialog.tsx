@@ -126,11 +126,12 @@ export function ConfigPackageDialog({ open, onOpenChange, onSuccess }: ConfigPac
 
         <div className="flex-1 overflow-y-auto space-y-5 my-2 pr-1">
           {/* File Upload Zone */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
+          <label
+            htmlFor="configuration-package-file"
             className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/60 transition-colors bg-muted/20"
           >
             <input
+              id="configuration-package-file"
               ref={fileInputRef}
               type="file"
               accept=".json,application/json"
@@ -151,7 +152,7 @@ export function ConfigPackageDialog({ open, onOpenChange, onSuccess }: ConfigPac
                 </div>
               )}
             </div>
-          </div>
+          </label>
 
           {/* Loading State */}
           {isValidating && (

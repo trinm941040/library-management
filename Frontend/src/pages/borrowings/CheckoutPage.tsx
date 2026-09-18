@@ -14,13 +14,11 @@ import {
   UserCheck,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/auth/AuthProvider'
 import { PageShell, useToast } from '@/common/components'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
-import { can } from '@/shared/auth/permissions'
 import {
   checkoutWithBarcode,
   lookupBookCopyForCheckout,
@@ -40,8 +38,6 @@ const formatDate = (value: string | DateOnlyLike | null | undefined) => {
 type DateOnlyLike = string
 
 export function CheckoutPage() {
-  const { user } = useAuth()
-  const canCreate = can(user?.permissions ?? [], 'borrowings.create')
   const { showToast } = useToast()
 
   // Input states
@@ -81,6 +77,8 @@ export function CheckoutPage() {
     setMemberError('')
     setCheckoutError('')
     setCreatedBorrowing(null)
+    setCopy(null)
+    setBarcodeInput('')
 
     try {
       const result = await lookupMemberForCheckout(trimmed)
@@ -127,7 +125,7 @@ export function CheckoutPage() {
     } finally {
       setIsSearchingCopy(false)
     }
-  }, [member?.memberId, showToast])
+  }, [member, showToast])
 
   // Form submit: Member Card
   const onMemberFormSubmit = (event: FormEvent) => {
@@ -209,7 +207,7 @@ export function CheckoutPage() {
   }
 
   const isCheckoutReady =
-    canCreate && member?.isEligible === true && copy?.isAvailable === true && !isSubmitting
+    member?.isEligible === true && copy?.isAvailable === true && !isSubmitting
 
   return (
     <PageShell

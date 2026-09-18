@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
@@ -14,6 +15,8 @@ internal sealed class UnitOfWork(LibraryDbContext db) : IUnitOfWork
         try { return await db.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException exception)
         { throw new OptimisticConcurrencyException("The resource was modified by another request.", exception); }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        { throw new ResourceConflictException("A unique value already exists."); }
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)
