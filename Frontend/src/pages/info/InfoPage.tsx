@@ -48,9 +48,9 @@ export function InfoPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={handleSave} disabled={isSaving}>
-            <Save className={`mr-2 h-4 w-4 ${isSaving ? 'animate-pulse' : ''}`} /> 
-            {isSaving ? 'Đang lưu...' : 'Lưu thông tin'}
+          <Button onClick={handleSave} loading={isSaving} loadingLabel="Đang lưu thông tin thư viện">
+            <Save className="mr-2 h-4 w-4" />
+            Lưu thông tin
           </Button>
         </div>
       </div>

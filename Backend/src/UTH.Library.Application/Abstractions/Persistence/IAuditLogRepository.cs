@@ -10,4 +10,9 @@ public interface IAuditLogRepository
         CancellationToken cancellationToken);
 
     Task<AuditLogModel?> GetByIdAsync(Guid id, DateTime utcNow, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AuditLogModel>> GetForExportAsync(
+        AuditLogQuery query,
+        DateTime utcNow,
+        int maximumRows,
+        CancellationToken cancellationToken);
 }

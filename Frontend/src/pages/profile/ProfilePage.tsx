@@ -23,6 +23,7 @@ import {
 } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
+import { LoadingBoundary } from '@/common/components/molecules/LoadingBoundary'
 import { profileFormSchema, updateProfile, type ProfileFormValues } from './profile-api'
 
 export function ProfilePage() {
@@ -58,7 +59,7 @@ export function ProfilePage() {
   if (!user)
     return (
       <div className="content-wrap">
-        <p role="status">Đang tải hồ sơ...</p>
+        <LoadingBoundary loading label="Đang tải hồ sơ" className="min-h-[40vh]" />
       </div>
     )
 
@@ -121,8 +122,13 @@ export function ProfilePage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled={isReloading} onClick={reloadProfile}>
-            <RefreshCw className={isReloading ? 'animate-spin' : ''} /> Tải lại
+          <Button
+            variant="outline"
+            loading={isReloading}
+            loadingLabel="Đang tải lại hồ sơ"
+            onClick={reloadProfile}
+          >
+            <RefreshCw /> Tải lại
           </Button>
           {!editing && user.employeeId ? (
             <Button onClick={() => setEditing(true)}>
@@ -208,8 +214,12 @@ export function ProfilePage() {
                     >
                       Hủy
                     </Button>
-                    <Button type="submit" disabled={profileForm.formState.isSubmitting}>
-                      {profileForm.formState.isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    <Button
+                      type="submit"
+                      loading={profileForm.formState.isSubmitting}
+                      loadingLabel="Đang lưu hồ sơ"
+                    >
+                      Lưu thay đổi
                     </Button>
                   </div>
                 ) : null}

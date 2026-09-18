@@ -523,8 +523,8 @@ export function CirculationPolicyDialog({
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : mode === 'new-version' ? 'Tạo phiên bản' : 'Lưu chính sách'}
+            <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu chính sách">
+              {mode === 'new-version' ? 'Tạo phiên bản' : 'Lưu chính sách'}
             </Button>
           </DialogFooter>
         </form>

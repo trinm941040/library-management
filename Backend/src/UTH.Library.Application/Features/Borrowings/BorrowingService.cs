@@ -82,6 +82,9 @@ public sealed class BorrowingService(
         if (overdueLoans > 0)
             reasons.Add($"Đang có {overdueLoans} cuốn sách mượn quá hạn chưa hoàn trả.");
 
+        if (await HasUnpaidFineAsync(member.Id, history.Violations, cancellationToken))
+            reasons.Add("Độc giả còn khoản tiền phạt chưa thanh toán.");
+
         return new MemberCheckoutLookupResult(
             member.Id,
             member.MemberCode,
@@ -167,6 +170,10 @@ public sealed class BorrowingService(
         if (string.IsNullOrWhiteSpace(command.BookBarcode))
             return BorrowingResult.Fail(BorrowingFailure.Validation, "Mã vạch bản sao sách là bắt buộc.");
 
+        var employeeId = await borrowings.GetEmployeeIdByUserIdAsync(actorUserId, cancellationToken);
+        if (employeeId is null)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Tài khoản xử lý chưa liên kết hồ sơ nhân viên.");
+
         var member = await members.GetByCardOrCodeAsync(command.MemberCardOrCode, cancellationToken);
         if (member is null)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả tương ứng với mã thẻ hoặc mã độc giả đã quét.");
@@ -211,6 +218,9 @@ public sealed class BorrowingService(
         var policy = await policyResolver.ResolveAsync(member.MemberGroup, book.Category, null, now, cancellationToken);
         var maxLoans = Math.Min(member.BorrowingLimit, policy.MaxLoanBooks);
 
+        if (await HasUnpaidFineAsync(member.Id, history.Violations, cancellationToken))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả còn khoản tiền phạt chưa thanh toán.");
+
         if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Độc giả đã đạt giới hạn mượn sách cho phép ({maxLoans} cuốn).");
 
@@ -223,7 +233,6 @@ public sealed class BorrowingService(
             var loanDays = command.LoanDaysOverride is > 0 ? Math.Min(command.LoanDaysOverride.Value, maximumLoanDays) : maximumLoanDays;
 
             copy.Checkout(now);
-            book.Checkout(now);
 
             var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
@@ -233,7 +242,7 @@ public sealed class BorrowingService(
                 member.Email,
                 now,
                 loanDays,
-                actorUserId,
+                employeeId,
                 policy.PolicyId,
                 policy.Version,
                 JsonSerializer.Serialize(policy));
@@ -257,64 +266,37 @@ public sealed class BorrowingService(
         }
     }
 
-    public async Task<BorrowingResult> CreateAsync(CreateBorrowingCommand command, CancellationToken cancellationToken)
+    private async Task<bool> HasUnpaidFineAsync(
+        Guid memberId,
+        IReadOnlyList<Violation> memberViolations,
+        CancellationToken cancellationToken)
     {
-        var book = await books.GetByIdAsync(command.BookId, cancellationToken);
-        if (book is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
+        foreach (var violation in memberViolations.Where(value => value.FineAmount > 0))
+        {
+            if (await members.GetViolationBalanceAsync(memberId, violation.Id, violation.FineAmount, cancellationToken) > 0)
+                return true;
+        }
 
+        return false;
+    }
+
+    public async Task<BorrowingResult> CreateAsync(
+        CreateBorrowingCommand command,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
         var borrower = await members.GetByIdAsync(command.BorrowerId, cancellationToken);
-        if (borrower is null || borrower.Status != MemberStatus.Active)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrower was not found.");
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active || borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower's membership card is not active.");
-        if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an active borrowing restriction.");
-        var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
-        var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
-        var maxLoans = Math.Min(borrower.BorrowingLimit, policy.MaxLoanBooks);
-        if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrowing limit has been reached.");
-        if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Borrower has an overdue loan.");
+        if (borrower is null)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả.");
 
-        if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "This borrower already has this book on loan.");
+        var copy = await borrowings.GetFirstAvailableBookCopyAsync(command.BookId, cancellationToken);
+        if (copy is null)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Đầu sách không còn bản sao khả dụng.");
 
-        try
-        {
-            var maximumLoanDays = Math.Min(borrower.LoanPeriodDays, policy.LoanPeriodDays);
-            var loanDays = command.LoanDays <= 0 ? maximumLoanDays : command.LoanDays;
-            if (loanDays > maximumLoanDays)
-                return BorrowingResult.Fail(BorrowingFailure.Validation, "Loan period exceeds the applicable policy.");
-            book.Checkout(now);
-            var borrowing = Borrowing.Create(
-                book.Id,
-                borrower.Id,
-                borrower.FullName,
-                borrower.Email,
-                now,
-                loanDays,
-                policy.PolicyId,
-                policy.Version,
-                JsonSerializer.Serialize(policy));
-            await borrowings.AddAsync(borrowing, cancellationToken);
-            await borrowings.SaveChangesAsync(cancellationToken);
-            return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
-        }
-        catch (OptimisticConcurrencyException)
-        {
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Dữ liệu vừa được cập nhật bởi yêu cầu khác.");
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, exception.Message);
-        }
-        catch (ArgumentException exception)
-        {
-            return BorrowingResult.Fail(BorrowingFailure.Validation, exception.Message);
-        }
+        return await CheckoutWithBarcodeAsync(
+            new CheckoutWithBarcodeCommand(borrower.MemberCode, copy.Barcode, command.LoanDays),
+            actorUserId,
+            cancellationToken);
     }
 
     public async Task<BorrowingResult> RenewAsync(Guid id, RenewBorrowingCommand command, CancellationToken cancellationToken)
@@ -390,7 +372,8 @@ public sealed class BorrowingService(
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
             borrowing.MarkReturned(now);
-            book.CheckIn(now);
+            if (borrowing.BookCopyId is null)
+                book.CheckIn(now);
 
             if (borrowing.BookCopyId.HasValue)
             {
@@ -534,7 +517,6 @@ public sealed class BorrowingService(
             }
             else
             {
-                book?.CheckIn(now);
                 var targetStatus = hasWaitingReservation ? CopyStatus.Reserved : CopyStatus.Available;
                 copy.ReturnWithCondition(parsedCondition, targetStatus, now);
             }

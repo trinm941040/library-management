@@ -12,13 +12,7 @@ public sealed class EnhanceAuditTrail : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.AddColumn<string>(
-            name: "IpAddress",
-            table: "audit_logs",
-            type: "character varying(45)",
-            maxLength: 45,
-            nullable: true);
-
+        // EnhanceAuditLogs owns IpAddress and IX_audit_logs_CorrelationId.
         migrationBuilder.AddColumn<DateTime>(
             name: "RetainUntilUtc",
             table: "audit_logs",
@@ -37,10 +31,6 @@ public sealed class EnhanceAuditTrail : Migration
             table: "audit_logs",
             columns: ["Action", "CreatedAtUtc"]);
         migrationBuilder.CreateIndex(
-            name: "IX_audit_logs_CorrelationId",
-            table: "audit_logs",
-            column: "CorrelationId");
-        migrationBuilder.CreateIndex(
             name: "IX_audit_logs_IpAddress_CreatedAtUtc",
             table: "audit_logs",
             columns: ["IpAddress", "CreatedAtUtc"]);
@@ -53,10 +43,8 @@ public sealed class EnhanceAuditTrail : Migration
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropIndex(name: "IX_audit_logs_Action_CreatedAtUtc", table: "audit_logs");
-        migrationBuilder.DropIndex(name: "IX_audit_logs_CorrelationId", table: "audit_logs");
         migrationBuilder.DropIndex(name: "IX_audit_logs_IpAddress_CreatedAtUtc", table: "audit_logs");
         migrationBuilder.DropIndex(name: "IX_audit_logs_RetainUntilUtc", table: "audit_logs");
-        migrationBuilder.DropColumn(name: "IpAddress", table: "audit_logs");
         migrationBuilder.DropColumn(name: "RetainUntilUtc", table: "audit_logs");
     }
 }
