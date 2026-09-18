@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
+using UTH.Library.Domain.Enums;
 
 namespace UTH.Library.Infrastructure.Persistence.Repositories;
 
@@ -57,6 +60,53 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
             borrowing => borrowing.BookId == bookId && borrowing.BorrowerId == borrowerId && borrowing.ReturnedAtUtc == null,
             cancellationToken);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public Task<bool> HasActiveBorrowingForCopyAsync(Guid bookCopyId, CancellationToken cancellationToken) =>
+        dbContext.Borrowings.AnyAsync(
+            borrowing => borrowing.BookCopyId == bookCopyId && borrowing.ReturnedAtUtc == null,
+            cancellationToken);
+
+    public Task<Borrowing?> GetActiveBorrowingByCopyIdAsync(Guid bookCopyId, CancellationToken cancellationToken) =>
+        dbContext.Borrowings
+            .SingleOrDefaultAsync(
+                borrowing => borrowing.BookCopyId == bookCopyId && borrowing.ReturnedAtUtc == null,
+                cancellationToken);
+
+    public Task<BookCopy?> GetBookCopyByBarcodeAsync(string barcode, CancellationToken cancellationToken)
+    {
+        var normalized = barcode.Trim().ToUpperInvariant();
+        return dbContext.BookCopies.SingleOrDefaultAsync(
+            copy => copy.Barcode == normalized,
+            cancellationToken);
+    }
+
+    public Task<BookCopy?> GetBookCopyByIdAsync(Guid copyId, CancellationToken cancellationToken) =>
+        dbContext.BookCopies.SingleOrDefaultAsync(
+            copy => copy.Id == copyId,
+            cancellationToken);
+
+    public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
+        dbContext.BookCopies.Where(copy => copy.BookId == bookId && copy.Status == CopyStatus.Available &&
+            !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))
+            .OrderBy(copy => copy.Barcode)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<Guid?> GetEmployeeIdByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+        dbContext.Employees.Where(employee => employee.UserId == userId &&
+            employee.Status == EmploymentStatus.Active)
+            .Select(employee => (Guid?)employee.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "IX_borrowings_ActiveBookCopyId" })
+        {
+            throw new OptimisticConcurrencyException("Book copy already has an active borrowing.", exception);
+        }
+    }
 }

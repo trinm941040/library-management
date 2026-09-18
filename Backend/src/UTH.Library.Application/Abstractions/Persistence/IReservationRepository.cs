@@ -14,5 +14,6 @@ public interface IReservationRepository
         DateTime utcNow,
         CancellationToken cancellationToken);
     Task<bool> HasOpenReservationAsync(Guid bookId, Guid reserverId, CancellationToken cancellationToken);
+    Task<Reservation?> GetFirstWaitingReservationForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

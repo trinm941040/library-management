@@ -65,7 +65,7 @@ public sealed class BookCopy
     public bool CanChangeStatus(CopyStatus nextStatus) => Status == nextStatus || Status switch
     {
         CopyStatus.Available => nextStatus is CopyStatus.Borrowed or CopyStatus.Reserved or CopyStatus.InTransit or CopyStatus.Lost or CopyStatus.Damaged or CopyStatus.Withdrawn,
-        CopyStatus.Borrowed => nextStatus is CopyStatus.Available or CopyStatus.Lost or CopyStatus.Damaged,
+        CopyStatus.Borrowed => nextStatus is CopyStatus.Available or CopyStatus.Reserved or CopyStatus.Lost or CopyStatus.Damaged,
         CopyStatus.Reserved => nextStatus is CopyStatus.Available or CopyStatus.Borrowed or CopyStatus.InTransit,
         CopyStatus.InTransit => nextStatus is CopyStatus.Available or CopyStatus.Lost or CopyStatus.Damaged,
         CopyStatus.Lost => nextStatus is CopyStatus.Available or CopyStatus.Withdrawn,
@@ -94,6 +94,18 @@ public sealed class BookCopy
     public void Withdraw()
     {
         ChangeStatus(CopyStatus.Withdrawn);
+    }
+
+    public void Checkout(DateTime now) => ChangeStatus(CopyStatus.Borrowed);
+
+    public void Return(DateTime now) => ChangeStatus(CopyStatus.Available);
+
+    public void ReturnWithCondition(CopyCondition condition, CopyStatus status, DateTime now)
+    {
+        if (status is not (CopyStatus.Available or CopyStatus.Reserved or CopyStatus.Damaged or CopyStatus.Lost))
+            throw new InvalidOperationException("Invalid return status.");
+        ChangeCondition(condition);
+        ChangeStatus(status);
     }
 
     private static DateTime EnsureUtc(DateTime value) => value.Kind switch

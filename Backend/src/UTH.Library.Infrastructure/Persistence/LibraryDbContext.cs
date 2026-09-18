@@ -85,8 +85,16 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             entity.Property(borrowing => borrowing.BorrowedAtUtc).IsRequired();
             entity.Property(borrowing => borrowing.DueAtUtc).IsRequired();
             entity.Property(borrowing => borrowing.AppliedPolicySnapshot).HasColumnType("jsonb").IsRequired();
+            entity.Property(borrowing => borrowing.BookCopyId);
+            entity.Property(borrowing => borrowing.ProcessedByEmployeeId);
             entity.HasOne<CirculationPolicy>().WithMany().HasForeignKey(borrowing => borrowing.AppliedPolicyId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<BookCopy>().WithMany().HasForeignKey(borrowing => borrowing.BookCopyId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<Employee>().WithMany().HasForeignKey(borrowing => borrowing.ProcessedByEmployeeId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(borrowing => new { borrowing.BookId, borrowing.BorrowerId, borrowing.ReturnedAtUtc });
+            entity.HasIndex(borrowing => new { borrowing.BookCopyId, borrowing.ReturnedAtUtc });
+            entity.HasIndex(borrowing => borrowing.BookCopyId, "IX_borrowings_ActiveBookCopyId")
+                .IsUnique()
+                .HasFilter("\"ReturnedAtUtc\" IS NULL AND \"BookCopyId\" IS NOT NULL");
             entity.HasIndex(borrowing => borrowing.DueAtUtc);
             entity.Ignore(borrowing => borrowing.IsReturned);
             entity.Property(borrowing => borrowing.ConcurrencyToken).IsConcurrencyToken().HasDefaultValueSql("gen_random_uuid()");

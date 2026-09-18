@@ -7,22 +7,26 @@ public sealed class Borrowing
     private Borrowing(
         Guid id,
         Guid bookId,
+        Guid? bookCopyId,
         Guid borrowerId,
         string borrowerName,
         string borrowerEmail,
         DateTime borrowedAtUtc,
         DateTime dueAtUtc,
+        Guid? processedByEmployeeId,
         Guid? appliedPolicyId,
         int appliedPolicyVersion,
         string appliedPolicySnapshot)
     {
         Id = id;
         BookId = bookId;
+        BookCopyId = bookCopyId;
         BorrowerId = borrowerId;
         BorrowerName = borrowerName;
         BorrowerEmail = borrowerEmail;
         BorrowedAtUtc = borrowedAtUtc;
         DueAtUtc = dueAtUtc;
+        ProcessedByEmployeeId = processedByEmployeeId;
         AppliedPolicyId = appliedPolicyId;
         AppliedPolicyVersion = appliedPolicyVersion;
         AppliedPolicySnapshot = appliedPolicySnapshot;
@@ -38,6 +42,7 @@ public sealed class Borrowing
 
     public Guid Id { get; private set; }
     public Guid BookId { get; private set; }
+    public Guid? BookCopyId { get; private set; }
     public Guid BorrowerId { get; private set; }
     public string BorrowerName { get; private set; }
     public string BorrowerEmail { get; private set; }
@@ -45,6 +50,7 @@ public sealed class Borrowing
     public DateTime DueAtUtc { get; private set; }
     public DateTime? ReturnedAtUtc { get; private set; }
     public int RenewalCount { get; private set; }
+    public Guid? ProcessedByEmployeeId { get; private set; }
     public Guid? AppliedPolicyId { get; private set; }
     public int AppliedPolicyVersion { get; private set; }
     public string AppliedPolicySnapshot { get; private set; }
@@ -59,6 +65,31 @@ public sealed class Borrowing
         string borrowerEmail,
         DateTime borrowedAtUtc,
         int loanDays,
+        Guid? appliedPolicyId = null,
+        int appliedPolicyVersion = 1,
+        string appliedPolicySnapshot = "{}") =>
+        CreateWithCopy(
+            bookId,
+            null,
+            borrowerId,
+            borrowerName,
+            borrowerEmail,
+            borrowedAtUtc,
+            loanDays,
+            null,
+            appliedPolicyId,
+            appliedPolicyVersion,
+            appliedPolicySnapshot);
+
+    public static Borrowing CreateWithCopy(
+        Guid bookId,
+        Guid? bookCopyId,
+        Guid borrowerId,
+        string borrowerName,
+        string borrowerEmail,
+        DateTime borrowedAtUtc,
+        int loanDays,
+        Guid? processedByEmployeeId = null,
         Guid? appliedPolicyId = null,
         int appliedPolicyVersion = 1,
         string appliedPolicySnapshot = "{}")
@@ -79,11 +110,13 @@ public sealed class Borrowing
         return new Borrowing(
             Guid.NewGuid(),
             bookId,
+            bookCopyId,
             borrowerId,
             borrowerName.Trim(),
             borrowerEmail.Trim(),
             borrowedAtUtc,
             borrowedAtUtc.AddDays(loanDays),
+            processedByEmployeeId,
             appliedPolicyId,
             appliedPolicyVersion,
             string.IsNullOrWhiteSpace(appliedPolicySnapshot) ? "{}" : appliedPolicySnapshot);

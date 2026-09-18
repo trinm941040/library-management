@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BookOpen, CircleAlert, Plus, RefreshCw, Search, Undo2 } from 'lucide-react'
+import { Barcode, BookOpen, CircleAlert, Plus, RefreshCw, RotateCcw, Search, Undo2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -149,8 +150,20 @@ export function BorrowingsPage() {
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['borrowings.create']}>
-              <Button onClick={() => setFormOpen(true)}>
-                <Plus /> Tạo phiếu mượn
+              <Button asChild>
+                <Link to="/circulation/checkout">
+                  <Barcode className="mr-1 h-4 w-4" /> Quét mã lập phiếu
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => setFormOpen(true)}>
+                <Plus /> Tạo thủ công
+              </Button>
+            </PermissionBoundary>
+            <PermissionBoundary requiredPermissions={['borrowings.return']}>
+              <Button asChild variant="outline" className="border-indigo-200 hover:border-indigo-300 text-indigo-700 dark:text-indigo-300">
+                <Link to="/circulation/return">
+                  <RotateCcw className="mr-1 h-4 w-4" /> Quét mã trả sách
+                </Link>
               </Button>
             </PermissionBoundary>
           </div>
