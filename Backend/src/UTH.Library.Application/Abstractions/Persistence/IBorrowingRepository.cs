@@ -21,6 +21,7 @@ public interface IBorrowingRepository
     Task<BookCopy?> GetBookCopyByIdAsync(Guid copyId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Renewal>> GetRenewalsByBorrowingIdAsync(Guid borrowingId, CancellationToken cancellationToken);
     Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken);
+    Task<decimal?> GetCopyUnitCostAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken);
     Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken);
     Task<Guid?> GetEmployeeIdByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);

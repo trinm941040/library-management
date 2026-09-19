@@ -300,6 +300,19 @@ export function BorrowingsPage() {
                             </PermissionBoundary>
                           ) : null}
                         </div>
+                        {item.status !== 'returned' ? (
+                          <PermissionBoundary requiredPermissions={['borrowings.return']}>
+                            {item.bookCopyId ? (
+                              <Button asChild variant="outline" size="sm">
+                                <Link to="/circulation/return"><Barcode /> Quét mã trả</Link>
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" disabled={returningId === item.id} onClick={() => handleReturn(item.id)}>
+                                <Undo2 /> Trả sách
+                              </Button>
+                            )}
+                          </PermissionBoundary>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}
