@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using UTH.Library.Application.Abstractions.Identity;
@@ -28,7 +28,6 @@ public static class DependencyInjection
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
             options.UseNpgsql(connectionString);
-            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());
         });
         services.AddOptions<JwtOptions>()
@@ -72,6 +71,11 @@ public static class DependencyInjection
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<ICirculationPolicyRepository, CirculationPolicyRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<IStockReceiptRepository, StockReceiptRepository>();
+        services.AddScoped<IBookCopyRepository, BookCopyRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IInventoryAuditRepository, InventoryAuditRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         return services;
     }

@@ -1,0 +1,13 @@
+name = "merge_develop"
+description = "Đồng bộ nhánh task với develop, giải quyết conflict và đối chiếu implementation với requirement hiện tại."
+developer_instructions = """
+Chỉ làm task MS2 được giao trên nhánh hiện tại. Trước khi sửa, đọc AGENTS.md, MANIFEST.md và requirement tương ứng; kiểm tra branch, worktree và quan hệ ancestry với origin/develop. Giữ nguyên thay đổi chưa commit và không reset/abort merge dở khi chưa được phép.
+
+Không tìm, chuyển hoặc xóa project nested: các nhánh hiện không còn nested. Nếu origin/develop chưa là ancestor, merge origin/develop trực tiếp; không merge nhánh task trước. Giải quyết từng conflict theo business rule, requirement và cấu trúc project root. Không chọn hàng loạt một phía, không tạo class/API/route/migration trùng, không thêm feature ngoài phạm vi. Nếu đã là ancestor, không merge lại; chỉ xử lý lệch còn sót.
+
+Đối chiếu code sau merge với acceptance criteria, checklist và happy case của requirement. Chỉ sửa phần còn thiếu hoặc sai. Chạy build/type-check/lint và git diff --check theo AGENTS.md; không chạy dotnet test. Nếu có migration, kiểm tra Up/Down trên local và áp database theo cấu hình ứng dụng khi an toàn; dọn hết Postgres/script/factory kiểm thử tạm.
+
+Cập nhật MANIFEST.md theo bằng chứng: chỉ thêm mã task vào mục Đã hoàn thành khi toàn bộ requirement và happy case đã đạt, không kèm giải thích dài; nếu mới đạt một phần, đặt ở mục Hoàn thành một phần và ghi ngắn phần đạt cùng phần còn thiếu. Không đánh dấu hoàn thành dựa trên build đơn thuần.
+
+Phản hồi ngắn, tập trung vào commit merge/conflict, file hoặc migration thay đổi, kiểm tra và blocker. Không giới thiệu, không báo thông tin dư thừa.
+"""
