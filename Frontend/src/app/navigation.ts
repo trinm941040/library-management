@@ -2,12 +2,15 @@ import {
   AlertTriangle,
   Barcode,
   Clock,
-  CreditCard,
+  Building2,
+  ClipboardList,
   KeyRound,
   LayoutDashboard,
   Layers,
+  MapPinned,
   RefreshCw,
   RotateCcw,
+  ScanLine,
   Settings,
   ShieldCheck,
   UserRoundCog,
@@ -62,7 +65,12 @@ export const navigationGroups: readonly NavigationGroup[] = [
   {
     label: 'Quản lý tác vụ',
     items: [
-      { path: '/books', label: 'Kho sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/catalog', label: 'Biểu ghi sách', icon: Layers, requiredPermissions: ['books.read'] },
+      { path: '/branches', label: 'Chi nhánh và kệ', icon: MapPinned, requiredPermissions: ['locations.read'] },
+      { path: '/copies', label: 'Bản sao và mã vạch', icon: Barcode, requiredPermissions: ['copies.read'] },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Building2, requiredPermissions: ['suppliers.read'] },
+      { path: '/stock-receipts', label: 'Phiếu nhập', icon: ClipboardList, requiredPermissions: ['stock-receipts.read'] },
+      { path: '/inventory-audits', label: 'Kiểm kê', icon: ScanLine, requiredPermissions: ['inventory-audits.read'] },
       {
         path: '/circulation/checkout',
         label: 'Lập phiếu mượn',
@@ -91,12 +99,6 @@ export const navigationGroups: readonly NavigationGroup[] = [
         path: '/violations',
         label: 'Vi phạm',
         icon: AlertTriangle,
-        requiredPermissions: ['violations.read'],
-      },
-      {
-        path: '/payments',
-        label: 'Thu tiền phạt',
-        icon: CreditCard,
         requiredPermissions: ['violations.read'],
       },
     ],
@@ -139,5 +141,5 @@ export const routePermissions = new Map([
   [settingsNavigationItem.path, settingsNavigationItem.requiredPermissions] as const,
   ['/loans/:id', ['borrowings.read']] as const,
   ['/borrowings/:id', ['borrowings.read']] as const,
+  ['/stock-receipts/new', ['stock-receipts.create']] as const,
 ])
-

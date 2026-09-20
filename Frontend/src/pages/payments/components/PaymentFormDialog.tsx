@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, CreditCard, DollarSign, Loader2, ShieldCheck, User } from 'lucide-react'
+import { AlertCircle, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {

@@ -2,9 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UTH.Library.Api.Contracts.Violations;
-using UTH.Library.Api.Contracts.Payments;
 using UTH.Library.Application.Abstractions.Identity;
-using UTH.Library.Application.Features.Payments;
 using UTH.Library.Application.Features.Violations;
 
 namespace UTH.Library.Api.Controllers;
@@ -12,7 +10,7 @@ namespace UTH.Library.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/violations")]
-public sealed class ViolationsController(ViolationService violationService, FinePaymentService paymentService) : ControllerBase
+public sealed class ViolationsController(ViolationService violationService) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = Permissions.ViolationsRead)]
@@ -119,103 +117,15 @@ public sealed class ViolationsController(ViolationService violationService, Fine
         return Created($"/api/v1/violations/{response.Id}", response);
     }
 
-    [HttpGet("{id:guid}/payment-preview")]
-    [Authorize(Policy = Permissions.ViolationsRead)]
-    [ProducesResponseType(typeof(FinePaymentPreviewResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<FinePaymentPreviewResponse>> GetPaymentPreview(Guid id, CancellationToken cancellationToken)
-    {
-        var preview = await paymentService.GetPreviewAsync(id, cancellationToken);
-        if (preview is null)
-            return NotFound(CreateProblem("Không tìm thấy thông tin vi phạm."));
-
-        return Ok(new FinePaymentPreviewResponse(
-            preview.ViolationId,
-            preview.ViolationType,
-            preview.BookTitle,
-            preview.MemberId,
-            preview.MemberName,
-            preview.MemberCode,
-            preview.BorrowerEmail,
-            preview.FineAmount,
-            preview.TotalAdjusted,
-            preview.TotalPaid,
-            preview.Balance,
-            preview.SuggestedAmount,
-            preview.IsOpen,
-            preview.Status));
-    }
-
     [HttpPost("{id:guid}/pay")]
     [Authorize(Policy = Permissions.ViolationsResolve)]
     [ProducesResponseType(typeof(ViolationResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ViolationResponse>> Pay(
-        Guid id,
-        [FromBody] PayViolationRequest? request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ViolationResponse>> Pay(Guid id, CancellationToken cancellationToken)
     {
-        var preview = await paymentService.GetPreviewAsync(id, cancellationToken);
-        if (preview is null)
-            return NotFound(CreateProblem("Không tìm thấy thông tin vi phạm."));
-
-        if (!preview.IsOpen || preview.Balance <= 0)
-            return Conflict(CreateProblem("Vi phạm này không còn số dư cần thanh toán."));
-
-        var amount = request?.Amount ?? preview.Balance;
-        var method = request?.Method ?? Domain.Entities.FinePaymentMethod.Cash;
-        var actorId = GetActorUserId();
-        var actorName = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.Email) ?? "Thủ thư";
-
-        var result = await paymentService.CreatePaymentAsync(
-            new CreateFinePaymentCommand(
-                id,
-                amount,
-                method,
-                request?.Reference,
-                request?.IdempotencyKey,
-                actorId != Guid.Empty ? actorId : null,
-                actorName),
-            cancellationToken);
-
-        if (!result.Succeeded || result.Receipt is null)
-        {
-            return result.Failure switch
-            {
-                FinePaymentFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy thông tin.")),
-                FinePaymentFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại.")),
-                _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu yêu cầu không hợp lệ."))
-            };
-        }
-
-        Response.Headers.Append("X-Payment-Id", result.Receipt.Id.ToString());
-
-        var updatedDetail = await violationService.GetDetailAsync(id, cancellationToken);
-        return updatedDetail is not null
-            ? Ok(ToResponse(updatedDetail.Violation))
-            : Ok(new ViolationResponse(
-                preview.ViolationId,
-                preview.MemberId,
-                preview.MemberName,
-                preview.BorrowerEmail,
-                null,
-                preview.BookTitle,
-                preview.ViolationType,
-                string.Empty,
-                preview.FineAmount,
-                DateTime.UtcNow,
-                result.Receipt.IsFullyPaid ? DateTime.UtcNow : null,
-                result.Receipt.IsFullyPaid ? "paid" : "partially_paid",
-                null,
-                1,
-                preview.TotalAdjusted,
-                preview.TotalPaid + amount,
-                result.Receipt.RemainingBalance,
-                null, null, null,
-                preview.MemberCode,
-                null));
+        var result = await violationService.PayAsync(id, cancellationToken);
+        return result.Succeeded && result.Violation is not null
+            ? Ok(ToResponse(result.Violation))
+            : MapFailure(result);
     }
 
     [HttpPost("{id:guid}/waive")]

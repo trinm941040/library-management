@@ -15,6 +15,9 @@ internal sealed class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.Property(branch => branch.Address).HasMaxLength(500);
         builder.Property(branch => branch.CreatedAtUtc).IsRequired();
         builder.Property(branch => branch.UpdatedAtUtc).IsRequired();
+        builder.Property(branch => branch.ConcurrencyToken)
+            .IsConcurrencyToken()
+            .HasDefaultValueSql("gen_random_uuid()");
         builder.HasIndex(branch => branch.Code).IsUnique();
         builder.HasIndex(branch => branch.Name);
         builder.HasIndex(branch => branch.IsActive);
@@ -28,7 +31,8 @@ internal sealed class BranchConfiguration : IEntityTypeConfiguration<Branch>
             Address = (string?)null,
             IsActive = true,
             CreatedAtUtc = seededAt,
-            UpdatedAtUtc = seededAt
+            UpdatedAtUtc = seededAt,
+            ConcurrencyToken = new Guid("40000000-0000-0000-0000-000000000002")
         });
     }
 }

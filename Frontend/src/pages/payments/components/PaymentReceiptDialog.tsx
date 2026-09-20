@@ -1,4 +1,4 @@
-import { CheckCircle2, Printer, Receipt } from 'lucide-react'
+import { CheckCircle2, Printer } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {

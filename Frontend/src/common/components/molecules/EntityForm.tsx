@@ -47,8 +47,8 @@ export function EntityForm({
         <Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>
           Hủy
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang lưu...' : submitLabel}
+        <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu dữ liệu">
+          {submitLabel}
         </Button>
       </div>
     </form>

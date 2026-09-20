@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
+import { LoadingBoundary } from '@/common/components/molecules/LoadingBoundary'
 import {
   Dialog,
   DialogContent,
@@ -93,7 +94,7 @@ export function UserRoleDialog({
         </DialogHeader>
         <div className="grid max-h-80 gap-2 overflow-y-auto py-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Đang tải vai trò...</p>
+            <LoadingBoundary loading mode="inline" label="Đang tải vai trò" />
           ) : (
             roles.map((role) => (
               <div key={role.id} className="flex items-start gap-3 rounded-md border p-3">
@@ -147,8 +148,13 @@ export function UserRoleDialog({
           <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
             Hủy
           </Button>
-          <Button disabled={loading || saving || selected.size === 0} onClick={save}>
-            {saving ? 'Đang lưu...' : isConfirming ? 'Xác nhận thay đổi' : 'Lưu vai trò'}
+          <Button
+            disabled={loading || selected.size === 0}
+            loading={saving}
+            loadingLabel="Đang lưu vai trò người dùng"
+            onClick={save}
+          >
+            {isConfirming ? 'Xác nhận thay đổi' : 'Lưu vai trò'}
           </Button>
         </DialogFooter>
       </DialogContent>
