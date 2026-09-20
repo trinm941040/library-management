@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, CircleAlert, Plus, RefreshCw, Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  AlertTriangle,
+  CircleAlert,
+  Eye,
+  Filter,
+  Plus,
+  RefreshCw,
+  Search,
+} from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -21,50 +30,89 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { ViolationFormDialog, type ViolationFormData } from './components/ViolationFormDialog'
+import { ViolationDetailDialog } from './components/ViolationDetailDialog'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   createViolation,
   getViolations,
   payViolation,
   waiveViolation,
+  type LibraryViolation,
   type ViolationPageResponse,
 } from './violation-api'
-import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
-  open: 'Chưa xử lý',
-  paid: 'Đã nộp phạt',
-  waived: 'Đã miễn',
+  open: 'Chưa thanh toán',
+  partially_paid: 'Thanh toán một phần',
+  paid: 'Đã thanh toán',
+  waived: 'Đã miễn giảm',
+}
+
+const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  open: 'destructive',
+  partially_paid: 'default',
+  paid: 'secondary',
+  waived: 'outline',
 }
 
 const typeLabels: Record<string, string> = {
-  overdue: 'Trễ hạn',
+  overdue: 'Quá hạn',
   damage: 'Hư hỏng',
   lost: 'Mất sách',
   other: 'Khác',
 }
 
 export function ViolationsPage() {
-  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const urlSearch = searchParams.get('search') ?? ''
+  const urlStatus = searchParams.get('status') ?? 'all'
+  const urlType = searchParams.get('type') ?? 'all'
+  const urlHasBalance = searchParams.get('hasBalance') === 'true'
+  const urlPage = Number(searchParams.get('page')) || 1
+  const urlPageSize = Number(searchParams.get('pageSize')) || 20
+
   const [page, setPage] = useState<ViolationPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState(search)
+  const [searchInput, setSearchInput] = useState(urlSearch)
+  const [search, setSearch] = useState(urlSearch)
+  const [status, setStatus] = useState(urlStatus)
+  const [type, setType] = useState(urlType)
+  const [hasBalanceOnly, setHasBalanceOnly] = useState(urlHasBalance)
+  const [currentPage, setCurrentPage] = useState(urlPage)
+  const [pageSize, setPageSize] = useState(urlPageSize)
+
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
   const [notice, setNotice] = useState('')
+
   const [formOpen, setFormOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selectedViolation, setSelectedViolation] = useState<LibraryViolation | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => setSearchInput(search), [search])
+  // Đồng bộ search input debounce
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const value = searchInput.trim()
-      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
+      setSearch(searchInput.trim())
+      setCurrentPage(1)
     }, 350)
-
     return () => window.clearTimeout(timeout)
-  }, [search, searchInput, update])
+  }, [searchInput])
 
+  // Đồng bộ trạng thái bộ lọc lên URL query params
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (status !== 'all') params.set('status', status)
+    if (type !== 'all') params.set('type', type)
+    if (hasBalanceOnly) params.set('hasBalance', 'true')
+    if (currentPage > 1) params.set('page', String(currentPage))
+    if (pageSize !== 20) params.set('pageSize', String(pageSize))
+    setSearchParams(params, { replace: true })
+  }, [search, status, type, hasBalanceOnly, currentPage, pageSize, setSearchParams])
+
+  // Tải danh sách vi phạm
   useEffect(() => {
     const controller = new AbortController()
     setIsLoading(true)
@@ -74,6 +122,8 @@ export function ViolationsPage() {
       {
         search: search || undefined,
         status: status === 'all' ? undefined : status,
+        type: type === 'all' ? undefined : type,
+        hasBalanceOnly: hasBalanceOnly || undefined,
         pageNumber: currentPage,
         pageSize,
       },
@@ -82,19 +132,19 @@ export function ViolationsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          update({ pageNumber: response.totalPages })
+          setCurrentPage(response.totalPages)
         }
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setPageError(error instanceof Error ? error.message : 'Không thể tải vi phạm.')
+        setPageError(error instanceof Error ? error.message : 'Không thể tải danh sách vi phạm.')
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false)
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status, update])
+  }, [currentPage, pageSize, reloadKey, search, status, type, hasBalanceOnly])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -112,9 +162,12 @@ export function ViolationsPage() {
         type: data.type,
         note: data.note.trim(),
         fineAmount,
+        overdueDays: data.overdueDays,
+        bookPrice: data.bookPrice,
+        damageLevel: data.damageLevel || undefined,
       })
-      update({ pageNumber: 1 })
-      refresh('Đã ghi nhận vi phạm.')
+      setCurrentPage(1)
+      refresh('Đã ghi nhận vi phạm thành công.')
       return null
     } catch (error) {
       return error instanceof Error ? error.message : 'Không thể ghi nhận vi phạm.'
@@ -138,10 +191,17 @@ export function ViolationsPage() {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
 
-  const formatMoney = (value: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+  const formatMoney = (value?: number) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value ?? 0)
+
+  const handleOpenDetail = (item: LibraryViolation) => {
+    setSelectedViolation(item)
+    setDetailOpen(true)
+  }
 
   return (
     <>
@@ -149,16 +209,16 @@ export function ViolationsPage() {
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
-              quản lý tác vụ
+              Quản lý lưu thông
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">Vi phạm</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Xử lý vi phạm & Phạt</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ghi nhận phạt trễ hạn, hư hỏng hoặc mất sách, rồi thu phạt hoặc miễn.
+              Ghi nhận vi phạm mượn trả, tự động tính phạt theo chính sách và theo dõi số dư còn nợ.
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại vi phạm" onClick={() => refresh()}>
-              <RefreshCw />
+            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
+              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['violations.create']}>
@@ -190,35 +250,72 @@ export function ViolationsPage() {
               <div>
                 <CardTitle>Danh sách vi phạm</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {page ? `${page.totalCount} phiếu phù hợp với bộ lọc.` : 'Đang tải dữ liệu.'}
+                  {page ? `${page.totalCount} phiếu phù hợp với tiêu chí lọc.` : 'Đang tải dữ liệu...'}
                 </p>
               </div>
-              <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-                <div className="relative w-full lg:w-72">
+
+              {/* Bộ lọc mở rộng */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative min-w-[220px] flex-1 sm:w-64">
                   <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Tìm theo độc giả hoặc sách..."
+                    placeholder="Tìm độc giả, sách, mã vạch..."
                     value={searchInput}
                     onChange={(event) => setSearchInput(event.target.value)}
                   />
                 </div>
+
                 <Select
-                  value={status}
-                  onValueChange={(value) => {
-                    update({ status: value, pageNumber: 1 })
+                  value={type}
+                  onValueChange={(val) => {
+                    setType(val)
+                    setCurrentPage(1)
                   }}
                 >
-                  <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
-                    <SelectValue />
+                  <SelectTrigger className="w-[150px]" aria-label="Lọc theo loại vi phạm">
+                    <SelectValue placeholder="Loại vi phạm" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả</SelectItem>
-                    <SelectItem value="open">Chưa xử lý</SelectItem>
-                    <SelectItem value="paid">Đã nộp phạt</SelectItem>
-                    <SelectItem value="waived">Đã miễn</SelectItem>
+                    <SelectItem value="all">Tất cả loại</SelectItem>
+                    <SelectItem value="overdue">Quá hạn</SelectItem>
+                    <SelectItem value="damage">Hư hỏng</SelectItem>
+                    <SelectItem value="lost">Mất sách</SelectItem>
+                    <SelectItem value="other">Khác</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    setStatus(val)
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[170px]" aria-label="Lọc theo trạng thái">
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="open">Chưa thanh toán</SelectItem>
+                    <SelectItem value="partially_paid">Thanh toán một phần</SelectItem>
+                    <SelectItem value="paid">Đã thanh toán</SelectItem>
+                    <SelectItem value="waived">Đã miễn giảm</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant={hasBalanceOnly ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setHasBalanceOnly((prev) => !prev)
+                    setCurrentPage(1)
+                  }}
+                  className="gap-1.5"
+                >
+                  <Filter className="size-3.5" />
+                  {hasBalanceOnly ? 'Đang lọc: Còn nợ' : 'Chỉ khoản còn nợ'}
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -241,10 +338,11 @@ export function ViolationsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Độc giả</TableHead>
-                    <TableHead>Sách</TableHead>
-                    <TableHead>Loại</TableHead>
-                    <TableHead>Phạt</TableHead>
-                    <TableHead>Ngày ghi</TableHead>
+                    <TableHead>Tài liệu / Bản sao</TableHead>
+                    <TableHead>Loại vi phạm</TableHead>
+                    <TableHead>Tiền phạt gốc</TableHead>
+                    <TableHead>Số dư còn nợ</TableHead>
+                    <TableHead>Ngày ghi nhận</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
@@ -252,72 +350,120 @@ export function ViolationsPage() {
                 <TableBody>
                   {isLoading && !page ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                        Đang tải...
+                      <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                        Đang tải danh sách vi phạm...
                       </TableCell>
                     </TableRow>
                   ) : null}
                   {!isLoading && !pageError && page?.items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                        Chưa có vi phạm.
+                      <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                        Không tìm thấy vi phạm nào phù hợp với điều kiện tìm kiếm.
                       </TableCell>
                     </TableRow>
                   ) : null}
-                  {page?.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <span className="grid gap-0.5">
-                          <strong>{item.borrowerName}</strong>
-                          <small className="text-muted-foreground">{item.borrowerEmail}</small>
-                        </span>
-                      </TableCell>
-                      <TableCell>{item.bookTitle || '—'}</TableCell>
-                      <TableCell>{typeLabels[item.type] ?? item.type}</TableCell>
-                      <TableCell>{formatMoney(item.fineAmount)}</TableCell>
-                      <TableCell>{formatDate(item.recordedAtUtc)}</TableCell>
-                      <TableCell>
-                        <Badge variant={item.status === 'open' ? 'destructive' : 'secondary'}>
-                          {statusLabels[item.status] ?? item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.status === 'open' ? (
-                          <PermissionBoundary requiredPermissions={['violations.resolve']}>
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                disabled={busyId === item.id}
-                                onClick={() =>
-                                  runAction(
-                                    item.id,
-                                    () => payViolation(item.id),
-                                    'Đã ghi nhận nộp phạt.',
-                                  )
-                                }
-                              >
-                                Nộp phạt
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={busyId === item.id}
-                                onClick={() =>
-                                  runAction(
-                                    item.id,
-                                    () => waiveViolation(item.id),
-                                    'Đã miễn vi phạm.',
-                                  )
-                                }
-                              >
-                                Miễn
-                              </Button>
-                            </div>
-                          </PermissionBoundary>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {page?.items.map((item) => {
+                    const balance = item.balance ?? (item.status === 'paid' || item.status === 'waived' ? 0 : item.fineAmount)
+                    const isSettled = item.status === 'paid' || item.status === 'waived' || balance <= 0
+
+                    return (
+                      <TableRow key={item.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <div className="grid gap-0.5">
+                            <span className="font-medium text-foreground">{item.borrowerName}</span>
+                            <span className="text-xs text-muted-foreground">{item.borrowerEmail}</span>
+                            {item.borrowerMemberCode && (
+                              <span className="text-[11px] text-muted-foreground">Mã: {item.borrowerMemberCode}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="grid gap-0.5 max-w-[220px]">
+                            <span className="font-medium truncate" title={item.bookTitle || 'Không xác định'}>
+                              {item.bookTitle || '—'}
+                            </span>
+                            {item.bookCopyBarcode && (
+                              <span className="text-xs text-muted-foreground font-mono">
+                                Mã vạch: {item.bookCopyBarcode}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {typeLabels[item.type] ?? item.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {formatMoney(item.fineAmount)}
+                        </TableCell>
+                        <TableCell>
+                          {balance > 0 ? (
+                            <span className="font-mono font-semibold text-rose-600 dark:text-rose-400">
+                              {formatMoney(balance)}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                              0 ₫
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(item.recordedAtUtc)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariants[item.status] ?? 'secondary'}>
+                            {statusLabels[item.status] ?? item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Xem chi tiết vi phạm"
+                              onClick={() => handleOpenDetail(item)}
+                            >
+                              <Eye className="size-4" />
+                              <span className="hidden sm:inline ml-1">Chi tiết</span>
+                            </Button>
+
+                            {!isSettled && (
+                              <PermissionBoundary requiredPermissions={['violations.resolve']}>
+                                <Button
+                                  size="sm"
+                                  disabled={busyId === item.id}
+                                  onClick={() =>
+                                    runAction(
+                                      item.id,
+                                      () => payViolation(item.id),
+                                      'Đã ghi nhận nộp phạt thành công.',
+                                    )
+                                  }
+                                >
+                                  Nộp phạt
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={busyId === item.id}
+                                  onClick={() =>
+                                    runAction(
+                                      item.id,
+                                      () => waiveViolation(item.id),
+                                      'Đã miễn giảm vi phạm thành công.',
+                                    )
+                                  }
+                                >
+                                  Miễn
+                                </Button>
+                              </PermissionBoundary>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -327,10 +473,11 @@ export function ViolationsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={(value) => update({ pageNumber: value })}
+                  onPageChange={setCurrentPage}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    update({ pageNumber: 1, pageSize: size })
+                    setCurrentPage(1)
+                    setPageSize(size)
                   }}
                 />
               </div>
@@ -342,6 +489,12 @@ export function ViolationsPage() {
       <PermissionBoundary requiredPermissions={['violations.create']}>
         <ViolationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
       </PermissionBoundary>
+
+      <ViolationDetailDialog
+        violation={selectedViolation}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </>
   )
 }

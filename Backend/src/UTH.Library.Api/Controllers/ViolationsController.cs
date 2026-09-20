@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UTH.Library.Api.Contracts.Violations;
@@ -19,7 +20,16 @@ public sealed class ViolationsController(ViolationService violationService) : Co
         CancellationToken cancellationToken)
     {
         var page = await violationService.GetAsync(
-            new ViolationListQuery(request.Search, request.Status, request.PageNumber, request.PageSize),
+            new ViolationListQuery(
+                request.Search,
+                request.BorrowerId,
+                request.Type,
+                request.Status,
+                request.FromDate,
+                request.ToDate,
+                request.HasBalanceOnly,
+                request.PageNumber,
+                request.PageSize),
             cancellationToken);
 
         var totalPages = page.TotalCount == 0
@@ -34,6 +44,48 @@ public sealed class ViolationsController(ViolationService violationService) : Co
             totalPages));
     }
 
+    [HttpGet("{id:guid}")]
+    [Authorize(Policy = Permissions.ViolationsRead)]
+    [ProducesResponseType(typeof(ViolationDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ViolationDetailResponse>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await violationService.GetDetailAsync(id, cancellationToken);
+        if (detail is null)
+            return NotFound(CreateProblem("Không tìm thấy thông tin vi phạm."));
+
+        return Ok(ToDetailResponse(detail));
+    }
+
+    [HttpPost("preview")]
+    [Authorize(Policy = Permissions.ViolationsRead)]
+    [ProducesResponseType(typeof(FinePreviewResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FinePreviewResponse>> PreviewFine(
+        [FromBody] FinePreviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        var preview = await violationService.CalculateFinePreviewAsync(
+            new FinePreviewCommand(
+                request.BorrowerId,
+                request.BookId,
+                request.Type,
+                request.OverdueDays,
+                request.BookPrice,
+                request.DamageLevel,
+                request.CustomAmount),
+            cancellationToken);
+
+        return Ok(new FinePreviewResponse(
+            preview.CalculatedFine,
+            preview.Formula,
+            preview.PolicyName,
+            preview.DailyRate,
+            preview.MaxFine,
+            preview.LostRatio,
+            preview.PolicyId,
+            preview.PolicyVersion));
+    }
+
     [HttpPost]
     [Authorize(Policy = Permissions.ViolationsCreate)]
     [ProducesResponseType(typeof(ViolationResponse), StatusCodes.Status201Created)]
@@ -42,8 +94,20 @@ public sealed class ViolationsController(ViolationService violationService) : Co
         [FromBody] CreateViolationRequest request,
         CancellationToken cancellationToken)
     {
+        var actorId = GetActorUserId();
         var result = await violationService.CreateAsync(
-            new CreateViolationCommand(request.BorrowerId, request.BookId, request.Type, request.Note ?? string.Empty, request.FineAmount, request.OverdueDays, request.BookPrice),
+            new CreateViolationCommand(
+                request.BorrowerId,
+                request.BookId,
+                request.BookCopyId,
+                request.BorrowingId,
+                request.Type,
+                request.Note ?? string.Empty,
+                request.FineAmount,
+                request.OverdueDays,
+                request.BookPrice,
+                request.DamageLevel,
+                actorId),
             cancellationToken);
 
         if (!result.Succeeded || result.Violation is null)
@@ -77,12 +141,18 @@ public sealed class ViolationsController(ViolationService violationService) : Co
 
     private ActionResult MapFailure(ViolationResult result) => result.Failure switch
     {
-        ViolationFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Violation was not found.")),
-        ViolationFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Violation validation failed."))
+        ViolationFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy vi phạm.")),
+        ViolationFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại của dữ liệu.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu yêu cầu không hợp lệ."))
     };
 
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
+
+    private Guid GetActorUserId()
+    {
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
+    }
 
     private static ViolationResponse ToResponse(ViolationModel violation) =>
         new(
@@ -99,5 +169,35 @@ public sealed class ViolationsController(ViolationService violationService) : Co
             violation.ResolvedAtUtc,
             violation.Status,
             violation.AppliedPolicyId,
-            violation.AppliedPolicyVersion);
+            violation.AppliedPolicyVersion,
+            violation.TotalAdjusted,
+            violation.TotalPaid,
+            violation.Balance,
+            violation.BorrowingId,
+            violation.BookCopyId,
+            violation.BookCopyBarcode,
+            violation.BorrowerMemberCode,
+            violation.BorrowerCardNumber,
+            violation.ConcurrencyToken);
+
+    private static ViolationDetailResponse ToDetailResponse(ViolationDetailModel detail) =>
+        new(
+            ToResponse(detail.Violation),
+            detail.BookIsbn,
+            detail.BookAuthor,
+            detail.BookCategory,
+            detail.CalculationBasis,
+            detail.Payments.Select(p => new PaymentHistoryItemResponse(
+                p.Id,
+                p.Amount,
+                p.Method,
+                p.Reference,
+                p.PaidAtUtc,
+                p.ReceivedByUserId)).ToArray(),
+            detail.Adjustments.Select(a => new AdjustmentHistoryItemResponse(
+                a.Id,
+                a.AmountDelta,
+                a.Reason,
+                a.AdjustedAtUtc,
+                a.AdjustedByUserId)).ToArray());
 }

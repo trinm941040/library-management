@@ -118,4 +118,56 @@ public sealed class Violation
         Resolution = resolution;
         ConcurrencyToken = Guid.NewGuid();
     }
+
+    public Guid? ExtractBorrowingId()
+    {
+        if (string.IsNullOrWhiteSpace(AppliedPolicySnapshot)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(AppliedPolicySnapshot);
+            if (doc.RootElement.TryGetProperty("BorrowingId", out var prop) && prop.TryGetGuid(out var g))
+                return g;
+        }
+        catch { }
+        return null;
+    }
+
+    public Guid? ExtractBookCopyId()
+    {
+        if (string.IsNullOrWhiteSpace(AppliedPolicySnapshot)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(AppliedPolicySnapshot);
+            if (doc.RootElement.TryGetProperty("BookCopyId", out var prop) && prop.TryGetGuid(out var g))
+                return g;
+        }
+        catch { }
+        return null;
+    }
+
+    public string? ExtractBookCopyBarcode()
+    {
+        if (string.IsNullOrWhiteSpace(AppliedPolicySnapshot)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(AppliedPolicySnapshot);
+            if (doc.RootElement.TryGetProperty("BookCopyBarcode", out var prop))
+                return prop.GetString();
+        }
+        catch { }
+        return null;
+    }
+
+    public string? ExtractCalculationBasis()
+    {
+        if (string.IsNullOrWhiteSpace(AppliedPolicySnapshot)) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(AppliedPolicySnapshot);
+            if (doc.RootElement.TryGetProperty("CalculationBasis", out var prop))
+                return prop.GetRawText();
+        }
+        catch { }
+        return null;
+    }
 }

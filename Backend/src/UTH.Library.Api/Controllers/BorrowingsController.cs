@@ -273,14 +273,14 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
 
     private ActionResult MapFailure(BorrowingResult result) => result.Failure switch
     {
-        BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Borrowing was not found.")),
+        BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy khoản mượn.")),
         BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Borrowing validation failed."))
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Xác thực khoản mượn thất bại."))
     };
 
     private ActionResult MapReturnFailure(ReturnResult result) => result.Failure switch
     {
-        BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Book copy or borrowing was not found.")),
+        BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy bản sao sách hoặc khoản mượn.")),
         BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Return validation failed."))
     };

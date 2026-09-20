@@ -14,9 +14,27 @@ public sealed record ViolationModel(
     DateTime? ResolvedAtUtc,
     string Status,
     Guid? AppliedPolicyId,
-    int AppliedPolicyVersion);
+    int AppliedPolicyVersion,
+    decimal TotalAdjusted = 0m,
+    decimal TotalPaid = 0m,
+    decimal Balance = 0m,
+    Guid? BorrowingId = null,
+    Guid? BookCopyId = null,
+    string? BookCopyBarcode = null,
+    string? BorrowerMemberCode = null,
+    string? BorrowerCardNumber = null,
+    Guid ConcurrencyToken = default);
 
-public sealed record ViolationListQuery(string? Search, string? Status, int PageNumber, int PageSize);
+public sealed record ViolationListQuery(
+    string? Search,
+    Guid? BorrowerId,
+    string? Type,
+    string? Status,
+    DateTime? FromDate,
+    DateTime? ToDate,
+    bool? HasBalanceOnly,
+    int PageNumber,
+    int PageSize);
 
 public sealed record ViolationPageModel(
     IReadOnlyList<ViolationModel> Items,
@@ -27,11 +45,58 @@ public sealed record ViolationPageModel(
 public sealed record CreateViolationCommand(
     Guid BorrowerId,
     Guid? BookId,
+    Guid? BookCopyId,
+    Guid? BorrowingId,
     string Type,
     string Note,
     decimal FineAmount,
     int OverdueDays = 0,
-    decimal BookPrice = 0);
+    decimal BookPrice = 0,
+    string? DamageLevel = null,
+    Guid? ActorUserId = null);
+
+public sealed record FinePreviewCommand(
+    Guid BorrowerId,
+    Guid? BookId,
+    string Type,
+    int OverdueDays = 0,
+    decimal BookPrice = 0,
+    string? DamageLevel = null,
+    decimal? CustomAmount = null);
+
+public sealed record FinePreviewResult(
+    decimal CalculatedFine,
+    string Formula,
+    string? PolicyName,
+    decimal DailyRate,
+    decimal MaxFine,
+    decimal LostRatio,
+    Guid? PolicyId,
+    int PolicyVersion);
+
+public sealed record PaymentHistoryItemModel(
+    Guid Id,
+    decimal Amount,
+    string Method,
+    string Reference,
+    DateTime PaidAtUtc,
+    Guid? ReceivedByUserId);
+
+public sealed record AdjustmentHistoryItemModel(
+    Guid Id,
+    decimal AmountDelta,
+    string Reason,
+    DateTime AdjustedAtUtc,
+    Guid? AdjustedByUserId);
+
+public sealed record ViolationDetailModel(
+    ViolationModel Violation,
+    string? BookIsbn,
+    string? BookAuthor,
+    string? BookCategory,
+    string? CalculationBasis,
+    IReadOnlyList<PaymentHistoryItemModel> Payments,
+    IReadOnlyList<AdjustmentHistoryItemModel> Adjustments);
 
 public enum ViolationFailure
 {

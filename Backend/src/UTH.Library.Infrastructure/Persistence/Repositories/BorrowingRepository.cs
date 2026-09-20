@@ -123,7 +123,7 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
             exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation,
                 ConstraintName: "IX_borrowings_ActiveBookCopyId" })
         {
-            throw new OptimisticConcurrencyException("Book copy already has an active borrowing.", exception);
+            throw new OptimisticConcurrencyException("Bản sao sách đã có một khoản mượn đang hoạt động.", exception);
         }
     }
 }
