@@ -250,7 +250,7 @@ public sealed class ViolationsController(
     }
 
     [HttpPost("{id:guid}/adjust")]
-    [Authorize(Policy = Permissions.ViolationsAdjust)]
+    [Authorize(Policy = Permissions.ViolationsResolve)]
     [ProducesResponseType(typeof(FineAdjustmentResultResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -277,7 +277,7 @@ public sealed class ViolationsController(
     }
 
     [HttpPost("{id:guid}/waive")]
-    [Authorize(Policy = Permissions.ViolationsWaive)]
+    [Authorize(Policy = Permissions.ViolationsResolve)]
     [ProducesResponseType(typeof(FineAdjustmentResultResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

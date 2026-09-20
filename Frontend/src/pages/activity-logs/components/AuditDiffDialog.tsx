@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,12 @@ import {
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Check, Copy, Filter, Globe, Hash, Layers, ShieldCheck, User } from 'lucide-react'
-import type { AuditLogItem } from '../audit-log-api'
+import type { AuditLog } from '../audit-log-api'
 
 type AuditDiffDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  log: AuditLogItem | null
+  log: AuditLog | null
   onFilterCorrelationId?: (correlationId: string) => void
   onFilterEntity?: (entityType: string, entityId: string) => void
 }
@@ -151,10 +151,7 @@ export function AuditDiffDialog({
               <span className="font-medium text-foreground">Người thực hiện:</span>
             </div>
             <p className="pl-6 font-medium">
-              {log.actorDisplayName || 'Hệ thống'}
-              {log.actorEmail && (
-                <span className="ml-1 text-xs text-muted-foreground">({log.actorEmail})</span>
-              )}
+              {log.actorName || 'Hệ thống'}
             </p>
           </div>
 

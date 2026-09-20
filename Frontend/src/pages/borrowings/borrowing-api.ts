@@ -13,6 +13,7 @@ export type LibraryBorrowing = {
   dueAtUtc: string
   returnedAtUtc: string | null
   status: 'borrowed' | 'overdue' | 'returned' | string
+  renewalCount: number
   bookCopyId?: string | null
   bookCopyBarcode?: string | null
 }

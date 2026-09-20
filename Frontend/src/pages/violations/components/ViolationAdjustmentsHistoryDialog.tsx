@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, History, MinusCircle, PlusCircle, ShieldAlert } from 'lucide-react'
+import { AlertCircle, History, MinusCircle, PlusCircle } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {

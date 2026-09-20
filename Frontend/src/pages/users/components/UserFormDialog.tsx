@@ -145,8 +145,8 @@ export function UserFormDialog({ open, user, onOpenChange, onSave }: UserFormDia
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : user ? 'Lưu thay đổi' : 'Thêm người dùng'}
+            <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu người dùng">
+              {user ? 'Lưu thay đổi' : 'Thêm người dùng'}
             </Button>
           </DialogFooter>
         </form>

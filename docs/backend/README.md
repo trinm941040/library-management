@@ -56,14 +56,3 @@ Development applies migrations on startup. For production, keep `Database__Migra
 Integration tests use an isolated PostgreSQL Testcontainer and therefore require a running Docker daemon.
 
 OpenAPI is available at `/openapi/v1.json`; health is available at `/health`.
-
-## Current user profile API
-
-Authenticated employee accounts use these endpoints:
-
-- `GET /api/v1/me`: current account, linked employee/branch, and effective session permissions.
-- `PATCH /api/v1/me/profile`: update the self-service profile whitelist with `rowVersion` concurrency control.
-- `POST /api/v1/me/change-password`: change the password and revoke every refresh session for the account.
-- `POST /api/v1/auth/logout`: idempotently revoke the current refresh session.
-
-Profile updates, password changes, and logout write redacted audit records with the request correlation ID.
