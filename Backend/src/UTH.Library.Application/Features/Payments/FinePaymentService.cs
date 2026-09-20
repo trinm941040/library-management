@@ -1,5 +1,6 @@
 using System.Text.Json;
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
 
 namespace UTH.Library.Application.Features.Payments;
@@ -183,6 +184,10 @@ public sealed class FinePaymentService(
         catch (ArgumentException ex)
         {
             return FinePaymentResult.Fail(FinePaymentFailure.Validation, ex.Message);
+        }
+        catch (OptimisticConcurrencyException)
+        {
+            return FinePaymentResult.Fail(FinePaymentFailure.Conflict, "Khoản phạt vừa được cập nhật bởi thao tác khác. Vui lòng tải lại số dư.");
         }
     }
 
