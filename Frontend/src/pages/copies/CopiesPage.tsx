@@ -3,6 +3,7 @@ import { Barcode, Download, Plus, RefreshCw, Upload } from 'lucide-react'
 import { BarcodeInput, ConfirmDialog, DataTable, PageShell, ScreenState, StatusBadge, useToast } from '@/common/components'
 import { ImportPreviewDialog } from '@/common/components/organisms/ImportPreviewDialog'
 import { Button } from '@/common/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
 import { Input } from '@/common/components/ui/input'
 import { useAuth } from '@/auth/AuthProvider'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
@@ -99,10 +100,16 @@ export function CopiesPage() {
     return () => controller.abort()
   }, [bookSearch])
 
+  const openDetails = (copy: BookCopy) => {
+    setSelected(copy)
+    setTargetStatus(copy.status)
+    setTargetShelfId(copy.shelfId ?? '')
+  }
+
   const lookup = async (value: string) => {
     if (!value.trim()) return
     setError(''); setLoading(true)
-    try { const copy = await getCopyByBarcode(value.trim()); setSelected(copy); setCopies([copy]); setTotal(1); setPages(1) }
+    try { const copy = await getCopyByBarcode(value.trim()); openDetails(copy); setCopies([copy]); setTotal(1); setPages(1) }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không tìm thấy mã vạch.') }
     finally { setLoading(false) }
   }
@@ -203,7 +210,7 @@ export function CopiesPage() {
         page={page} pageSize={pageSize} totalPages={pages} totalCount={total}
         onPageChange={setPage} onPageSizeChange={(value) => { setPage(1); setPageSize(value) }}
         columns={[
-          { id: 'barcode', header: 'Mã vạch', cell: (copy) => <button className="font-mono text-primary underline" onClick={() => setSelected(copy)}>{copy.barcode}</button> },
+          { id: 'barcode', header: 'Mã vạch', cell: (copy) => <button type="button" className="font-mono text-primary underline" onClick={() => openDetails(copy)}>{copy.barcode}</button> },
           { id: 'book', header: 'Sách', cell: (copy) => copy.bookTitle },
           { id: 'location', header: 'Vị trí', cell: (copy) => `${copy.branchCode ?? '—'} / ${copy.shelfCode ?? '—'}` },
           { id: 'condition', header: 'Tình trạng', cell: (copy) => copy.condition },
@@ -219,8 +226,13 @@ export function CopiesPage() {
       {actionError ? <p role="alert" className="text-sm text-destructive">{actionError}</p> : null}
       <div className="flex gap-2"><Button variant={bulkOperation === 'withdraw' ? 'destructive' : 'default'} loading={pending} disabled={bulkOperation === 'relocate' && !bulkShelfId || bulkOperation === 'withdraw' && !bulkReason.trim()} onClick={() => void executeBulk()}>Xác nhận {bulkOperation === 'withdraw' ? 'thanh lý' : 'cập nhật'}</Button><Button variant="outline" onClick={() => setBulkOperation(null)}>Hủy</Button></div>
     </section> : null}
-    {selected ? <section className="mt-4 grid gap-3 rounded-xl border bg-card p-4" aria-label="Chi tiết bản sao">
-      <div className="flex justify-between gap-3"><h2 className="font-semibold">{selected.barcode} · {selected.bookTitle}</h2><Button variant="outline" onClick={() => setSelected(null)}>Đóng</Button></div>
+    <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) setSelected(null) }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        {selected ? <>
+      <DialogHeader>
+        <DialogTitle>{selected.barcode} · {selected.bookTitle}</DialogTitle>
+        <DialogDescription>Thông tin và thao tác trên bản sao vật lý.</DialogDescription>
+      </DialogHeader>
       <p className="text-sm">Vị trí: {selected.branchCode ?? 'Chưa có'} / {selected.shelfCode ?? 'Chưa có'} · Tình trạng: {selected.condition} · Ngày nhập: {new Date(selected.acquiredAtUtc).toLocaleDateString('vi-VN')}</p>
       <PermissionBoundary requiredPermissions={['copies.update']}><div className="flex flex-wrap gap-2">
         <select className="h-10 rounded-md border bg-background px-3" aria-label="Trạng thái mới" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as CopyStatus)}>
@@ -233,7 +245,12 @@ export function CopiesPage() {
       <PermissionBoundary requiredPermissions={['audit-logs.read']}>
         <a className="text-sm text-primary underline" href={`/audit-log?entityType=BookCopy&entityId=${selected.id}`}>Xem lịch sử thay đổi</a>
       </PermissionBoundary>
-    </section> : null}
+      <DialogFooter>
+        <Button variant="outline" onClick={() => setSelected(null)}>Đóng</Button>
+      </DialogFooter>
+        </> : null}
+      </DialogContent>
+    </Dialog>
     {creating ? <div className="mt-4 grid gap-3 rounded-xl border bg-card p-4" role="dialog" aria-label="Tạo bản sao">
       <h2 className="font-semibold">Tạo bản sao</h2>
       <Input value={bookSearch} onChange={(event) => setBookSearch(event.target.value)} aria-label="Tìm biểu ghi sách" placeholder="Tìm sách theo tên hoặc ISBN" />
