@@ -10,12 +10,18 @@ public sealed class FinePaymentService(
     IMemberRepository members,
     TimeProvider timeProvider)
 {
+    private async Task<Member?> ResolveMemberAsync(Violation violation, CancellationToken cancellationToken)
+    {
+        return await members.GetByIdAsync(violation.BorrowerId, cancellationToken)
+            ?? await members.GetByEmailAsync(violation.BorrowerEmail, cancellationToken);
+    }
+
     public async Task<FinePaymentPreviewResult?> GetPreviewAsync(Guid violationId, CancellationToken cancellationToken)
     {
         var violation = await violations.GetByIdAsync(violationId, cancellationToken);
         if (violation is null) return null;
 
-        var member = await members.GetByIdAsync(violation.BorrowerId, cancellationToken);
+        var member = await ResolveMemberAsync(violation, cancellationToken);
         var (totalAdjusted, totalPaid, balance) = await violations.GetFinanceSummaryAsync(violation.Id, violation.FineAmount, cancellationToken);
 
         string status;
@@ -32,7 +38,7 @@ public sealed class FinePaymentService(
             violation.Id,
             violation.Type,
             violation.BookTitle,
-            violation.BorrowerId,
+            member?.Id ?? violation.BorrowerId,
             violation.BorrowerName,
             member?.MemberCode,
             violation.BorrowerEmail,
@@ -85,7 +91,9 @@ public sealed class FinePaymentService(
             windowStart,
             cancellationToken);
 
-        var member = await members.GetByIdAsync(violation.BorrowerId, cancellationToken);
+        var member = await ResolveMemberAsync(violation, cancellationToken);
+        if (member is null)
+            return FinePaymentResult.Fail(FinePaymentFailure.NotFound, "Không tìm thấy độc giả hợp lệ để ghi nhận thanh toán.");
 
         if (existing is not null)
         {
@@ -95,7 +103,7 @@ public sealed class FinePaymentService(
                 violation.Id,
                 violation.Type,
                 violation.BookTitle,
-                violation.BorrowerId,
+                member.Id,
                 violation.BorrowerName,
                 member?.MemberCode,
                 existing.Amount,
@@ -112,7 +120,7 @@ public sealed class FinePaymentService(
         try
         {
             var payment = FinePayment.Create(
-                violation.BorrowerId,
+                member.Id,
                 violation.Id,
                 command.Amount,
                 command.Method,
@@ -162,7 +170,7 @@ public sealed class FinePaymentService(
                 violation.Id,
                 violation.Type,
                 violation.BookTitle,
-                violation.BorrowerId,
+                member.Id,
                 violation.BorrowerName,
                 member?.MemberCode,
                 payment.Amount,

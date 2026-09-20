@@ -12,6 +12,7 @@ public sealed class MemberRepository(LibraryDbContext db) : IMemberRepository
         var count=await query.CountAsync(ct);var items=await query.OrderBy(x=>x.MemberCode).ThenBy(x=>x.Id).Skip((q.PageNumber-1)*q.PageSize).Take(q.PageSize).ToArrayAsync(ct);return(items,count);
     }
     public Task<Member?> GetByIdAsync(Guid id,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCard).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Id==id,ct);
+    public Task<Member?> GetByEmailAsync(string email,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCard).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Email==email.Trim(),ct);
     public Task<Member?> GetByCardOrCodeAsync(string cardOrCode, CancellationToken ct)
     {
         var normalized = cardOrCode.Trim().ToUpperInvariant();
