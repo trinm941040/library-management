@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
-  AlertTriangle,
   ArrowRight,
   ArrowUpRight,
   BookOpen,
@@ -11,13 +10,10 @@ import {
   CircleAlert,
   Clock,
   FileText,
-  Layers,
   Plus,
   RefreshCw,
   Search,
   ShieldAlert,
-  TrendingDown,
-  TrendingUp,
   Undo2,
   Users,
 } from 'lucide-react'
@@ -36,12 +32,7 @@ import {
 } from '@/common/components/ui/select'
 import {
   fetchDashboardSummary,
-  type DashboardActivityItem,
   type DashboardSummaryResponse,
-  type DamagedOrLostCopyAlertItem,
-  type ExpiringReservationAlertItem,
-  type InventoryDiscrepancyAlertItem,
-  type OverdueAlertItem,
 } from './dashboard-api'
 import { MetricCard } from './components/MetricCard'
 
@@ -55,6 +46,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
 
   const [range, setRange] = useState<'today' | '7d' | '30d' | 'month'>('7d')
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all')
@@ -105,6 +97,13 @@ export function DashboardPage() {
     void loadData()
   }, [loadData])
 
+  useEffect(() => {
+    const updateCurrentTime = () => setCurrentTime(Date.now())
+    updateCurrentTime()
+    const interval = window.setInterval(updateCurrentTime, 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
+
   const formatCurrency = (val?: number) => {
     if (val === undefined || val === null) return '0 ₫'
     return `${val.toLocaleString('vi-VN')} ₫`
@@ -122,7 +121,8 @@ export function DashboardPage() {
   const formatRelativeTime = (dateStr?: string) => {
     if (!dateStr) return '-'
     const d = new Date(dateStr)
-    const diffMs = Date.now() - d.getTime()
+      if (!currentTime) return d.toLocaleDateString('vi-VN')
+      const diffMs = currentTime - d.getTime()
     const diffMin = Math.floor(diffMs / 60000)
     if (diffMin < 1) return 'Vừa xong'
     if (diffMin < 60) return `${diffMin} phút trước`

@@ -105,10 +105,3 @@ public sealed record ViolationDetailResponse(
     string? CalculationBasis,
     IReadOnlyList<PaymentHistoryItemResponse> Payments,
     IReadOnlyList<AdjustmentHistoryItemResponse> Adjustments);
-
-public sealed record PayViolationRequest(
-    [Range(0.01, 100_000_000)] decimal? Amount = null,
-    UTH.Library.Domain.Entities.FinePaymentMethod? Method = null,
-    [StringLength(200)] string? Reference = null,
-    [StringLength(100)] string? IdempotencyKey = null);
-

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, BookOpen, Calculator, Calendar, CreditCard, DollarSign, Eye, History, Info, QrCode, User } from 'lucide-react'
+import { BookOpen, Calculator, CreditCard, Eye, History, Info, QrCode, User } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {
