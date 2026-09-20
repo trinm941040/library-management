@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
-  BookOpen,
   CheckCircle2,
-  Clock,
   Coins,
   Download,
   FileSpreadsheet,
@@ -14,16 +12,8 @@ import {
   Users,
 } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
-import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/common/components/ui/select'
+import { Card } from '@/common/components/ui/card'
 import { fetchDashboardBranches } from '../dashboard/dashboard-api'
 import { FilterBuilder } from './components/FilterBuilder'
 import { ReportPreviewTable } from './components/ReportPreviewTable'
@@ -65,7 +55,7 @@ export function ReportsPage() {
   const [preview, setPreview] = useState<ReportPreviewResult | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
-  const [lastExport, setLastExport] = useState<ReportExportResult | null>(null)
+  const [, setLastExport] = useState<ReportExportResult | null>(null)
 
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([])
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null)

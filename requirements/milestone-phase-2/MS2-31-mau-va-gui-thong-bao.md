@@ -14,40 +14,40 @@ Hoàn thiện NotificationTemplate và Notification cho thông báo vận hành.
 
 ### Backend
 
-- [x] Template renderer validate allow-list biến, escape nội dung và Notification service lưu snapshot/status/failure với adapter kênh tách biệt.
-- [x] Notification nội bộ có `ReadAtUtc`, truy vấn chưa đọc và command `MarkRead`; chỉ đúng người nhận hoặc tài khoản có quyền quản trị mới được cập nhật trạng thái đọc.
+- [ ] Template renderer validate allow-list biến, escape nội dung và Notification service lưu snapshot/status/failure với adapter kênh tách biệt.
+- [ ] Notification nội bộ có `ReadAtUtc`, truy vấn chưa đọc và command `MarkRead`; chỉ đúng người nhận hoặc tài khoản có quyền quản trị mới được cập nhật trạng thái đọc.
 
 ### Frontend
 
-- [x] Notification UI có template CRUD, recipient picker theo quyền, preview, send/retry, history status/error states và chỉ báo số thông báo chưa đọc.
-- [x] Người nhận nội bộ có thể mở thông báo và đánh dấu đã đọc; UI cập nhật số chưa đọc không cần tải lại toàn trang.
+- [ ] Notification UI có template CRUD, recipient picker theo quyền, preview, send/retry, history status/error states và chỉ báo số thông báo chưa đọc.
+- [ ] Người nhận nội bộ có thể mở thông báo và đánh dấu đã đọc; UI cập nhật số chưa đọc không cần tải lại toàn trang.
 
 ### Tích hợp
 
-- [x] Template có code duy nhất, subject/body, channel, biến được phép và trạng thái active.
-- [x] Dữ liệu render được escape/validate; biến thiếu tạo lỗi rõ ràng trước khi gửi.
-- [x] Notification lưu recipient, destination, nội dung đã render, trạng thái gửi, thời điểm gửi, failure reason và `ReadAtUtc` đối với thông báo nội bộ.
-- [x] Trạng thái gửi và trạng thái đọc được quản lý độc lập; gửi thành công không tự động đồng nghĩa đã đọc.
-- [x] Chỉ gửi đến Staff hoặc Member phù hợp quyền/phạm vi và không lộ danh sách người nhận ngoài quyền.
-- [x] Mọi thay đổi template và thao tác gửi được audit.
+- [ ] Template có code duy nhất, subject/body, channel, biến được phép và trạng thái active.
+- [ ] Dữ liệu render được escape/validate; biến thiếu tạo lỗi rõ ràng trước khi gửi.
+- [ ] Notification lưu recipient, destination, nội dung đã render, trạng thái gửi, thời điểm gửi, failure reason và `ReadAtUtc` đối với thông báo nội bộ.
+- [ ] Trạng thái gửi và trạng thái đọc được quản lý độc lập; gửi thành công không tự động đồng nghĩa đã đọc.
+- [ ] Chỉ gửi đến Staff hoặc Member phù hợp quyền/phạm vi và không lộ danh sách người nhận ngoài quyền.
+- [ ] Mọi thay đổi template và thao tác gửi được audit.
 
 ## Checklist hoàn thành
 
 ### Backend
 
-- [x] Hoàn thiện model/configuration, renderer, adapter interface, command/query, permission, retry/idempotency, `MarkRead`, unread count và AuditLog.
+- [ ] Hoàn thiện model/configuration, renderer, adapter interface, command/query, permission, retry/idempotency, `MarkRead`, unread count và AuditLog.
 
 ### Frontend
 
-- [x] Hoàn thiện API schema/hooks, template form, preview, recipient selection, send confirmation, history, unread badge và mark-read mutation.
+- [ ] Hoàn thiện API schema/hooks, template form, preview, recipient selection, send confirmation, history, unread badge và mark-read mutation.
 
 ### Tích hợp
 
-- [x] API CRUD template, preview, create/send và history.
-- [x] API lấy thông báo của người nhận hiện tại, unread count và mark read được bảo vệ đúng recipient/permission.
-- [x] Route `/notifications` có template management và send workflow.
-- [x] Adapter kênh gửi có interface rõ ràng; local dùng implementation kiểm thử an toàn.
-- [x] UI hiển thị sent/failed và cho phép retry có kiểm soát.
+- [ ] API CRUD template, preview, create/send và history.
+- [ ] API lấy thông báo của người nhận hiện tại, unread count và mark read được bảo vệ đúng recipient/permission.
+- [ ] Route `/notifications` có template management và send workflow.
+- [ ] Adapter kênh gửi có interface rõ ràng; local dùng implementation kiểm thử an toàn.
+- [ ] UI hiển thị sent/failed và cho phép retry có kiểm soát.
 
 ## Happy-case test
 
@@ -58,5 +58,5 @@ Hoàn thiện NotificationTemplate và Notification cho thông báo vận hành.
 
 ## Build test local
 
-- [x] `dotnet build` thành công.
-- [x] `pnpm build` thành công.
+- [ ] `dotnet build` thành công.
+- [ ] `pnpm build` thành công.

@@ -4,8 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using UTH.Library.Application.Abstractions.Identity;
-using UTH.Library.Domain.Entities;
-using UTH.Library.Domain.Enums;
 using UTH.Library.Infrastructure.Persistence;
 
 namespace UTH.Library.Infrastructure.Identity;
@@ -41,7 +39,6 @@ public sealed class IdentitySeeder(IServiceProvider services, IConfiguration con
         }
         await EnsureRoleAsync(roleManager, db, RoleNames.Administrator, true, Permissions.All, cancellationToken);
         await EnsureRoleAsync(roleManager, db, RoleNames.User, true, [Permissions.TodosRead, Permissions.TodosCreate, Permissions.TodosUpdate, Permissions.TodosDelete], cancellationToken);
-        await EnsureNotificationTemplatesAsync(db, cancellationToken);
     }
 
     private static async Task EnsureRoleAsync(RoleManager<ApplicationRole> roleManager, LibraryDbContext db, string name, bool systemRole, IEnumerable<string> permissionNames, CancellationToken cancellationToken)
@@ -59,44 +56,6 @@ public sealed class IdentitySeeder(IServiceProvider services, IConfiguration con
         var existing = await db.RolePermissions.Where(value => value.RoleId == role.Id).Select(value => value.PermissionId).ToListAsync(cancellationToken);
         db.RolePermissions.AddRange(permissionIds.Where(id => !existing.Contains(id)).Select(id => new RolePermission { RoleId = role.Id, PermissionId = id }));
         await db.SaveChangesAsync(cancellationToken);
-    }
-
-    private static async Task EnsureNotificationTemplatesAsync(LibraryDbContext db, CancellationToken cancellationToken)
-    {
-        if (!await db.NotificationTemplates.AnyAsync(cancellationToken))
-        {
-            var nowUtc = DateTime.UtcNow;
-            db.NotificationTemplates.AddRange(
-                NotificationTemplate.Create(
-                    "RESERVATION_READY",
-                    "Thông báo tài liệu đặt trước đã sẵn sàng",
-                    NotificationChannel.Email,
-                    "Tài liệu '{{title}}' đã sẵn sàng tại thư viện",
-                    "Xin chào {{name}}, tài liệu '{{title}}' bạn đã đặt trước hiện đã sẵn sàng nhận tại quầy thư viện. Vui lòng đến nhận trước ngày {{expiry_date}}.",
-                    "name, recipient_name, title, expiry_date",
-                    true,
-                    nowUtc),
-                NotificationTemplate.Create(
-                    "BORROWING_DUE_REMINDER",
-                    "Nhắc nhở hạn trả sách",
-                    NotificationChannel.Email,
-                    "Nhắc nhở: Sắp đến hạn trả sách '{{title}}'",
-                    "Xin chào {{name}}, cuốn sách '{{title}}' bạn mượn sẽ đến hạn trả vào ngày {{due_date}}. Vui lòng sắp xếp trả sách đúng hạn.",
-                    "name, recipient_name, title, due_date",
-                    true,
-                    nowUtc),
-                NotificationTemplate.Create(
-                    "VIOLATION_NOTICE",
-                    "Thông báo vi phạm và phí phạt",
-                    NotificationChannel.InApp,
-                    "Thông báo phí phạt tài liệu quá hạn",
-                    "Chào {{name}}, bạn có một khoản phí phạt quá hạn số tiền {{amount}} VNĐ cho tài liệu '{{title}}'. Vui lòng liên hệ thủ thư để giải quyết.",
-                    "name, recipient_name, title, amount",
-                    true,
-                    nowUtc)
-            );
-            await db.SaveChangesAsync(cancellationToken);
-        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

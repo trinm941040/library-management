@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Net.Mail;
 namespace UTH.Library.Domain.Entities;
 
 [JsonConverter(typeof(JsonStringEnumConverter<MemberStatus>))]
@@ -52,9 +53,14 @@ public sealed class Member
         if (!Enum.IsDefined(status)) throw new ArgumentException("Member status is invalid.");
         if (borrowingLimit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(borrowingLimit));
         if (loanPeriodDays is < 1 or > 365) throw new ArgumentOutOfRangeException(nameof(loanPeriodDays));
+        if (dateOfBirth is not null && dateOfBirth >= DateOnly.FromDateTime(now))
+            throw new ArgumentException("Date of birth must be in the past.");
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        if (!MailAddress.TryCreate(normalizedEmail, out var parsedEmail) || parsedEmail.Address != normalizedEmail)
+            throw new ArgumentException("Email address is invalid.");
         MemberCode = memberCode.Trim().ToUpperInvariant();
         FullName = fullName.Trim();
-        Email = email.Trim().ToLowerInvariant();
+        Email = normalizedEmail;
         PhoneNumber = NullIfBlank(phoneNumber);
         DateOfBirth = dateOfBirth;
         Address = NullIfBlank(address);
@@ -62,6 +68,12 @@ public sealed class Member
         Status = status;
         BorrowingLimit = borrowingLimit;
         LoanPeriodDays = loanPeriodDays;
+        UpdatedAtUtc = now;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void Touch(DateTime now)
+    {
         UpdatedAtUtc = now;
         ConcurrencyToken = Guid.NewGuid();
     }

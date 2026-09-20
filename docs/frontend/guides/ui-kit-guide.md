@@ -3,20 +3,6 @@
 Project sử dụng shadcn làm UI kit duy nhất. Các component nằm tại
 `src/common/components/ui` và được cấu hình bởi `components.json`.
 
-Các component kết hợp được tổ chức theo Atomic Design:
-
-```text
-src/common/components/
-├── atoms/       # BarcodeInput, StatusBadge
-├── molecules/   # EntityForm, FilterPanel, ScreenState, ConfirmDialog
-├── organisms/   # DataTable, PageShell, ToastProvider
-├── ui/          # primitive shadcn/Radix
-└── index.ts      # public API cho component kết hợp
-```
-
-Page chỉ import component kết hợp qua `@/common/components`. Business rule, API call
-và permission không được đưa vào các component dùng chung.
-
 ## 1. Component hiện có
 
 ```text
@@ -31,7 +17,6 @@ src/common/components/ui/
 ├── radio-group.tsx
 ├── select.tsx
 ├── switch.tsx
-├── tabs.tsx
 └── table.tsx
 ```
 
@@ -42,8 +27,8 @@ Trước khi tự viết một Button, Input, Dialog hoặc Table mới, hãy ki
 Dùng alias `@/` thay vì đường dẫn dài:
 
 ```tsx
-import { Button } from "@/common/components/ui/button";
-import { Input } from "@/common/components/ui/input";
+import { Button } from '@/common/components/ui/button'
+import { Input } from '@/common/components/ui/input'
 ```
 
 Không import trực tiếp Radix primitive trong page nếu shadcn component tương ứng đã
@@ -108,40 +93,15 @@ Các variant đang có: `default`, `destructive`, `outline`, `secondary`, `ghost
 ### Pagination
 
 ```tsx
-<Pagination
-  currentPage={currentPage}
-  totalPages={totalPages}
-  onPageChange={setCurrentPage}
-/>
+<Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 ```
 
-Với dữ liệu server-side, page giữ query/filter và truyền metadata vào `DataTable`:
+Phần cắt mảng dữ liệu vẫn thuộc page:
 
-```tsx
-<DataTable
-  caption="Danh sách sách"
-  rows={items}
-  columns={columns}
-  getRowId={(item) => item.id}
-  page={pageNumber}
-  totalPages={totalPages}
-  onPageChange={setPageNumber}
-  filters={<FilterPanel>{/* input lọc */}</FilterPanel>}
-/>
+```ts
+const firstIndex = (currentPage - 1) * PAGE_SIZE
+const visibleItems = items.slice(firstIndex, firstIndex + PAGE_SIZE)
 ```
-
-`DataTable` không tự gọi API; consumer xử lý pagination, sort và filter rồi truyền
-trạng thái mới vào component.
-
-### Form và trạng thái
-
-- Dùng `EntityForm` + `EntityFormField` để hiển thị lỗi field/server, conflict và
-  khóa toàn bộ field trong lúc submit.
-- Dùng `ScreenState` cho loading, empty, error/retry, forbidden, conflict và success.
-- Dùng `useToast()` cho phản hồi thành công/lỗi không chặn thao tác.
-- Dùng `ConfirmDialog` cho thao tác cần xác nhận; Radix quản lý focus, Escape và focus
-  restoration.
-- Dùng `BarcodeInput` cho luồng nhập tay hoặc máy quét giả lập bàn phím.
 
 ## 4. Thêm component shadcn mới
 
@@ -182,11 +142,9 @@ Nếu nhiều page lặp lại cùng một cấu trúc, tạo component trong
 export function EmptyState({ message }: { message: string }) {
   return (
     <Card>
-      <CardContent className="py-10 text-center text-muted-foreground">
-        {message}
-      </CardContent>
+      <CardContent className="py-10 text-center text-muted-foreground">{message}</CardContent>
     </Card>
-  );
+  )
 }
 ```
 
@@ -220,9 +178,6 @@ kế cụ thể.
 - Dialog phải có `DialogTitle` và `DialogDescription`.
 - Giữ trạng thái `disabled` khi đang submit để tránh gửi nhiều lần.
 - Không loại bỏ focus outline của component.
-- Bảng phải có caption, row id ổn định và tên truy cập cho checkbox/action.
-- Lỗi field dùng `aria-invalid` và `aria-describedby`; focus field lỗi đầu tiên sau submit.
-- Animation phải có phương án `motion-reduce` hoặc được tắt bởi media query toàn cục.
 
 ## Checklist
 

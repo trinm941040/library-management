@@ -4,8 +4,6 @@ namespace UTH.Library.Domain.Entities;
 
 public sealed class Report
 {
-    private Report() { }
-
     public Guid Id { get; private set; }
     public string Code { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
@@ -14,6 +12,8 @@ public sealed class Report
     public Guid CreatedByUserId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
+
+    private Report() { }
 
     public static Report Create(
         string code,
@@ -26,8 +26,8 @@ public sealed class Report
         return new Report
         {
             Id = Guid.NewGuid(),
-            Code = code,
-            Name = name,
+            Code = code.Trim(),
+            Name = name.Trim(),
             Type = type,
             Definition = definition,
             CreatedByUserId = createdByUserId,

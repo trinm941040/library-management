@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   AlertCircle,
   Barcode,
@@ -7,24 +7,18 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
-  Layers,
   RotateCcw,
-  Search,
   ShieldAlert,
   ShieldCheck,
   User,
   UserCheck,
-  UserX,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/auth/AuthProvider'
 import { PageShell, useToast } from '@/common/components'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
-import { Label } from '@/common/components/ui/label'
-import { can } from '@/shared/auth/permissions'
 import {
   checkoutWithBarcode,
   lookupBookCopyForCheckout,
@@ -44,14 +38,12 @@ const formatDate = (value: string | DateOnlyLike | null | undefined) => {
 type DateOnlyLike = string
 
 export function CheckoutPage() {
-  const { user } = useAuth()
-  const canCreate = can(user?.permissions ?? [], 'borrowings.create')
   const { showToast } = useToast()
 
   // Input states
   const [cardOrCodeInput, setCardOrCodeInput] = useState('')
   const [barcodeInput, setBarcodeInput] = useState('')
-  const [loanDaysOverride, setLoanDaysOverride] = useState<string>('')
+  const [loanDaysOverride] = useState<string>('')
 
   // Lookup results
   const [member, setMember] = useState<MemberCheckoutLookup | null>(null)
@@ -132,7 +124,7 @@ export function CheckoutPage() {
     } finally {
       setIsSearchingCopy(false)
     }
-  }, [member?.memberId, showToast])
+  }, [member, showToast])
 
   // Form submit: Member Card
   const onMemberFormSubmit = (event: FormEvent) => {

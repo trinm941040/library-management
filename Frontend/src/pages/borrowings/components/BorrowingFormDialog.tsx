@@ -146,8 +146,8 @@ export function BorrowingFormDialog({ open, onOpenChange, onSave }: BorrowingFor
             <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting || !form.bookId || !form.borrowerId}>
-              {isSubmitting ? 'Đang lưu...' : 'Tạo phiếu mượn'}
+            <Button type="submit" disabled={!form.bookId || !form.borrowerId} loading={isSubmitting} loadingLabel="Đang tạo phiếu mượn">
+              Tạo phiếu mượn
             </Button>
           </DialogFooter>
         </form>

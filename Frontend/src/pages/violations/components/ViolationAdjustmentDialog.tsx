@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Calculator,
   CheckCircle2,
-  DollarSign,
   MinusCircle,
   PlusCircle,
   ShieldAlert,
