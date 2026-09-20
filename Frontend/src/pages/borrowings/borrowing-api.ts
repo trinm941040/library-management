@@ -305,4 +305,3 @@ export async function renewBorrowing(
   })
   return readResponse<LibraryBorrowing>(response)
 }
-
