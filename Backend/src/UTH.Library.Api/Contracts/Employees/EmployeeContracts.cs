@@ -5,9 +5,9 @@ namespace UTH.Library.Api.Contracts.Employees;
 
 public sealed class EmployeeFilterRequest
 {
-    public string? Search { get; init; }
-    public string? Department { get; init; }
-    public string? Position { get; init; }
+    [StringLength(200)] public string? Search { get; init; }
+    [StringLength(100)] public string? Department { get; init; }
+    [StringLength(100)] public string? Position { get; init; }
     public EmploymentStatus? Status { get; init; }
     public Guid? BranchId { get; init; }
 

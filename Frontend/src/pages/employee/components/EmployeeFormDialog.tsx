@@ -369,8 +369,8 @@ export function EmployeeFormDialog({
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu...' : employee ? 'Lưu thay đổi' : 'Tạo hồ sơ'}
+            <Button type="submit" loading={isSubmitting} loadingLabel="Đang lưu hồ sơ nhân viên">
+              {employee ? 'Lưu thay đổi' : 'Tạo hồ sơ'}
             </Button>
           </DialogFooter>
         </form>

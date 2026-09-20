@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -159,12 +159,12 @@ export function ViolationsPage() {
       await createViolation({
         borrowerId: data.borrowerId,
         bookId: data.bookId === 'none' ? null : data.bookId,
-        bookCopyId: data.bookCopyId || undefined,
-        borrowingId: data.borrowingId || undefined,
         type: data.type,
         note: data.note.trim(),
         fineAmount,
-        calculationBasis: data.calculationBasis || undefined,
+        overdueDays: data.overdueDays,
+        bookPrice: data.bookPrice,
+        damageLevel: data.damageLevel || undefined,
       })
       setCurrentPage(1)
       refresh('Đã ghi nhận vi phạm thành công.')

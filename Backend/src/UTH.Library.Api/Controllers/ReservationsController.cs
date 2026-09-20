@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UTH.Library.Api.Contracts.Reservations;
@@ -35,19 +34,6 @@ public sealed class ReservationsController(ReservationService reservationService
             totalPages));
     }
 
-    [HttpGet("{id:guid}")]
-    [Authorize(Policy = Permissions.ReservationsRead)]
-    [ProducesResponseType(typeof(ReservationDetailResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationDetailResponse>> GetById(Guid id, CancellationToken cancellationToken)
-    {
-        var detail = await reservationService.GetDetailAsync(id, cancellationToken);
-        if (detail is null)
-            return NotFound(CreateProblem("Không tìm thấy thông tin đặt trước."));
-
-        return Ok(ToDetailResponse(detail));
-    }
-
     [HttpPost]
     [Authorize(Policy = Permissions.ReservationsCreate)]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status201Created)]
@@ -56,9 +42,8 @@ public sealed class ReservationsController(ReservationService reservationService
         [FromBody] CreateReservationRequest request,
         CancellationToken cancellationToken)
     {
-        var actorId = GetActorUserId();
         var result = await reservationService.CreateAsync(
-            new CreateReservationCommand(request.BookId, request.ReserverId, request.HoldDays, actorId),
+            new CreateReservationCommand(request.BookId, request.ReserverId, request.HoldDays),
             cancellationToken);
 
         if (!result.Succeeded || result.Reservation is null)
@@ -72,19 +57,9 @@ public sealed class ReservationsController(ReservationService reservationService
     [Authorize(Policy = Permissions.ReservationsCancel)]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ReservationResponse>> Cancel(
-        Guid id,
-        [FromBody] CancelReservationRequest? request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ReservationResponse>> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        var actorId = GetActorUserId();
-        var command = new CancelReservationCommand(
-            actorId,
-            request?.Reason,
-            request?.ConcurrencyToken ?? Guid.Empty);
-
-        var result = await reservationService.CancelAsync(id, command, cancellationToken);
+        var result = await reservationService.CancelAsync(id, cancellationToken);
         return result.Succeeded && result.Reservation is not null
             ? Ok(ToResponse(result.Reservation))
             : MapFailure(result);
@@ -94,19 +69,9 @@ public sealed class ReservationsController(ReservationService reservationService
     [Authorize(Policy = Permissions.ReservationsFulfill)]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ReservationResponse>> Fulfill(
-        Guid id,
-        [FromBody] FulfillReservationRequest? request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ReservationResponse>> Fulfill(Guid id, CancellationToken cancellationToken)
     {
-        var actorId = GetActorUserId();
-        var command = new FulfillReservationCommand(
-            actorId,
-            request?.BookCopyBarcode,
-            request?.ConcurrencyToken ?? Guid.Empty);
-
-        var result = await reservationService.FulfillAsync(id, command, cancellationToken);
+        var result = await reservationService.FulfillAsync(id, cancellationToken);
         return result.Succeeded && result.Reservation is not null
             ? Ok(ToResponse(result.Reservation))
             : MapFailure(result);
@@ -114,18 +79,12 @@ public sealed class ReservationsController(ReservationService reservationService
 
     private ActionResult MapFailure(ReservationResult result) => result.Failure switch
     {
-        ReservationFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy thông tin đặt trước.")),
-        ReservationFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại của dữ liệu.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu yêu cầu không hợp lệ."))
+        ReservationFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Reservation was not found.")),
+        ReservationFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Reservation validation failed."))
     };
 
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
-
-    private Guid GetActorUserId()
-    {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        return Guid.TryParse(raw, out var id) ? id : Guid.Empty;
-    }
 
     private static ReservationResponse ToResponse(ReservationModel reservation) =>
         new(
@@ -141,22 +100,5 @@ public sealed class ReservationsController(ReservationService reservationService
             reservation.CancelledAtUtc,
             reservation.Status,
             reservation.AppliedPolicyId,
-            reservation.AppliedPolicyVersion,
-            reservation.QueuePosition,
-            reservation.BookAuthor,
-            reservation.BookCategory,
-            reservation.ReserverMemberCode,
-            reservation.ReserverCardNumber,
-            reservation.ConcurrencyToken);
-
-    private static ReservationDetailResponse ToDetailResponse(ReservationDetailModel detail) =>
-        new(
-            ToResponse(detail.Reservation),
-            detail.BookIsbn,
-            detail.ReserverGroup,
-            detail.AvailableCopiesCount,
-            detail.TotalActiveReservationsForBook,
-            detail.PolicyName,
-            detail.HoldDays,
-            detail.BookQueue.Select(ToResponse).ToArray());
+            reservation.AppliedPolicyVersion);
 }
