@@ -178,4 +178,3 @@ public sealed record BorrowingDetailModel(
     string? BorrowerGroup,
     IReadOnlyList<RenewalHistoryModel> Renewals,
     RenewalPreviewResult RenewalPreview);
-

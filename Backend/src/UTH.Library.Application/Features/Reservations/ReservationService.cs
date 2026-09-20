@@ -256,6 +256,12 @@ public sealed class ReservationService(
         var member = await members.GetByIdAsync(reservation.ReserverId, cancellationToken);
         if (member is null || member.Status != MemberStatus.Active || member.MembershipCard?.Status != MembershipCardStatus.Active)
             return ReservationResult.Fail(ReservationFailure.Conflict, "Thành viên hoặc thẻ độc giả không ở trạng thái hoạt động.");
+        if (member.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Thẻ độc giả đã hết hạn.");
+
+        var firstWaiting = await reservations.GetFirstWaitingReservationForBookAsync(reservation.BookId, now, cancellationToken);
+        if (firstWaiting is null || firstWaiting.Id != reservation.Id)
+            return ReservationResult.Fail(ReservationFailure.Conflict, "Độc giả chưa đến lượt nhận sách trong hàng đợi.");
 
         var history = await members.GetHistoryAsync(member.Id, cancellationToken);
         var policy = await policyResolver.ResolveAsync(member.MemberGroup, book.Category, null, now, cancellationToken);
@@ -280,7 +286,7 @@ public sealed class ReservationService(
             copy = await reservations.GetFirstAvailableBookCopyAsync(book.Id, cancellationToken);
         }
 
-        if (copy is null && book.Quantity <= 0)
+        if (copy is null)
             return ReservationResult.Fail(ReservationFailure.Conflict, "Không còn bản sao khả dụng nào trong kho để hoàn tất nhận sách.");
 
         try
@@ -290,18 +296,11 @@ public sealed class ReservationService(
                 reservation.Id,
                 reservation.FulfilledAtUtc,
                 reservation.ConcurrencyToken,
-                BookQuantity = book.Quantity
+                CopyId = copy.Id,
+                CopyBarcode = copy.Barcode
             });
 
-            if (copy is not null)
-            {
-                copy.Checkout(now);
-                book.Checkout(now);
-            }
-            else
-            {
-                book.Checkout(now);
-            }
+            copy.Checkout(now);
 
             reservation.MarkFulfilled(now);
 
@@ -310,7 +309,7 @@ public sealed class ReservationService(
 
             var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
-                copy?.Id,
+                copy.Id,
                 reservation.ReserverId,
                 reservation.ReserverName,
                 reservation.ReserverEmail,
@@ -335,7 +334,7 @@ public sealed class ReservationService(
                     Status = "fulfilled",
                     reservation.FulfilledAtUtc,
                     BorrowingId = borrowing.Id,
-                    CopyBarcode = copy?.Barcode,
+                    CopyBarcode = copy.Barcode,
                     reservation.ConcurrencyToken
                 }),
                 now);

@@ -92,9 +92,6 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
 
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
-
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
     public Task<decimal?> GetCopyUnitCostAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken) =>
         dbContext.StockReceiptItems.Where(item => item.Id == stockReceiptItemId)
             .Select(item => item.UnitCost)
@@ -117,6 +114,10 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new OptimisticConcurrencyException("Khoản mượn đã bị thay đổi bởi thao tác khác.", exception);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation,

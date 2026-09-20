@@ -36,12 +36,18 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                !dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                !dbContext.BookCopies.Any(copy =>
+                    copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
+                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
             "ready" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                dbContext.BookCopies.Any(copy =>
+                    copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
+                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
             "expired" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
@@ -108,10 +114,13 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
             cancellationToken);
 
     public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
-        dbContext.BookCopies.FirstOrDefaultAsync(
+           dbContext.BookCopies
+              .Where(
             c => c.BookId == bookId &&
-                 (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved),
-            cancellationToken);
+                  (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved) &&
+                  !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == c.Id && borrowing.ReturnedAtUtc == null))
+              .OrderBy(c => c.Barcode)
+              .FirstOrDefaultAsync(cancellationToken);
 
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
