@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BookOpen, CircleAlert, Clock, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { BookOpen, CircleAlert, Clock, Eye, ListOrdered, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -21,12 +21,16 @@ import {
   TableRow,
 } from '@/common/components/ui/table'
 import { ReservationFormDialog, type ReservationFormData } from './components/ReservationFormDialog'
+import { ReservationDetailDialog } from './components/ReservationDetailDialog'
+import { FulfillReservationDialog } from './components/FulfillReservationDialog'
+import { CancelReservationDialog } from './components/CancelReservationDialog'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   cancelReservation,
   createReservation,
   fulfillReservation,
   getReservations,
+  type LibraryReservation,
   type ReservationPageResponse,
 } from './reservation-api'
 import { useUrlListState } from '@/shared/data/use-url-list-state'
@@ -39,6 +43,14 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Đã hủy',
 }
 
+const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  waiting: 'outline',
+  ready: 'default',
+  expired: 'destructive',
+  fulfilled: 'secondary',
+  cancelled: 'outline',
+}
+
 export function ReservationsPage() {
   const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<ReservationPageResponse | null>(null)
@@ -48,7 +60,14 @@ export function ReservationsPage() {
   const [pageError, setPageError] = useState('')
   const [notice, setNotice] = useState('')
   const [formOpen, setFormOpen] = useState(false)
-  const [busyId, setBusyId] = useState<string | null>(null)
+
+  // Dialog state
+  const [selectedDetail, setSelectedDetail] = useState<LibraryReservation | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selectedFulfill, setSelectedFulfill] = useState<LibraryReservation | null>(null)
+  const [fulfillOpen, setFulfillOpen] = useState(false)
+  const [selectedCancel, setSelectedCancel] = useState<LibraryReservation | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
@@ -114,15 +133,33 @@ export function ReservationsPage() {
     }
   }
 
-  const runAction = async (id: string, action: () => Promise<unknown>, successMessage: string) => {
-    setBusyId(id)
+  const handleFulfill = async (id: string, barcode?: string, concurrencyToken?: string) => {
     try {
-      await action()
-      refresh(successMessage)
+      await fulfillReservation(id, {
+        bookCopyBarcode: barcode,
+        concurrencyToken: concurrencyToken ?? '',
+      })
+      refresh('Đã hoàn tất nhận sách và tạo khoản mượn cho độc giả.')
+      return null
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : 'Không thể cập nhật phiếu đặt trước.')
-    } finally {
-      setBusyId(null)
+      const msg = error instanceof Error ? error.message : 'Không thể xử lý nhận sách.'
+      refresh() // reload page to sync latest data
+      return msg
+    }
+  }
+
+  const handleCancel = async (id: string, reason?: string, concurrencyToken?: string) => {
+    try {
+      await cancelReservation(id, {
+        reason,
+        concurrencyToken: concurrencyToken ?? '',
+      })
+      refresh('Đã hủy phiếu đặt trước và chuyển thứ tự ưu tiên cho độc giả tiếp theo.')
+      return null
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Không thể hủy phiếu đặt trước.'
+      refresh() // reload page to sync latest data
+      return msg
     }
   }
 
@@ -139,11 +176,11 @@ export function ReservationsPage() {
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
-              quản lý tác vụ
+              quản lý lưu thông
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">Đặt trước</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Đặt trước sách</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Giữ chỗ sách, theo dõi hạn nhận và chuyển thành phiếu mượn khi sách có sẵn.
+              Quản lý hàng đợi đặt trước, theo dõi hạn nhận sách và xử lý trao sách cho độc giả.
             </p>
           </div>
           <div className="flex gap-2">
@@ -203,7 +240,7 @@ export function ReservationsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
                     <SelectItem value="waiting">Chờ sách</SelectItem>
                     <SelectItem value="ready">Sẵn sàng nhận</SelectItem>
                     <SelectItem value="expired">Hết hạn</SelectItem>
@@ -234,6 +271,7 @@ export function ReservationsPage() {
                   <TableRow>
                     <TableHead>Sách</TableHead>
                     <TableHead>Độc giả</TableHead>
+                    <TableHead className="text-center">Hàng đợi</TableHead>
                     <TableHead>Ngày đặt</TableHead>
                     <TableHead>Hạn nhận</TableHead>
                     <TableHead>Trạng thái</TableHead>
@@ -243,56 +281,96 @@ export function ReservationsPage() {
                 <TableBody>
                   {isLoading && !page ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Đang tải...
+                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                        Đang tải dữ liệu...
                       </TableCell>
                     </TableRow>
                   ) : null}
                   {!isLoading && !pageError && page?.items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                        Chưa có phiếu đặt trước.
+                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                        Chưa có phiếu đặt trước nào.
                       </TableCell>
                     </TableRow>
                   ) : null}
                   {page?.items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <strong>{item.bookTitle}</strong>
+                        <div className="font-semibold">{item.bookTitle}</div>
+                        {item.bookAuthor ? (
+                          <div className="text-xs text-muted-foreground">{item.bookAuthor}</div>
+                        ) : null}
                       </TableCell>
                       <TableCell>
-                        <span className="grid gap-0.5">
-                          <strong>{item.reserverName}</strong>
-                          <small className="text-muted-foreground">{item.reserverEmail}</small>
+                        <div className="grid gap-0.5">
+                          <span className="font-medium">{item.reserverName}</span>
+                          <span className="text-xs text-muted-foreground">{item.reserverEmail}</span>
+                          {item.reserverMemberCode ? (
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              Mã ĐG: {item.reserverMemberCode}
+                            </span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.queuePosition && item.queuePosition > 0 && item.status === 'waiting' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                            <ListOrdered className="size-3" />
+                            Thứ #{item.queuePosition}
+                          </span>
+                        ) : item.status === 'ready' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                            Ưu tiên #{item.queuePosition || 1}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">{formatDate(item.reservedAtUtc)}</TableCell>
+                      <TableCell className="text-xs font-medium">
+                        <span className={item.status === 'expired' ? 'text-destructive' : ''}>
+                          {formatDate(item.expiresAtUtc)}
                         </span>
                       </TableCell>
-                      <TableCell>{formatDate(item.reservedAtUtc)}</TableCell>
-                      <TableCell>{formatDate(item.expiresAtUtc)}</TableCell>
                       <TableCell>
-                        <Badge variant={item.status === 'expired' ? 'destructive' : 'secondary'}>
+                        <Badge variant={statusVariants[item.status] ?? 'secondary'}>
                           {statusLabels[item.status] ?? item.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1.5">
+                          {/* Nút xem chi tiết */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Xem chi tiết"
+                            onClick={() => {
+                              setSelectedDetail(item)
+                              setDetailOpen(true)
+                            }}
+                          >
+                            <Eye className="size-4" />
+                            <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Chi tiết</span>
+                          </Button>
+
+                          {/* Nút nhận sách */}
                           {item.status === 'ready' ? (
                             <PermissionBoundary requiredPermissions={['reservations.fulfill']}>
                               <Button
                                 size="sm"
-                                disabled={busyId === item.id}
-                                onClick={() =>
-                                  runAction(
-                                    item.id,
-                                    () => fulfillReservation(item.id),
-                                    'Đã chuyển đặt trước thành phiếu mượn.',
-                                  )
-                                }
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => {
+                                  setSelectedFulfill(item)
+                                  setFulfillOpen(true)
+                                }}
                               >
-                                <BookOpen />
-                                Nhận sách
+                                <BookOpen className="size-4" />
+                                <span className="text-xs">Nhận sách</span>
                               </Button>
                             </PermissionBoundary>
                           ) : null}
+
+                          {/* Nút hủy đặt trước */}
                           {item.status === 'waiting' ||
                           item.status === 'ready' ||
                           item.status === 'expired' ? (
@@ -300,17 +378,13 @@ export function ReservationsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={busyId === item.id}
-                                onClick={() =>
-                                  runAction(
-                                    item.id,
-                                    () => cancelReservation(item.id),
-                                    'Đã hủy phiếu đặt trước.',
-                                  )
-                                }
+                                onClick={() => {
+                                  setSelectedCancel(item)
+                                  setCancelOpen(true)
+                                }}
                               >
-                                <X />
-                                Hủy
+                                <X className="size-4" />
+                                <span className="text-xs">Hủy</span>
                               </Button>
                             </PermissionBoundary>
                           ) : null}
@@ -342,6 +416,29 @@ export function ReservationsPage() {
       <PermissionBoundary requiredPermissions={['reservations.create']}>
         <ReservationFormDialog open={formOpen} onOpenChange={setFormOpen} onSave={handleSave} />
       </PermissionBoundary>
+
+      {/* Dialog chi tiết đặt trước */}
+      <ReservationDetailDialog
+        reservation={selectedDetail}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+
+      {/* Dialog nhận sách */}
+      <FulfillReservationDialog
+        reservation={selectedFulfill}
+        open={fulfillOpen}
+        onOpenChange={setFulfillOpen}
+        onFulfill={handleFulfill}
+      />
+
+      {/* Dialog hủy đặt trước */}
+      <CancelReservationDialog
+        reservation={selectedCancel}
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancelReservation={handleCancel}
+      />
     </>
   )
 }

@@ -36,12 +36,18 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                !dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                !dbContext.BookCopies.Any(copy =>
+                    copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
+                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
             "ready" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                dbContext.BookCopies.Any(copy =>
+                    copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
+                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
             "expired" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
@@ -76,6 +82,48 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
             .Where(r => r.BookId == bookId && r.FulfilledAtUtc == null && r.CancelledAtUtc == null && r.ExpiresAtUtc >= utcNow)
             .OrderBy(r => r.ReservedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<int> GetQueuePositionAsync(Guid bookId, Guid reservationId, DateTime utcNow, CancellationToken cancellationToken)
+    {
+        var targetReservation = await dbContext.Reservations.FindAsync([reservationId], cancellationToken);
+        if (targetReservation is null || targetReservation.FulfilledAtUtc != null || targetReservation.CancelledAtUtc != null)
+            return 0;
+
+        var countBefore = await dbContext.Reservations.CountAsync(
+            r => r.BookId == bookId &&
+                 r.FulfilledAtUtc == null &&
+                 r.CancelledAtUtc == null &&
+                 r.ExpiresAtUtc >= utcNow &&
+                 r.ReservedAtUtc < targetReservation.ReservedAtUtc,
+            cancellationToken);
+
+        return countBefore + 1;
+    }
+
+    public async Task<IReadOnlyList<Reservation>> GetActiveReservationsForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken) =>
+        await dbContext.Reservations
+            .Where(r => r.BookId == bookId && r.FulfilledAtUtc == null && r.CancelledAtUtc == null && r.ExpiresAtUtc >= utcNow)
+            .OrderBy(r => r.ReservedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public Task<BookCopy?> GetAvailableBookCopyByBarcodeAsync(Guid bookId, string barcode, CancellationToken cancellationToken) =>
+        dbContext.BookCopies.FirstOrDefaultAsync(
+            c => c.BookId == bookId &&
+                 c.Barcode == barcode &&
+                 (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved),
+            cancellationToken);
+
+    public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
+           dbContext.BookCopies
+              .Where(
+            c => c.BookId == bookId &&
+                  (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved) &&
+                  !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == c.Id && borrowing.ReturnedAtUtc == null))
+              .OrderBy(c => c.Barcode)
+              .FirstOrDefaultAsync(cancellationToken);
+
+    public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
+        dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);

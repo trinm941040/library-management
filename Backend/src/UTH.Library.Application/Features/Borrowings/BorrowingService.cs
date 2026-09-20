@@ -316,11 +316,9 @@ public sealed class BorrowingService(
 
         if (borrower is null || borrower.Status != MemberStatus.Active)
             reasons.Add("Tài khoản độc giả hiện không hoạt động hoặc không tồn tại.");
-
         if (borrower?.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active ||
             borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
             reasons.Add("Thẻ thư viện của độc giả không còn hiệu lực.");
-
         if (borrower?.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) &&
                                             x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions) == true)
             reasons.Add("Độc giả đang có lệnh hạn chế quyền mượn/gia hạn sách.");
@@ -427,7 +425,6 @@ public sealed class BorrowingService(
         if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active ||
             borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Thẻ thư viện của độc giả không còn hiệu lực.");
-
         if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) &&
                                            x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có lệnh hạn chế quyền mượn/gia hạn sách.");
