@@ -282,22 +282,24 @@ export function BorrowingsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to={`/loans/${item.id}`}>Chi tiết</Link>
-                        </Button>
-                        {item.status !== 'returned' ? (
-                          <PermissionBoundary requiredPermissions={['borrowings.return']}>
-                            {item.bookCopyId ? (
-                              <Button asChild variant="outline" size="sm">
-                                <Link to="/circulation/return"><Barcode /> Quét mã trả</Link>
-                              </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" disabled={returningId === item.id} onClick={() => handleReturn(item.id)}>
-                                <Undo2 /> Trả sách
-                              </Button>
-                            )}
-                          </PermissionBoundary>
-                        ) : null}
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link to={`/loans/${item.id}`}>Chi tiết</Link>
+                          </Button>
+                          {item.status !== 'returned' ? (
+                            <PermissionBoundary requiredPermissions={['borrowings.return']}>
+                              {item.bookCopyId ? (
+                                <Button asChild variant="outline" size="sm">
+                                  <Link to="/circulation/return"><Barcode /> Quét mã trả</Link>
+                                </Button>
+                              ) : (
+                                <Button variant="outline" size="sm" disabled={returningId === item.id} onClick={() => handleReturn(item.id)}>
+                                  <Undo2 /> Trả sách
+                                </Button>
+                              )}
+                            </PermissionBoundary>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

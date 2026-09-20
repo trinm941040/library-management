@@ -354,3 +354,4 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
                 r.AppliedPolicyVersion)).ToArray(),
             ToRenewalPreviewResponse(detail.RenewalPreview));
 }
+

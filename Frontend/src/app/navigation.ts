@@ -143,3 +143,4 @@ export const routePermissions = new Map([
   ['/borrowings/:id', ['borrowings.read']] as const,
   ['/stock-receipts/new', ['stock-receipts.create']] as const,
 ])
+
