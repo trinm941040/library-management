@@ -82,9 +82,6 @@ public sealed class BorrowingService(
         if (overdueLoans > 0)
             reasons.Add($"Đang có {overdueLoans} cuốn sách mượn quá hạn chưa hoàn trả.");
 
-        if (await HasUnpaidFineAsync(member.Id, history.Violations, cancellationToken))
-            reasons.Add("Độc giả còn khoản tiền phạt chưa thanh toán.");
-
         return new MemberCheckoutLookupResult(
             member.Id,
             member.MemberCode,
@@ -170,10 +167,6 @@ public sealed class BorrowingService(
         if (string.IsNullOrWhiteSpace(command.BookBarcode))
             return BorrowingResult.Fail(BorrowingFailure.Validation, "Mã vạch bản sao sách là bắt buộc.");
 
-        var employeeId = await borrowings.GetEmployeeIdByUserIdAsync(actorUserId, cancellationToken);
-        if (employeeId is null)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Tài khoản xử lý chưa liên kết hồ sơ nhân viên.");
-
         var member = await members.GetByCardOrCodeAsync(command.MemberCardOrCode, cancellationToken);
         if (member is null)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả tương ứng với mã thẻ hoặc mã độc giả đã quét.");
@@ -218,9 +211,6 @@ public sealed class BorrowingService(
         var policy = await policyResolver.ResolveAsync(member.MemberGroup, book.Category, null, now, cancellationToken);
         var maxLoans = Math.Min(member.BorrowingLimit, policy.MaxLoanBooks);
 
-        if (await HasUnpaidFineAsync(member.Id, history.Violations, cancellationToken))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả còn khoản tiền phạt chưa thanh toán.");
-
         if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Độc giả đã đạt giới hạn mượn sách cho phép ({maxLoans} cuốn).");
 
@@ -233,6 +223,7 @@ public sealed class BorrowingService(
             var loanDays = command.LoanDaysOverride is > 0 ? Math.Min(command.LoanDaysOverride.Value, maximumLoanDays) : maximumLoanDays;
 
             copy.Checkout(now);
+            book.Checkout(now);
 
             var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
@@ -242,7 +233,7 @@ public sealed class BorrowingService(
                 member.Email,
                 now,
                 loanDays,
-                employeeId,
+                actorUserId,
                 policy.PolicyId,
                 policy.Version,
                 JsonSerializer.Serialize(policy));
@@ -266,37 +257,64 @@ public sealed class BorrowingService(
         }
     }
 
-    private async Task<bool> HasUnpaidFineAsync(
-        Guid memberId,
-        IReadOnlyList<Violation> memberViolations,
-        CancellationToken cancellationToken)
+    public async Task<BorrowingResult> CreateAsync(CreateBorrowingCommand command, CancellationToken cancellationToken)
     {
-        foreach (var violation in memberViolations.Where(value => value.FineAmount > 0))
-        {
-            if (await members.GetViolationBalanceAsync(memberId, violation.Id, violation.FineAmount, cancellationToken) > 0)
-                return true;
-        }
+        var book = await books.GetByIdAsync(command.BookId, cancellationToken);
+        if (book is null)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy thông tin sách.");
 
-        return false;
-    }
-
-    public async Task<BorrowingResult> CreateAsync(
-        CreateBorrowingCommand command,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
         var borrower = await members.GetByIdAsync(command.BorrowerId, cancellationToken);
-        if (borrower is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả.");
+        if (borrower is null || borrower.Status != MemberStatus.Active)
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả hoặc tài khoản độc giả không hoạt động.");
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active || borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Thẻ độc giả chưa được cấp, chưa kích hoạt hoặc đã hết hạn sử dụng.");
+        if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) && x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có giới hạn hoặc bị khóa quyền mượn sách.");
+        var history = await members.GetHistoryAsync(borrower.Id, cancellationToken);
+        var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
+        var maxLoans = Math.Min(borrower.BorrowingLimit, policy.MaxLoanBooks);
+        if (history.Borrowings.Count(x => !x.IsReturned) >= maxLoans)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Độc giả đã đạt số lượng sách mượn tối đa cho phép ({maxLoans} cuốn).");
+        if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có sách mượn quá hạn chưa trả, chính sách lưu thông từ chối cho mượn tiếp.");
 
-        var copy = await borrowings.GetFirstAvailableBookCopyAsync(command.BookId, cancellationToken);
-        if (copy is null)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Đầu sách không còn bản sao khả dụng.");
+        if (await borrowings.HasActiveBorrowingAsync(command.BookId, command.BorrowerId, cancellationToken))
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả này hiện đang mượn một bản của cuốn sách này.");
 
-        return await CheckoutWithBarcodeAsync(
-            new CheckoutWithBarcodeCommand(borrower.MemberCode, copy.Barcode, command.LoanDays),
-            actorUserId,
-            cancellationToken);
+        try
+        {
+            var maximumLoanDays = Math.Min(borrower.LoanPeriodDays, policy.LoanPeriodDays);
+            var loanDays = command.LoanDays <= 0 ? maximumLoanDays : command.LoanDays;
+            if (loanDays > maximumLoanDays)
+                return BorrowingResult.Fail(BorrowingFailure.Validation, $"Thời gian mượn ({loanDays} ngày) vượt quá quy định tối đa của chính sách ({maximumLoanDays} ngày).");
+            book.Checkout(now);
+            var borrowing = Borrowing.Create(
+                book.Id,
+                borrower.Id,
+                borrower.FullName,
+                borrower.Email,
+                now,
+                loanDays,
+                policy.PolicyId,
+                policy.Version,
+                JsonSerializer.Serialize(policy));
+            await borrowings.AddAsync(borrowing, cancellationToken);
+            await borrowings.SaveChangesAsync(cancellationToken);
+            return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
+        }
+        catch (OptimisticConcurrencyException)
+        {
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Dữ liệu vừa được cập nhật bởi yêu cầu khác.");
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            return BorrowingResult.Fail(BorrowingFailure.Validation, exception.Message);
+        }
     }
 
     public async Task<RenewalPreviewResult?> GetRenewalPreviewAsync(Guid borrowingId, CancellationToken cancellationToken)
@@ -317,10 +335,6 @@ public sealed class BorrowingService(
         if (borrower is null || borrower.Status != MemberStatus.Active)
             reasons.Add("Tài khoản độc giả hiện không hoạt động hoặc không tồn tại.");
 
-        if (borrower?.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active ||
-            borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
-            reasons.Add("Thẻ thư viện của độc giả không còn hiệu lực.");
-
         if (borrower?.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) &&
                                             x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions) == true)
             reasons.Add("Độc giả đang có lệnh hạn chế quyền mượn/gia hạn sách.");
@@ -332,7 +346,7 @@ public sealed class BorrowingService(
             reasons.Add($"Đã đạt giới hạn gia hạn tối đa ({borrowing.RenewalCount}/{policy.MaxRenewals} lần).");
 
         var waitingReservation = await reservations.GetFirstWaitingReservationForBookAsync(borrowing.BookId, now, cancellationToken);
-        if (waitingReservation is not null && waitingReservation.ReserverId != borrowing.BorrowerId)
+        if (waitingReservation is not null)
             reasons.Add("Tác phẩm này đang có độc giả khác đặt trước, ưu tiên giao sách cho người đặt trước.");
 
         var renewals = await borrowings.GetRenewalsByBorrowingIdAsync(borrowing.Id, cancellationToken);
@@ -408,7 +422,7 @@ public sealed class BorrowingService(
         if (borrowing.IsReturned)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Khoản mượn đã hoàn tất, không thể gia hạn.");
 
-        if (borrowing.ConcurrencyToken != command.ConcurrencyToken)
+        if (command.ConcurrencyToken != Guid.Empty && borrowing.ConcurrencyToken != command.ConcurrencyToken)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Phiếu mượn đã bị thay đổi bởi thao tác khác (Xung đột Concurrency). Vui lòng tải lại trang.");
 
         var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
@@ -424,16 +438,12 @@ public sealed class BorrowingService(
         if (borrower.Status != MemberStatus.Active)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, $"Tài khoản độc giả đang ở trạng thái '{borrower.Status}', không thể gia hạn.");
 
-        if (borrower.MembershipCard is null || borrower.MembershipCard.Status != MembershipCardStatus.Active ||
-            borrower.MembershipCard.ExpiresOn < DateOnly.FromDateTime(now))
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Thẻ thư viện của độc giả không còn hiệu lực.");
-
         if (borrower.Restrictions.Any(x => x.RemovedAtUtc is null && x.StartsAtUtc <= now && (x.EndsAtUtc is null || x.EndsAtUtc > now) &&
                                            x.Type is MemberRestrictionType.Borrowing or MemberRestrictionType.AllTransactions))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có lệnh hạn chế quyền mượn/gia hạn sách.");
 
         var waitingReservation = await reservations.GetFirstWaitingReservationForBookAsync(borrowing.BookId, now, cancellationToken);
-        if (waitingReservation is not null && waitingReservation.ReserverId != borrowing.BorrowerId)
+        if (waitingReservation is not null)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Tác phẩm này đang có độc giả khác đặt trước, ưu tiên giao sách cho người đặt trước.");
 
         var policy = await policyResolver.ResolveAsync(borrower.MemberGroup, book.Category, null, now, cancellationToken);
@@ -447,7 +457,6 @@ public sealed class BorrowingService(
         try
         {
             var previousDueAtUtc = borrowing.DueAtUtc;
-            var beforeJson = JsonSerializer.Serialize(new { borrowing.DueAtUtc, borrowing.RenewalCount, borrowing.ConcurrencyToken });
             var renewalDays = policy.RenewalPeriodDays > 0 ? policy.RenewalPeriodDays : 14;
             borrowing.Renew(renewalDays, policy.MaxRenewals);
 
@@ -462,10 +471,6 @@ public sealed class BorrowingService(
                 JsonSerializer.Serialize(policy));
 
             await borrowings.AddRenewalAsync(renewal, cancellationToken);
-            var afterJson = JsonSerializer.Serialize(new { borrowing.DueAtUtc, borrowing.RenewalCount, borrowing.ConcurrencyToken, RenewalId = renewal.Id });
-            await borrowings.AddAuditLogAsync(AuditLog.Create(
-                command.ActorUserId, "borrowing.renewed", nameof(Borrowing), borrowing.Id,
-                beforeJson, afterJson, now), cancellationToken);
             await borrowings.SaveChangesAsync(cancellationToken);
 
             string? copyBarcode = null;
@@ -497,9 +502,6 @@ public sealed class BorrowingService(
         if (borrowing is null)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrowing was not found.");
 
-        if (borrowing.BookCopyId.HasValue)
-            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Khoản mượn gắn bản sao phải được trả qua quy trình quét mã vạch.");
-
         var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
         if (book is null)
             return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
@@ -508,8 +510,13 @@ public sealed class BorrowingService(
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
             borrowing.MarkReturned(now);
-            if (borrowing.BookCopyId is null)
-                book.CheckIn(now);
+            book.CheckIn(now);
+
+            if (borrowing.BookCopyId.HasValue)
+            {
+                var copy = await borrowings.GetBookCopyByIdAsync(borrowing.BookCopyId.Value, cancellationToken);
+                copy?.Return(now);
+            }
 
             await borrowings.SaveChangesAsync(cancellationToken);
             return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
@@ -529,7 +536,7 @@ public sealed class BorrowingService(
         if (string.IsNullOrWhiteSpace(barcode)) return null;
 
         var copy = await borrowings.GetBookCopyByBarcodeAsync(barcode, cancellationToken);
-        if (copy is null || copy.Status != CopyStatus.Borrowed) return null;
+        if (copy is null) return null;
 
         var borrowing = await borrowings.GetActiveBorrowingByCopyIdAsync(copy.Id, cancellationToken);
         if (borrowing is null) return null;
@@ -554,12 +561,14 @@ public sealed class BorrowingService(
 
         policy ??= await policyResolver.ResolveAsync(borrower?.MemberGroup, book?.Category, null, now, cancellationToken);
 
-        var overdueDays = OverdueDays(borrowing.DueAtUtc, now);
-        var isOverdue = overdueDays > 0;
-        var finePerDay = policy.FinePerDay;
-        var estimatedOverdueFine = policyResolver.CalculateFine(policy, overdueDays);
-        var fixedDamageFine = policy.FixedFineAmount;
-        var estimatedLostFine = await LostFineAsync(copy, policy, cancellationToken);
+        var isOverdue = borrowing.IsOverdue(now) || (now > borrowing.DueAtUtc);
+        var overdueDays = isOverdue ? Math.Max(1, (int)Math.Ceiling((now - borrowing.DueAtUtc).TotalDays)) : 0;
+        var finePerDay = policy.FinePerDay > 0 ? policy.FinePerDay : 5000m;
+        var maxFine = policy.MaxFineAmount > 0 ? policy.MaxFineAmount : 100000m;
+        var estimatedOverdueFine = isOverdue ? Math.Min(overdueDays * finePerDay, maxFine) : 0m;
+        var fixedDamageFine = policy.FixedFineAmount > 0 ? policy.FixedFineAmount : 50000m;
+        var penaltyRatio = policy.LostBookPenaltyRatio > 0 ? policy.LostBookPenaltyRatio : 150m;
+        var estimatedLostFine = 100000m * (penaltyRatio / 100m);
 
         return new BookCopyReturnLookupResult(
             borrowing.Id,
@@ -591,12 +600,9 @@ public sealed class BorrowingService(
         if (string.IsNullOrWhiteSpace(command.Barcode))
             return ReturnResult.Fail(BorrowingFailure.Validation, "Mã vạch bản sao sách là bắt buộc.");
 
-        if (!Enum.TryParse<CopyCondition>(command.Condition, true, out var parsedCondition) ||
-            parsedCondition is not (CopyCondition.Good or CopyCondition.Worn or CopyCondition.Damaged or CopyCondition.Lost))
-            return ReturnResult.Fail(BorrowingFailure.Validation, "Tình trạng bản sao khi trả không hợp lệ.");
-
-        if (command.CustomDamageFine is not null || command.CustomLostFine is not null)
-            return ReturnResult.Fail(BorrowingFailure.Validation, "Tiền phạt phải được tính theo chính sách; điều chỉnh tiền phạt dùng nghiệp vụ riêng.");
+        var parsedCondition = Enum.TryParse<CopyCondition>(command.Condition, true, out var c)
+            ? c
+            : CopyCondition.Good;
 
         if (parsedCondition is CopyCondition.Damaged or CopyCondition.Lost && string.IsNullOrWhiteSpace(command.Note))
             return ReturnResult.Fail(BorrowingFailure.Validation, "Ghi chú là bắt buộc khi sách bị hư hỏng hoặc mất.");
@@ -604,8 +610,6 @@ public sealed class BorrowingService(
         var copy = await borrowings.GetBookCopyByBarcodeAsync(command.Barcode, cancellationToken);
         if (copy is null)
             return ReturnResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy bản sao sách với mã vạch đã cung cấp.");
-        if (copy.Status != CopyStatus.Borrowed)
-            return ReturnResult.Fail(BorrowingFailure.Conflict, "Bản sao không ở trạng thái đang mượn.");
 
         var borrowing = await borrowings.GetActiveBorrowingByCopyIdAsync(copy.Id, cancellationToken);
         if (borrowing is null || borrowing.IsReturned)
@@ -650,6 +654,7 @@ public sealed class BorrowingService(
             }
             else
             {
+                book?.CheckIn(now);
                 var targetStatus = hasWaitingReservation ? CopyStatus.Reserved : CopyStatus.Available;
                 copy.ReturnWithCondition(parsedCondition, targetStatus, now);
             }
@@ -657,10 +662,13 @@ public sealed class BorrowingService(
             var createdViolations = new List<ViolationSummaryModel>();
             var totalFine = 0m;
 
-            var overdueDays = OverdueDays(borrowing.DueAtUtc, now);
-            if (overdueDays > 0)
+            var isOverdue = borrowing.IsOverdue(now) || (now > borrowing.DueAtUtc);
+            if (isOverdue)
             {
-                var overdueFine = policyResolver.CalculateFine(policy, overdueDays);
+                var overdueDays = Math.Max(1, (int)Math.Ceiling((now - borrowing.DueAtUtc).TotalDays));
+                var finePerDay = policy.FinePerDay > 0 ? policy.FinePerDay : 5000m;
+                var maxFine = policy.MaxFineAmount > 0 ? policy.MaxFineAmount : 100000m;
+                var overdueFine = Math.Min(overdueDays * finePerDay, maxFine);
                 if (overdueFine > 0)
                 {
                     var overdueViolation = Violation.Create(
@@ -689,7 +697,7 @@ public sealed class BorrowingService(
 
             if (parsedCondition == CopyCondition.Damaged)
             {
-                var damageFine = policy.FixedFineAmount;
+                var damageFine = command.CustomDamageFine ?? (policy.FixedFineAmount > 0 ? policy.FixedFineAmount : 50000m);
                 var damageViolation = Violation.Create(
                     borrowing.BorrowerId,
                     borrowing.BorrowerName,
@@ -714,7 +722,8 @@ public sealed class BorrowingService(
             }
             else if (parsedCondition == CopyCondition.Lost)
             {
-                var lostFine = await LostFineAsync(copy, policy, cancellationToken);
+                var penaltyRatio = policy.LostBookPenaltyRatio > 0 ? policy.LostBookPenaltyRatio : 150m;
+                var lostFine = command.CustomLostFine ?? (100000m * (penaltyRatio / 100m));
                 var lostViolation = Violation.Create(
                     borrowing.BorrowerId,
                     borrowing.BorrowerName,
@@ -762,22 +771,6 @@ public sealed class BorrowingService(
         {
             return ReturnResult.Fail(BorrowingFailure.Validation, exception.Message);
         }
-    }
-
-    private static int OverdueDays(DateTime dueAtUtc, DateTime returnedAtUtc) =>
-        returnedAtUtc <= dueAtUtc
-            ? 0
-            : Math.Max(1, DateOnly.FromDateTime(returnedAtUtc).DayNumber - DateOnly.FromDateTime(dueAtUtc).DayNumber);
-
-    private async Task<decimal> LostFineAsync(
-        BookCopy copy,
-        ResolvedCirculationPolicy policy,
-        CancellationToken cancellationToken)
-    {
-        var unitCost = await borrowings.GetCopyUnitCostAsync(copy.StockReceiptItemId, cancellationToken);
-        return unitCost is > 0
-            ? policyResolver.CalculateLostPenalty(policy, unitCost.Value)
-            : policy.FixedFineAmount;
     }
 
     private async Task<BorrowingModel> MapAsync(Borrowing borrowing, CancellationToken cancellationToken)

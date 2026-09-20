@@ -130,6 +130,27 @@ public sealed class ViolationRepository(LibraryDbContext dbContext) : IViolation
     public Task AddPaymentAsync(FinePayment payment, CancellationToken cancellationToken) =>
         dbContext.FinePayments.AddAsync(payment, cancellationToken).AsTask();
 
+    public Task AddAdjustmentAsync(FineAdjustment adjustment, CancellationToken cancellationToken) =>
+        dbContext.FineAdjustments.AddAsync(adjustment, cancellationToken).AsTask();
+
+    public async Task<IReadOnlyList<FineAdjustment>> GetAdjustmentsByViolationIdAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FineAdjustments
+            .Where(item => item.ViolationId == violationId)
+            .OrderByDescending(item => item.AdjustedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public Task<decimal> GetTotalAdjustedAsync(Guid violationId, CancellationToken cancellationToken) =>
+        dbContext.FineAdjustments
+            .Where(item => item.ViolationId == violationId)
+            .SumAsync(item => (decimal?)item.AmountDelta, cancellationToken)
+            .ContinueWith(task => task.Result ?? 0m, cancellationToken);
+
+    public Task<decimal> GetTotalPaidAsync(Guid violationId, CancellationToken cancellationToken) =>
+        dbContext.FinePayments
+            .Where(item => item.ViolationId == violationId)
+            .SumAsync(item => (decimal?)item.Amount, cancellationToken)
+            .ContinueWith(task => task.Result ?? 0m, cancellationToken);
+
     public Task<FinePayment?> GetPaymentByIdAsync(Guid paymentId, CancellationToken cancellationToken) =>
         dbContext.FinePayments.SingleOrDefaultAsync(x => x.Id == paymentId, cancellationToken);
 

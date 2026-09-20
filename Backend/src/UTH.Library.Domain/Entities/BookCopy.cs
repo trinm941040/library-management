@@ -55,6 +55,10 @@ public sealed class BookCopy
 
     public void ChangeStatus(CopyStatus nextStatus)
     {
+        if (Status != CopyStatus.Available && Status != CopyStatus.Reserved)
+            throw new InvalidOperationException($"Bản sao sách '{Barcode}' không khả dụng (Trạng thái: {Status}).");
+
+        Status = CopyStatus.Borrowed;
         if (!Enum.IsDefined(nextStatus) || !CanChangeStatus(nextStatus))
             throw new InvalidOperationException($"Book copy cannot move from {Status} to {nextStatus}.");
         if (Status == nextStatus) return;

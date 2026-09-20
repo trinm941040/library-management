@@ -112,7 +112,7 @@ public sealed class CurrentProfileService(
             employee?.Position,
             employee?.Department,
             employee?.Status.ToString(),
-            employee is null ? null : new CurrentBranch(employee.Branch.Id, employee.Branch.Code, employee.Branch.Name),
+            employee?.Branch is null ? null : new CurrentBranch(employee.Branch.Id, employee.Branch.Code, employee.Branch.Name),
             roles,
             permissions,
             employee?.ConcurrencyToken);

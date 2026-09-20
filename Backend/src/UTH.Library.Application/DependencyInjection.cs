@@ -14,6 +14,8 @@ using UTH.Library.Application.Features.Copies;
 using UTH.Library.Application.Features.Suppliers;
 using UTH.Library.Application.Features.InventoryAudits;
 using UTH.Library.Application.Features.Payments;
+using UTH.Library.Application.Features.Adjustments;
+using UTH.Library.Application.Features.Dashboard;
 
 namespace UTH.Library.Application;
 
@@ -32,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<ReservationService>();
         services.AddScoped<ViolationService>();
         services.AddScoped<FinePaymentService>();
+        services.AddScoped<FineAdjustmentService>();
+        services.AddScoped<DashboardService>();
         services.AddScoped<MemberService>();
         services.AddScoped<CirculationPolicyService>();
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();

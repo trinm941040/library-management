@@ -29,7 +29,6 @@ import {
   returnBorrowing,
   type BorrowingPageResponse,
 } from './borrowing-api'
-import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
   borrowed: 'Đang mượn',
@@ -38,9 +37,12 @@ const statusLabels: Record<string, string> = {
 }
 
 export function BorrowingsPage() {
-  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<BorrowingPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState(search)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -48,15 +50,14 @@ export function BorrowingsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [returningId, setReturningId] = useState<string | null>(null)
 
-  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const value = searchInput.trim()
-      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
+      setSearch(searchInput.trim())
+      setCurrentPage(1)
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [search, searchInput, update])
+  }, [searchInput])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,7 +76,7 @@ export function BorrowingsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          update({ pageNumber: response.totalPages })
+          setCurrentPage(response.totalPages)
         }
       })
       .catch((error: unknown) => {
@@ -87,7 +88,7 @@ export function BorrowingsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status, update])
+  }, [currentPage, pageSize, reloadKey, search, status])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -104,7 +105,7 @@ export function BorrowingsPage() {
         borrowerId: data.borrowerId,
         loanDays,
       })
-      update({ pageNumber: 1 })
+      setCurrentPage(1)
       refresh('Đã tạo phiếu mượn thành công.')
       return null
     } catch (error) {
@@ -145,8 +146,8 @@ export function BorrowingsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại phiếu mượn" onClick={() => refresh()}>
-              <RefreshCw />
+            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
+              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['borrowings.create']}>
@@ -206,7 +207,8 @@ export function BorrowingsPage() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    update({ status: value, pageNumber: 1 })
+                    setStatus(value)
+                    setCurrentPage(1)
                   }}
                 >
                   <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
@@ -282,22 +284,24 @@ export function BorrowingsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to={`/loans/${item.id}`}>Chi tiết</Link>
-                        </Button>
-                        {item.status !== 'returned' ? (
-                          <PermissionBoundary requiredPermissions={['borrowings.return']}>
-                            {item.bookCopyId ? (
-                              <Button asChild variant="outline" size="sm">
-                                <Link to="/circulation/return"><Barcode /> Quét mã trả</Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link to={`/loans/${item.id}`}>Chi tiết</Link>
+                          </Button>
+                          {item.status !== 'returned' ? (
+                            <PermissionBoundary requiredPermissions={['borrowings.return']}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={returningId === item.id}
+                                onClick={() => handleReturn(item.id)}
+                              >
+                                <Undo2 />
+                                Trả sách
                               </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" disabled={returningId === item.id} onClick={() => handleReturn(item.id)}>
-                                <Undo2 /> Trả sách
-                              </Button>
-                            )}
-                          </PermissionBoundary>
-                        ) : null}
+                            </PermissionBoundary>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -310,10 +314,11 @@ export function BorrowingsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={(value) => update({ pageNumber: value })}
+                  onPageChange={setCurrentPage}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    update({ pageNumber: 1, pageSize: size })
+                    setCurrentPage(1)
+                    setPageSize(size)
                   }}
                 />
               </div>

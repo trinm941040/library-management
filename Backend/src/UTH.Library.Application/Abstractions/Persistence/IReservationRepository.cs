@@ -15,5 +15,10 @@ public interface IReservationRepository
         CancellationToken cancellationToken);
     Task<bool> HasOpenReservationAsync(Guid bookId, Guid reserverId, CancellationToken cancellationToken);
     Task<Reservation?> GetFirstWaitingReservationForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken);
+    Task<int> GetQueuePositionAsync(Guid bookId, Guid reservationId, DateTime utcNow, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Reservation>> GetActiveReservationsForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken);
+    Task<BookCopy?> GetAvailableBookCopyByBarcodeAsync(Guid bookId, string barcode, CancellationToken cancellationToken);
+    Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken);
+    Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
