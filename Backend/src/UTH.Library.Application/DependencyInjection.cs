@@ -13,6 +13,7 @@ using UTH.Library.Application.Features.StockReceipts;
 using UTH.Library.Application.Features.Copies;
 using UTH.Library.Application.Features.Suppliers;
 using UTH.Library.Application.Features.InventoryAudits;
+using UTH.Library.Application.Features.Payments;
 
 namespace UTH.Library.Application;
 
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<BorrowingService>();
         services.AddScoped<ReservationService>();
         services.AddScoped<ViolationService>();
+        services.AddScoped<FinePaymentService>();
         services.AddScoped<MemberService>();
         services.AddScoped<CirculationPolicyService>();
         services.AddScoped<ICirculationPolicyResolver, CirculationPolicyResolver>();
