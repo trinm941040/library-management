@@ -10,6 +10,8 @@ using UTH.Library.Infrastructure.Persistence.Repositories;
 using UTH.Library.Infrastructure.Identity;
 using UTH.Library.Application.Features.Settings;
 using UTH.Library.Infrastructure.Settings;
+using UTH.Library.Application.Features.Notifications.Adapters;
+using UTH.Library.Infrastructure.Notifications;
 
 namespace UTH.Library.Infrastructure;
 
@@ -75,8 +77,18 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<IStockReceiptRepository, StockReceiptRepository>();
+        services.AddScoped<IBookCopyRepository, BookCopyRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IInventoryAuditRepository, InventoryAuditRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ISavedFilterRepository, SavedFilterRepository>();
+        services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<INotificationSenderAdapter, InAppNotificationSenderAdapter>();
+        services.AddScoped<INotificationSenderAdapter, EmailNotificationSenderAdapter>();
+        services.AddScoped<INotificationSenderAdapter, SmsNotificationSenderAdapter>();
         return services;
     }
 }

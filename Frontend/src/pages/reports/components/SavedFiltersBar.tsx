@@ -1,6 +1,4 @@
 import { Bookmark, Check, Trash2 } from 'lucide-react'
-import { Badge } from '@/common/components/ui/badge'
-import { Button } from '@/common/components/ui/button'
 import type { SavedFilter } from '../reports-api'
 
 type SavedFiltersBarProps = {

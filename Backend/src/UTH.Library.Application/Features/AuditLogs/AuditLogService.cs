@@ -1,4 +1,5 @@
 using UTH.Library.Application.Abstractions.Persistence;
+using UTH.Library.Application.Common;
 
 namespace UTH.Library.Application.Features.AuditLogs;
 
@@ -22,6 +23,12 @@ public sealed class AuditLogService(IAuditLogRepository repository, TimeProvider
 
     public Task<AuditLogModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         repository.GetByIdAsync(id, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+
+    public Task<IReadOnlyList<AuditLogModel>> GetForExportAsync(
+        AuditLogQuery query,
+        CancellationToken cancellationToken) =>
+        repository.GetForExportAsync(query, timeProvider.GetUtcNow().UtcDateTime,
+            CollectionLimits.MaximumExportRows, cancellationToken);
 
     private static DateTime? AsUtc(DateTime? value) => value?.Kind switch
     {

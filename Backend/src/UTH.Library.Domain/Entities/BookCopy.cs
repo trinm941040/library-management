@@ -4,6 +4,19 @@ namespace UTH.Library.Domain.Entities;
 
 public sealed class BookCopy
 {
+    private BookCopy(Guid id, Guid bookId, string barcode, DateTime acquiredAtUtc)
+    {
+        Id = id;
+        BookId = bookId;
+        Barcode = barcode;
+        Condition = CopyCondition.Good;
+        Status = CopyStatus.Available;
+        AcquiredAtUtc = acquiredAtUtc;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    private BookCopy() { }
+
     public Guid Id { get; private set; }
     public Guid BookId { get; private set; }
     public string Barcode { get; private set; } = string.Empty;
@@ -14,51 +27,95 @@ public sealed class BookCopy
     public Guid? StockReceiptItemId { get; private set; }
     public Guid ConcurrencyToken { get; private set; }
 
-    public static BookCopy Create(
-        Guid bookId,
-        string barcode,
-        CopyCondition condition,
-        CopyStatus status,
-        DateTime acquiredAtUtc,
-        Guid? shelfId = null,
-        Guid? stockReceiptItemId = null)
+    private static BookCopy CreateBase(Guid bookId, string barcode, DateTime acquiredAtUtc)
     {
-        if (bookId == Guid.Empty) throw new ArgumentException("Book ID is required.", nameof(bookId));
-        if (string.IsNullOrWhiteSpace(barcode)) throw new ArgumentException("Barcode is required.", nameof(barcode));
-
-        return new BookCopy
-        {
-            Id = Guid.NewGuid(),
-            BookId = bookId,
-            Barcode = barcode.Trim().ToUpperInvariant(),
-            Condition = condition,
-            Status = status,
-            AcquiredAtUtc = acquiredAtUtc,
-            ShelfId = shelfId,
-            StockReceiptItemId = stockReceiptItemId,
-            ConcurrencyToken = Guid.NewGuid()
-        };
+        if (bookId == Guid.Empty) throw new ArgumentException("Book is required.", nameof(bookId));
+        return new BookCopy(Guid.NewGuid(), bookId, NormalizeBarcode(barcode), EnsureUtc(acquiredAtUtc));
     }
 
-    public void Checkout(DateTime now)
+    public static BookCopy Create(Guid bookId, string barcode, CopyCondition condition, Guid shelfId, Guid? stockReceiptItemId, DateTime acquiredAtUtc)
+    {
+        if (!Enum.IsDefined(condition)) throw new ArgumentOutOfRangeException(nameof(condition));
+        if (shelfId == Guid.Empty) throw new ArgumentException("Shelf is required.", nameof(shelfId));
+        var copy = CreateBase(bookId, barcode, acquiredAtUtc);
+        copy.Condition = condition;
+        copy.ShelfId = shelfId;
+        copy.StockReceiptItemId = stockReceiptItemId;
+        return copy;
+    }
+
+    public static string NormalizeBarcode(string barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode)) throw new ArgumentException("Barcode is required.", nameof(barcode));
+        var normalized = barcode.Trim().ToUpperInvariant();
+        if (normalized.Length > 64) throw new ArgumentException("Barcode cannot exceed 64 characters.", nameof(barcode));
+        if (normalized.Any(char.IsControl)) throw new ArgumentException("Barcode contains invalid characters.", nameof(barcode));
+        return normalized;
+    }
+
+    public void ChangeStatus(CopyStatus nextStatus)
     {
         if (Status != CopyStatus.Available && Status != CopyStatus.Reserved)
             throw new InvalidOperationException($"Bản sao sách '{Barcode}' không khả dụng (Trạng thái: {Status}).");
 
         Status = CopyStatus.Borrowed;
+        if (!Enum.IsDefined(nextStatus) || !CanChangeStatus(nextStatus))
+            throw new InvalidOperationException($"Book copy cannot move from {Status} to {nextStatus}.");
+        if (Status == nextStatus) return;
+        Status = nextStatus;
         ConcurrencyToken = Guid.NewGuid();
     }
 
-    public void Return(DateTime now)
+    public bool CanChangeStatus(CopyStatus nextStatus) => Status == nextStatus || Status switch
     {
-        Status = CopyStatus.Available;
+        CopyStatus.Available => nextStatus is CopyStatus.Borrowed or CopyStatus.Reserved or CopyStatus.InTransit or CopyStatus.Lost or CopyStatus.Damaged or CopyStatus.Withdrawn,
+        CopyStatus.Borrowed => nextStatus is CopyStatus.Available or CopyStatus.Reserved or CopyStatus.Lost or CopyStatus.Damaged,
+        CopyStatus.Reserved => nextStatus is CopyStatus.Available or CopyStatus.Borrowed or CopyStatus.InTransit,
+        CopyStatus.InTransit => nextStatus is CopyStatus.Available or CopyStatus.Lost or CopyStatus.Damaged,
+        CopyStatus.Lost => nextStatus is CopyStatus.Available or CopyStatus.Withdrawn,
+        CopyStatus.Damaged => nextStatus is CopyStatus.Available or CopyStatus.Withdrawn,
+        _ => false
+    };
+
+    public void Relocate(Guid shelfId)
+    {
+        if (shelfId == Guid.Empty) throw new ArgumentException("Shelf is required.", nameof(shelfId));
+        if (Status is CopyStatus.Borrowed or CopyStatus.Lost or CopyStatus.Withdrawn)
+            throw new InvalidOperationException("This copy cannot be relocated in its current state.");
+        if (ShelfId == shelfId) return;
+        ShelfId = shelfId;
         ConcurrencyToken = Guid.NewGuid();
     }
+
+    public void ChangeCondition(CopyCondition condition)
+    {
+        if (!Enum.IsDefined(condition)) throw new ArgumentOutOfRangeException(nameof(condition));
+        if (Condition == condition) return;
+        Condition = condition;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void Withdraw()
+    {
+        ChangeStatus(CopyStatus.Withdrawn);
+    }
+
+    public void Checkout(DateTime now) => ChangeStatus(CopyStatus.Borrowed);
+
+    public void Return(DateTime now) => ChangeStatus(CopyStatus.Available);
 
     public void ReturnWithCondition(CopyCondition condition, CopyStatus status, DateTime now)
     {
-        Condition = condition;
-        Status = status;
-        ConcurrencyToken = Guid.NewGuid();
+        if (status is not (CopyStatus.Available or CopyStatus.Reserved or CopyStatus.Damaged or CopyStatus.Lost))
+            throw new InvalidOperationException("Invalid return status.");
+        ChangeCondition(condition);
+        ChangeStatus(status);
     }
+
+    private static DateTime EnsureUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 }

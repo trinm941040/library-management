@@ -44,8 +44,6 @@ public static class Permissions
     public const string ViolationsRead = "violations.read";
     public const string ViolationsCreate = "violations.create";
     public const string ViolationsResolve = "violations.resolve";
-    public const string ViolationsAdjust = "violations.adjust";
-    public const string ViolationsWaive = "violations.waive";
     public const string MembersRead = "members.read";
     public const string MembersCreate = "members.create";
     public const string MembersUpdate = "members.update";
@@ -58,6 +56,33 @@ public static class Permissions
     public const string SettingsUpdate = "settings.update";
     public const string CirculationPoliciesRead = "circulation-policies.read";
     public const string CirculationPoliciesManage = "circulation-policies.manage";
+    public const string LocationsRead = "locations.read";
+    public const string LocationsCreate = "locations.create";
+    public const string LocationsUpdate = "locations.update";
+    public const string LocationsDeactivate = "locations.deactivate";
+    public const string CopiesRead = "copies.read";
+    public const string CopiesCreate = "copies.create";
+    public const string CopiesUpdate = "copies.update";
+    public const string CopiesWithdraw = "copies.withdraw";
+    public const string SuppliersRead = "suppliers.read";
+    public const string SuppliersCreate = "suppliers.create";
+    public const string SuppliersUpdate = "suppliers.update";
+    public const string SuppliersDeactivate = "suppliers.deactivate";
+    public const string StockReceiptsRead = "stock-receipts.read";
+    public const string StockReceiptsCreate = "stock-receipts.create";
+    public const string StockReceiptsUpdate = "stock-receipts.update";
+    public const string StockReceiptsConfirm = "stock-receipts.confirm";
+    public const string InventoryAuditsRead = "inventory-audits.read";
+    public const string InventoryAuditsCreate = "inventory-audits.create";
+    public const string InventoryAuditsScan = "inventory-audits.scan";
+    public const string InventoryAuditsComplete = "inventory-audits.complete";
+    public const string InventoryAuditsExport = "inventory-audits.export";
+    public const string InventoryAuditsApply = "inventory-audits.apply";
+    public const string NotificationsRead = "notifications.read";
+    public const string NotificationsManage = "notifications.manage";
+    public const string NotificationTemplatesManage = "notification-templates.manage";
+    public const string ReportsRead = "reports.read";
+    public const string ReportsExport = "reports.export";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -69,11 +94,19 @@ public static class Permissions
         BooksRead, BooksCreate, BooksUpdate, BooksDelete,
         BorrowingsRead, BorrowingsCreate, BorrowingsReturn, BorrowingsRenew,
         ReservationsRead, ReservationsCreate, ReservationsCancel, ReservationsFulfill,
-        ViolationsRead, ViolationsCreate, ViolationsResolve, ViolationsAdjust, ViolationsWaive,
+        ViolationsRead, ViolationsCreate, ViolationsResolve,
         MembersRead, MembersCreate, MembersUpdate, MembersManageCards, MembersManageRestrictions, MembersManageFinances,
         AuditLogsRead, AuditLogsExport,
         SettingsRead, SettingsUpdate,
-        CirculationPoliciesRead, CirculationPoliciesManage
+        CirculationPoliciesRead, CirculationPoliciesManage,
+        LocationsRead, LocationsCreate, LocationsUpdate, LocationsDeactivate,
+        CopiesRead, CopiesCreate, CopiesUpdate, CopiesWithdraw,
+        SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
+        StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm,
+        InventoryAuditsRead, InventoryAuditsCreate, InventoryAuditsScan,
+        InventoryAuditsComplete, InventoryAuditsExport, InventoryAuditsApply,
+        NotificationsRead, NotificationsManage, NotificationTemplatesManage,
+        ReportsRead, ReportsExport
     ];
 }
 
@@ -84,6 +117,66 @@ public sealed record AuthResult(
     DateTimeOffset AccessTokenExpiresAtUtc,
     DateTimeOffset RefreshTokenExpiresAtUtc,
     CurrentProfile CurrentUser);
+
+public sealed record EffectiveAuthorizationState(
+    Guid UserId,
+    string Email,
+    bool AccountIsActive,
+    bool EmployeeIsActive,
+    IReadOnlyCollection<string> Roles,
+    IReadOnlyCollection<string> Permissions)
+{
+    public bool CanAuthenticate => AccountIsActive && EmployeeIsActive;
+}
+
+public sealed record CurrentBranch(Guid Id, string Code, string Name);
+public sealed record CurrentProfile(
+    Guid UserId,
+    Guid? EmployeeId,
+    string DisplayName,
+    string LoginIdentifier,
+    DateTime? LastLoginAtUtc,
+    string? EmployeeCode,
+    string? FullName,
+    string? PhoneNumber,
+    DateOnly? DateOfBirth,
+    string? Address,
+    string? Position,
+    string? Department,
+    string? EmploymentStatus,
+    CurrentBranch? Branch,
+    IReadOnlyCollection<string> Roles,
+    IReadOnlyCollection<string> Permissions,
+    Guid? RowVersion);
+
+public sealed record UpdateCurrentProfileCommand(
+    string FullName,
+    string? PhoneNumber,
+    DateOnly? DateOfBirth,
+    string? Address,
+    Guid RowVersion,
+    string? CorrelationId = null);
+
+public enum CurrentProfileFailure { None, NotFound, Validation, Conflict, InvalidPassword }
+public sealed record CurrentProfileResult(CurrentProfile? Profile, CurrentProfileFailure Failure, string? Error)
+{
+    public bool Succeeded => Failure == CurrentProfileFailure.None;
+    public static CurrentProfileResult Success(CurrentProfile? profile = null) => new(profile, CurrentProfileFailure.None, null);
+    public static CurrentProfileResult Failed(CurrentProfileFailure failure, string error) => new(null, failure, error);
+}
+
+public interface ICurrentProfileService
+{
+    Task<CurrentProfile?> GetAsync(Guid userId, CancellationToken cancellationToken);
+    Task<CurrentProfileResult> UpdateAsync(Guid userId, UpdateCurrentProfileCommand command, CancellationToken cancellationToken);
+    Task<CurrentProfileResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, string? ipAddress, string? correlationId, CancellationToken cancellationToken);
+}
+
+public interface IAuthorizationStateService
+{
+    Task<EffectiveAuthorizationState?> GetAsync(Guid userId, CancellationToken cancellationToken);
+    Task<bool> IsSessionActiveAsync(Guid userId, Guid familyId, CancellationToken cancellationToken);
+}
 
 public interface IAuthService
 {
