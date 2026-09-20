@@ -262,6 +262,7 @@ export function ViolationFormDialog({ open, onOpenChange, onSave }: ViolationFor
               </div>
             ) : null}
             {isPreviewLoading ? <p className="text-xs text-muted-foreground">Đang tính tiền phạt...</p> : null}
+            {isPreviewLoading ? <p className="text-xs text-muted-foreground">Đang tính tiền phạt...</p> : null}
 
             <div className="grid gap-1.5">
               <div className="flex justify-between items-center">

@@ -36,18 +36,12 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                !dbContext.BookCopies.Any(copy =>
-                    copy.BookId == reservation.BookId &&
-                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
-                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
+                !dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
             "ready" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                dbContext.BookCopies.Any(copy =>
-                    copy.BookId == reservation.BookId &&
-                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved) &&
-                    !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == copy.Id && borrowing.ReturnedAtUtc == null))),
+                dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
             "expired" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
@@ -60,7 +54,6 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(reservation => reservation.ReservedAtUtc)
-            .ThenByDescending(reservation => reservation.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -114,13 +107,10 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
             cancellationToken);
 
     public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
-           dbContext.BookCopies
-              .Where(
+        dbContext.BookCopies.FirstOrDefaultAsync(
             c => c.BookId == bookId &&
-                  (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved) &&
-                  !dbContext.Borrowings.Any(borrowing => borrowing.BookCopyId == c.Id && borrowing.ReturnedAtUtc == null))
-              .OrderBy(c => c.Barcode)
-              .FirstOrDefaultAsync(cancellationToken);
+                 (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved),
+            cancellationToken);
 
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();

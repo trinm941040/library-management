@@ -169,3 +169,4 @@ public sealed record BorrowingDetailResponse(
     string? BorrowerGroup,
     IReadOnlyList<RenewalHistoryResponse> Renewals,
     RenewalPreviewResponse RenewalPreview);
+

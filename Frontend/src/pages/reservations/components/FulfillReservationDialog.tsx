@@ -58,6 +58,15 @@ export function FulfillReservationDialog({
     }
   }
 
+  // Dự kiến ngày trả (14 ngày sau hôm nay)
+  const estimatedDueDate = new Date()
+  estimatedDueDate.setDate(estimatedDueDate.getDate() + 14)
+  const formattedDueDate = estimatedDueDate.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
@@ -89,8 +98,9 @@ export function FulfillReservationDialog({
                 <span className="text-muted-foreground">Người nhận:</span>
                 <span className="font-medium text-right">{reservation.reserverName}</span>
               </div>
-              <div className="text-muted-foreground">
-                Hạn trả sẽ được tính theo chính sách lưu thông và thông tin độc giả khi xác nhận nhận sách.
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ngày hẹn trả dự kiến:</span>
+                <span className="font-semibold text-primary">{formattedDueDate}</span>
               </div>
             </div>
 

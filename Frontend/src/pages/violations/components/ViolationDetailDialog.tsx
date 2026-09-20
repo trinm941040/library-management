@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, Calculator, History, Info, QrCode, User } from 'lucide-react'
+import { BookOpen, Calculator, CreditCard, Eye, History, Info, QrCode, User } from 'lucide-react'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {
@@ -10,11 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   getViolationDetail,
   type LibraryViolation,
   type ViolationDetailResponse,
 } from '../violation-api'
+import { PaymentReceiptDialog } from '@/pages/payments/components/PaymentReceiptDialog'
+import { getPaymentReceipt, type FinePaymentReceipt } from '@/pages/payments/payment-api'
 
 const typeLabels: Record<string, string> = {
   overdue: 'Quá hạn',
@@ -41,16 +44,20 @@ type ViolationDetailDialogProps = {
   violation: LibraryViolation | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenPayment?: (violationId: string) => void
 }
 
 export function ViolationDetailDialog({
   violation,
   open,
   onOpenChange,
+  onOpenPayment,
 }: ViolationDetailDialogProps) {
   const [detail, setDetail] = useState<ViolationDetailResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [receiptToShow, setReceiptToShow] = useState<FinePaymentReceipt | null>(null)
+  const [receiptOpen, setReceiptOpen] = useState(false)
 
   useEffect(() => {
     if (!open || !violation) {
@@ -299,7 +306,45 @@ export function ViolationDetailDialog({
                           Phương thức: {pmt.method} {pmt.reference ? `· Tham chiếu: ${pmt.reference}` : ''}
                         </span>
                       </div>
-                      <span className="text-muted-foreground">{formatDate(pmt.paidAtUtc)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">{formatDate(pmt.paidAtUtc)}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          title="Xem biên nhận"
+                          onClick={() => {
+                            getPaymentReceipt(pmt.id)
+                              .then((r) => {
+                                setReceiptToShow(r)
+                                setReceiptOpen(true)
+                              })
+                              .catch(() => {
+                                setReceiptToShow({
+                                  id: pmt.id,
+                                  violationId: target?.id ?? '',
+                                  violationType: target?.type ?? 'other',
+                                  bookTitle: target?.bookTitle ?? '',
+                                  memberId: target?.borrowerId ?? '',
+                                  memberName: target?.borrowerName ?? '',
+                                  memberCode: target?.borrowerMemberCode ?? null,
+                                  amount: pmt.amount,
+                                  previousBalance: (target?.balance ?? 0) + pmt.amount,
+                                  remainingBalance: target?.balance ?? 0,
+                                  method: pmt.method,
+                                  reference: pmt.reference,
+                                  paidAtUtc: pmt.paidAtUtc,
+                                  receivedByUserId: pmt.receivedByUserId,
+                                  receivedByUserName: 'Thủ thư',
+                                  isFullyPaid: (target?.balance ?? 0) <= 0,
+                                })
+                                setReceiptOpen(true)
+                              })
+                          }}
+                        >
+                          <Eye className="size-3.5 mr-1" /> Biên nhận
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   {detail.adjustments.map((adj) => (
@@ -319,12 +364,34 @@ export function ViolationDetailDialog({
           </div>
         ) : null}
 
-        <DialogFooter>
+        <DialogFooter className="flex sm:justify-between items-center gap-2">
+          <div>
+            {target && (target.balance ?? 0) > 0 && target.status !== 'waived' && onOpenPayment ? (
+              <PermissionBoundary requiredPermissions={['violations.resolve']}>
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    onOpenChange(false)
+                    onOpenPayment(target.id)
+                  }}
+                >
+                  <CreditCard className="size-4" /> Thu tiền phạt ({formatCurrency(target.balance)})
+                </Button>
+              </PermissionBoundary>
+            ) : null}
+          </div>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Đóng
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <PaymentReceiptDialog
+        receipt={receiptToShow}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </Dialog>
   )
 }

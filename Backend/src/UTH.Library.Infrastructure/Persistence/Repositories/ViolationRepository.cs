@@ -127,6 +127,103 @@ public sealed class ViolationRepository(LibraryDbContext dbContext) : IViolation
         return (payments, adjustments);
     }
 
+    public Task AddPaymentAsync(FinePayment payment, CancellationToken cancellationToken) =>
+        dbContext.FinePayments.AddAsync(payment, cancellationToken).AsTask();
+
+    public Task<FinePayment?> GetPaymentByIdAsync(Guid paymentId, CancellationToken cancellationToken) =>
+        dbContext.FinePayments.SingleOrDefaultAsync(x => x.Id == paymentId, cancellationToken);
+
+    public async Task<FinePayment?> GetExistingPaymentAsync(Guid violationId, string? reference, decimal amount, DateTime windowStart, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(reference))
+        {
+            var normalizedRef = reference.Trim();
+            var byRef = await dbContext.FinePayments
+                .Where(x => x.ViolationId == violationId && x.Reference == normalizedRef)
+                .OrderByDescending(x => x.PaidAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (byRef is not null) return byRef;
+        }
+
+        return await dbContext.FinePayments
+            .Where(x => x.ViolationId == violationId && x.Amount == amount && x.PaidAtUtc >= windowStart)
+            .OrderByDescending(x => x.PaidAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<FinePayment> Items, int TotalCount)> GetPaymentsPageAsync(
+        string? search,
+        Guid? violationId,
+        Guid? memberId,
+        FinePaymentMethod? method,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.FinePayments.AsQueryable();
+
+        if (violationId.HasValue && violationId.Value != Guid.Empty)
+            query = query.Where(x => x.ViolationId == violationId.Value);
+
+        if (memberId.HasValue && memberId.Value != Guid.Empty)
+            query = query.Where(x => x.MemberId == memberId.Value);
+
+        if (method.HasValue)
+            query = query.Where(x => x.Method == method.Value);
+
+        if (fromDate.HasValue)
+            query = query.Where(x => x.PaidAtUtc >= fromDate.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(x => x.PaidAtUtc <= toDate.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim();
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Reference, $"%{keyword}%") ||
+                dbContext.Violations.Any(v => v.Id == x.ViolationId && (
+                    EF.Functions.ILike(v.BorrowerName, $"%{keyword}%") ||
+                    EF.Functions.ILike(v.BorrowerEmail, $"%{keyword}%") ||
+                    EF.Functions.ILike(v.BookTitle, $"%{keyword}%"))) ||
+                dbContext.Members.Any(m => m.Id == x.MemberId && (
+                    EF.Functions.ILike(m.FullName, $"%{keyword}%") ||
+                    EF.Functions.ILike(m.MemberCode, $"%{keyword}%") ||
+                    EF.Functions.ILike(m.Email, $"%{keyword}%"))));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(x => x.PaidAtUtc)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public Task AddAdjustmentAsync(FineAdjustment adjustment, CancellationToken cancellationToken) =>
+        dbContext.FineAdjustments.AddAsync(adjustment, cancellationToken).AsTask();
+
+    public async Task<IReadOnlyList<FineAdjustment>> GetAdjustmentsByViolationIdAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FineAdjustments
+            .Where(adjustment => adjustment.ViolationId == violationId)
+            .OrderByDescending(adjustment => adjustment.AdjustedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public async Task<decimal> GetTotalAdjustedAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FineAdjustments
+            .Where(adjustment => adjustment.ViolationId == violationId)
+            .SumAsync(adjustment => (decimal?)adjustment.AmountDelta, cancellationToken) ?? 0m;
+
+    public async Task<decimal> GetTotalPaidAsync(Guid violationId, CancellationToken cancellationToken) =>
+        await dbContext.FinePayments
+            .Where(payment => payment.ViolationId == violationId)
+            .SumAsync(payment => (decimal?)payment.Amount, cancellationToken) ?? 0m;
+
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>
         dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
 

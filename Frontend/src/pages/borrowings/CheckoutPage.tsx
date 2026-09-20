@@ -43,6 +43,7 @@ export function CheckoutPage() {
   // Input states
   const [cardOrCodeInput, setCardOrCodeInput] = useState('')
   const [barcodeInput, setBarcodeInput] = useState('')
+  const [loanDaysOverride] = useState<string>('')
 
   // Lookup results
   const [member, setMember] = useState<MemberCheckoutLookup | null>(null)
@@ -77,8 +78,6 @@ export function CheckoutPage() {
     setMemberError('')
     setCheckoutError('')
     setCreatedBorrowing(null)
-    setCopy(null)
-    setBarcodeInput('')
 
     try {
       const result = await lookupMemberForCheckout(trimmed)
@@ -155,9 +154,11 @@ export function CheckoutPage() {
     setCheckoutError('')
 
     try {
+      const overrideDays = loanDaysOverride ? Number.parseInt(loanDaysOverride, 10) : undefined
       const created = await checkoutWithBarcode({
         memberCardOrCode: member.cardNumber || member.memberCode,
         bookBarcode: copy.barcode,
+        loanDaysOverride: Number.isFinite(overrideDays) && overrideDays! > 0 ? overrideDays : undefined,
       })
 
       setCreatedBorrowing(created)

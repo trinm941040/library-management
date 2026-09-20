@@ -45,7 +45,6 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
     {
         var result = await borrowingService.CreateAsync(
             new CreateBorrowingCommand(request.BookId, request.BorrowerId, request.LoanDays),
-            GetCurrentUserId(),
             cancellationToken);
 
         if (!result.Succeeded || result.Borrowing is null)

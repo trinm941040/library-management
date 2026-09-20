@@ -33,7 +33,6 @@ import {
   type LibraryReservation,
   type ReservationPageResponse,
 } from './reservation-api'
-import { useUrlListState } from '@/shared/data/use-url-list-state'
 
 const statusLabels: Record<string, string> = {
   waiting: 'Chờ sách',
@@ -52,9 +51,12 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
 }
 
 export function ReservationsPage() {
-  const { search, status, pageNumber: currentPage, pageSize, update } = useUrlListState()
   const [page, setPage] = useState<ReservationPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState(search)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -69,15 +71,14 @@ export function ReservationsPage() {
   const [selectedCancel, setSelectedCancel] = useState<LibraryReservation | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
 
-  useEffect(() => setSearchInput(search), [search])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const value = searchInput.trim()
-      if (value !== search) update({ search: value || undefined, pageNumber: 1 })
+      setSearch(searchInput.trim())
+      setCurrentPage(1)
     }, 350)
 
     return () => window.clearTimeout(timeout)
-  }, [search, searchInput, update])
+  }, [searchInput])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -96,7 +97,7 @@ export function ReservationsPage() {
       .then((response) => {
         setPage(response)
         if (response.totalPages > 0 && currentPage > response.totalPages) {
-          update({ pageNumber: response.totalPages })
+          setCurrentPage(response.totalPages)
         }
       })
       .catch((error: unknown) => {
@@ -108,7 +109,7 @@ export function ReservationsPage() {
       })
 
     return () => controller.abort()
-  }, [currentPage, pageSize, reloadKey, search, status, update])
+  }, [currentPage, pageSize, reloadKey, search, status])
 
   const refresh = useCallback((message?: string) => {
     if (message) setNotice(message)
@@ -125,8 +126,8 @@ export function ReservationsPage() {
         reserverId: data.reserverId,
         holdDays,
       })
-      update({ pageNumber: 1 })
-      refresh('Đã tạo phiếu đặt trước.')
+      setCurrentPage(1)
+      refresh('Đã tạo phiếu đặt trước thành công.')
       return null
     } catch (error) {
       return error instanceof Error ? error.message : 'Không thể tạo phiếu đặt trước.'
@@ -184,8 +185,8 @@ export function ReservationsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isLoading} loading={isLoading && Boolean(page)} loadingLabel="Đang tải lại phiếu đặt trước" onClick={() => refresh()}>
-              <RefreshCw />
+            <Button variant="outline" disabled={isLoading} onClick={() => refresh()}>
+              <RefreshCw className={isLoading ? 'animate-spin' : ''} />
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['reservations.create']}>
@@ -233,7 +234,8 @@ export function ReservationsPage() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    update({ status: value, pageNumber: 1 })
+                    setStatus(value)
+                    setCurrentPage(1)
                   }}
                 >
                   <SelectTrigger className="w-full sm:w-44" aria-label="Lọc theo trạng thái">
@@ -401,10 +403,11 @@ export function ReservationsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
-                  onPageChange={(value) => update({ pageNumber: value })}
+                  onPageChange={setCurrentPage}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {
-                    update({ pageNumber: 1, pageSize: size })
+                    setCurrentPage(1)
+                    setPageSize(size)
                   }}
                 />
               </div>
