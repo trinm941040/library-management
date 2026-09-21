@@ -284,6 +284,13 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Return validation failed."))
     };
 
+    private ActionResult MapReturnFailure(ReturnResult result) => result.Failure switch
+    {
+        BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Book copy or borrowing was not found.")),
+        BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Return validation failed."))
+    };
+
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
 
     private static BorrowingResponse ToResponse(BorrowingModel borrowing) =>
