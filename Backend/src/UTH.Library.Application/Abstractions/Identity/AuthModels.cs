@@ -78,6 +78,11 @@ public static class Permissions
     public const string InventoryAuditsComplete = "inventory-audits.complete";
     public const string InventoryAuditsExport = "inventory-audits.export";
     public const string InventoryAuditsApply = "inventory-audits.apply";
+    public const string NotificationsRead = "notifications.read";
+    public const string NotificationsManage = "notifications.manage";
+    public const string NotificationTemplatesManage = "notification-templates.manage";
+    public const string ReportsRead = "reports.read";
+    public const string ReportsExport = "reports.export";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -99,7 +104,9 @@ public static class Permissions
         SuppliersRead, SuppliersCreate, SuppliersUpdate, SuppliersDeactivate,
         StockReceiptsRead, StockReceiptsCreate, StockReceiptsUpdate, StockReceiptsConfirm,
         InventoryAuditsRead, InventoryAuditsCreate, InventoryAuditsScan,
-        InventoryAuditsComplete, InventoryAuditsExport, InventoryAuditsApply
+        InventoryAuditsComplete, InventoryAuditsExport, InventoryAuditsApply,
+        NotificationsRead, NotificationsManage, NotificationTemplatesManage,
+        ReportsRead, ReportsExport
     ];
 }
 

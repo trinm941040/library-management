@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
+  BarChart3,
   Barcode,
+  Bell,
   Clock,
   Building2,
   ClipboardList,
@@ -100,6 +102,18 @@ export const navigationGroups: readonly NavigationGroup[] = [
         label: 'Vi phạm',
         icon: AlertTriangle,
         requiredPermissions: ['violations.read'],
+      },
+      {
+        path: '/reports',
+        label: 'Báo cáo',
+        icon: BarChart3,
+        requiredPermissions: [],
+      },
+      {
+        path: '/notifications',
+        label: 'Thông báo',
+        icon: Bell,
+        requiredPermissions: ['notifications.read'],
       },
     ],
   },

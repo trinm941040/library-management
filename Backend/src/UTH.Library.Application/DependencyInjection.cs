@@ -16,6 +16,8 @@ using UTH.Library.Application.Features.InventoryAudits;
 using UTH.Library.Application.Features.Payments;
 using UTH.Library.Application.Features.Adjustments;
 using UTH.Library.Application.Features.Dashboard;
+using UTH.Library.Application.Features.Notifications;
+using UTH.Library.Application.Features.Reports;
 
 namespace UTH.Library.Application;
 
@@ -45,6 +47,9 @@ public static class DependencyInjection
         services.AddScoped<CopyService>();
         services.AddScoped<SupplierService>();
         services.AddScoped<InventoryAuditService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<ReportService>();
+        services.AddScoped<SavedFilterService>();
         return services;
     }
 }

@@ -101,6 +101,12 @@ const ConfigurationPage = lazy(() =>
     default: m.ConfigurationPage,
   })),
 )
+const ReportsPage = lazy(() =>
+  import('../pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+)
+const NotificationsPage = lazy(() =>
+  import('../pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+)
 
 const page = (path: string, element: ReactNode) => (
   <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
@@ -171,6 +177,8 @@ export function AppRoutes() {
         <Route path="/circulation/return" element={page('/circulation/return', <ReturnPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
+        <Route path="/reports" element={page('/reports', <ReportsPage />)} />
+        <Route path="/notifications" element={page('/notifications', <NotificationsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />
