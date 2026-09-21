@@ -1,0 +1,42 @@
+namespace UTH.Library.Api.Contracts.Notifications;
+
+public sealed record CreateNotificationTemplateApiRequest(
+    string Code,
+    string Name,
+    string Channel,
+    string? SubjectTemplate,
+    string BodyTemplate,
+    string? AllowedVariables,
+    bool IsActive = true);
+
+public sealed record UpdateNotificationTemplateApiRequest(
+    string Name,
+    string Channel,
+    string? SubjectTemplate,
+    string BodyTemplate,
+    string? AllowedVariables,
+    bool IsActive);
+
+public sealed record NotificationPreviewApiRequest(
+    string TemplateCode,
+    Dictionary<string, string>? Variables = null);
+
+public sealed record SendNotificationApiRequest(
+    string TemplateCode,
+    string RecipientType,
+    Guid RecipientId,
+    string? Destination = null,
+    Dictionary<string, string>? Variables = null);
+
+public sealed record NotificationHistoryFilterRequest(
+    string? Channel = null,
+    string? Status = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    int PageNumber = 1,
+    int PageSize = 20);
+
+public sealed record UserNotificationFilterRequest(
+    bool UnreadOnly = false,
+    int PageNumber = 1,
+    int PageSize = 10);
