@@ -15,6 +15,23 @@ public sealed class NotificationService(
     TimeProvider timeProvider) : INotificationService
 {
     private static readonly Regex VariableRegex = new(@"\{\{([a-zA-Z0-9_\-]+)\}\}", RegexOptions.Compiled);
+    private static readonly IReadOnlyList<NotificationEventDefinition> EventDefinitions =
+    [
+        Event("Borrowing.DueSoon", ["member_name", "book_title", "due_date", "days_remaining"]),
+        Event("Borrowing.Overdue", ["member_name", "book_title", "due_date", "days_overdue"]),
+        Event("MemberViolation.Created", ["member_name", "violation_type", "occurred_at"]),
+        Event("Fine.Created", ["member_name", "amount", "reason"]),
+        Event("Fine.Adjusted", ["member_name", "amount", "reason"]),
+        Event("Fine.PaymentRecorded", ["member_name", "amount", "paid_at"]),
+        Event("Reservation.ReadyForPickup", ["member_name", "book_title", "expires_at"]),
+        Event("Reservation.Expiring", ["member_name", "book_title", "expires_at"]),
+        Event("MembershipCard.Expiring", ["member_name", "card_number", "expires_at"])
+    ];
+
+    private static NotificationEventDefinition Event(string code, string[] variables) =>
+        new(code, variables, variables, "Member.Email");
+
+    public IReadOnlyList<NotificationEventDefinition> GetEventDefinitions() => EventDefinitions;
 
     public async Task<IReadOnlyList<NotificationTemplateDto>> GetTemplatesAsync(CancellationToken cancellationToken)
     {
@@ -41,6 +58,7 @@ public sealed class NotificationService(
             throw new ArgumentException("Tên mẫu thông báo không được để trống.", nameof(command.Name));
         if (string.IsNullOrWhiteSpace(command.BodyTemplate))
             throw new ArgumentException("Nội dung mẫu không được để trống.", nameof(command.BodyTemplate));
+        ValidateTemplate(command.Code, command.SubjectTemplate, command.BodyTemplate, command.AllowedVariables);
 
         if (!Enum.TryParse<NotificationChannel>(command.Channel, true, out var channel))
             throw new ArgumentException($"Kênh thông báo '{command.Channel}' không hợp lệ.");
@@ -89,8 +107,12 @@ public sealed class NotificationService(
         var template = await repository.GetTemplateByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Không tìm thấy mẫu thông báo với ID: {id}");
 
+        if (command.ConcurrencyToken is null || command.ConcurrencyToken != template.ConcurrencyToken)
+            throw new InvalidOperationException("Mẫu email đã thay đổi. Hãy tải lại trước khi lưu.");
+
         if (!Enum.TryParse<NotificationChannel>(command.Channel, true, out var channel))
             throw new ArgumentException($"Kênh thông báo '{command.Channel}' không hợp lệ.");
+        ValidateTemplate(template.Code, command.SubjectTemplate, command.BodyTemplate, command.AllowedVariables);
 
         var beforeJson = JsonSerializer.Serialize(MapTemplateToDto(template));
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -237,22 +259,22 @@ public sealed class NotificationService(
             command.RecipientId,
             destination,
             renderedSubject,
-            renderedBody);
+            renderedBody,
+            eventCode: command.EventCode ?? template.Code,
+            idempotencyKey: command.IdempotencyKey);
 
-        // Resolve adapter
-        var adapter = adapters.FirstOrDefault(a => a.Channel == template.Channel)
-            ?? throw new InvalidOperationException($"Chưa cấu hình adapter gửi tin cho kênh {template.Channel}.");
+        if (!string.IsNullOrWhiteSpace(command.IdempotencyKey) &&
+            await repository.IdempotencyKeyExistsAsync(command.IdempotencyKey, cancellationToken))
+            throw new InvalidOperationException("Email cho sự kiện và người nhận này đã được tạo trước đó.");
 
-        var sendResult = await adapter.SendAsync(notification, cancellationToken);
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-
-        if (sendResult.Success)
+        if (template.Channel != NotificationChannel.Email)
         {
-            notification.MarkSent(nowUtc);
-        }
-        else
-        {
-            notification.MarkFailed(sendResult.FailureReason ?? "Lỗi không xác định khi gửi thông báo.");
+            var adapter = adapters.FirstOrDefault(a => a.Channel == template.Channel)
+                ?? throw new InvalidOperationException($"Chưa cấu hình adapter gửi tin cho kênh {template.Channel}.");
+            var sendResult = await adapter.SendAsync(notification, cancellationToken);
+            if (sendResult.Success) notification.MarkSent(nowUtc);
+            else notification.MarkFailed(sendResult.FailureReason ?? "Không thể gửi thông báo.");
         }
 
         var created = await repository.CreateNotificationAsync(notification, cancellationToken);
@@ -316,20 +338,15 @@ public sealed class NotificationService(
         var template = await repository.GetTemplateByIdAsync(notification.TemplateId, cancellationToken)
             ?? throw new InvalidOperationException("Không tìm thấy mẫu thông báo liên kết.");
 
-        var adapter = adapters.FirstOrDefault(a => a.Channel == template.Channel)
-            ?? throw new InvalidOperationException($"Chưa cấu hình adapter gửi tin cho kênh {template.Channel}.");
-
         notification.Retry();
-        var sendResult = await adapter.SendAsync(notification, cancellationToken);
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-
-        if (sendResult.Success)
+        if (template.Channel != NotificationChannel.Email)
         {
-            notification.MarkSent(nowUtc);
-        }
-        else
-        {
-            notification.MarkFailed(sendResult.FailureReason ?? "Lỗi không xác định khi gửi lại.");
+            var adapter = adapters.FirstOrDefault(a => a.Channel == template.Channel)
+                ?? throw new InvalidOperationException($"Chưa cấu hình adapter gửi tin cho kênh {template.Channel}.");
+            var sendResult = await adapter.SendAsync(notification, cancellationToken);
+            if (sendResult.Success) notification.MarkSent(nowUtc);
+            else notification.MarkFailed(sendResult.FailureReason ?? "Không thể gửi lại thông báo.");
         }
 
         await repository.UpdateNotificationAsync(notification, cancellationToken);
@@ -517,6 +534,20 @@ public sealed class NotificationService(
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
+    private static void ValidateTemplate(string code, string? subject, string body, string? allowedVariables)
+    {
+        if (Regex.IsMatch(body, @"<\s*(script|iframe|object|embed)|\son\w+\s*=|javascript\s*:", RegexOptions.IgnoreCase))
+            throw new ArgumentException("Nội dung HTML chứa thành phần không an toàn.");
+        var declared = ParseAllowedVariables(allowedVariables) ?? [];
+        var used = VariableRegex.Matches($"{subject} {body}").Select(match => match.Groups[1].Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var undeclared = used.Where(value => declared.Count > 0 && !declared.Contains(value)).ToArray();
+        if (undeclared.Length > 0)
+            throw new ArgumentException($"Các biến chưa được khai báo: {string.Join(", ", undeclared)}.");
+        var eventDefinition = EventDefinitions.FirstOrDefault(value => value.Code.Equals(code, StringComparison.OrdinalIgnoreCase));
+        if (eventDefinition is not null && used.Any(value => !eventDefinition.AllowedVariables.Contains(value, StringComparer.OrdinalIgnoreCase)))
+            throw new ArgumentException("Mẫu sử dụng biến ngoài danh mục cho phép của sự kiện.");
+    }
+
     private static NotificationTemplateDto MapTemplateToDto(NotificationTemplate t) =>
         new(
             t.Id,
@@ -527,5 +558,6 @@ public sealed class NotificationService(
             t.BodyTemplate,
             t.AllowedVariables,
             t.IsActive,
-            t.UpdatedAtUtc);
+            t.UpdatedAtUtc,
+            t.ConcurrencyToken);
 }

@@ -15,6 +15,10 @@ public sealed class Notification
     public DateTime? ScheduledAtUtc { get; private set; }
     public DateTime? SentAtUtc { get; private set; }
     public string? FailureReason { get; private set; }
+    public string IdempotencyKey { get; private set; } = string.Empty;
+    public string? EventCode { get; private set; }
+    public int AttemptCount { get; private set; }
+    public DateTime? NextAttemptAtUtc { get; private set; }
     public DateTime? ReadAtUtc { get; private set; }
     public bool IsRead => ReadAtUtc.HasValue;
     public Guid ConcurrencyToken { get; private set; }
@@ -28,7 +32,9 @@ public sealed class Notification
         string destination,
         string? subject,
         string body,
-        DateTime? scheduledAtUtc = null)
+        DateTime? scheduledAtUtc = null,
+        string? eventCode = null,
+        string? idempotencyKey = null)
     {
         return new Notification
         {
@@ -41,6 +47,9 @@ public sealed class Notification
             Body = body,
             Status = NotificationStatus.Pending,
             ScheduledAtUtc = scheduledAtUtc,
+            EventCode = eventCode?.Trim(),
+            IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? Guid.NewGuid().ToString("N") : idempotencyKey.Trim(),
+            NextAttemptAtUtc = scheduledAtUtc,
             ConcurrencyToken = Guid.NewGuid()
         };
     }
@@ -50,6 +59,7 @@ public sealed class Notification
         Status = NotificationStatus.Sent;
         SentAtUtc = sentAtUtc;
         FailureReason = null;
+        NextAttemptAtUtc = null;
         ConcurrencyToken = Guid.NewGuid();
     }
 
@@ -60,10 +70,35 @@ public sealed class Notification
         ConcurrencyToken = Guid.NewGuid();
     }
 
+    public void MarkProcessing()
+    {
+        if (Status != NotificationStatus.Pending) throw new InvalidOperationException("Email không ở trạng thái chờ gửi.");
+        Status = NotificationStatus.Processing;
+        AttemptCount++;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void ScheduleRetry(string reason, DateTime nextAttemptAtUtc)
+    {
+        Status = NotificationStatus.Pending;
+        FailureReason = reason;
+        NextAttemptAtUtc = nextAttemptAtUtc;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
+    public void Cancel(string reason)
+    {
+        Status = NotificationStatus.Cancelled;
+        FailureReason = reason;
+        NextAttemptAtUtc = null;
+        ConcurrencyToken = Guid.NewGuid();
+    }
+
     public void Retry()
     {
         Status = NotificationStatus.Pending;
         FailureReason = null;
+        NextAttemptAtUtc = null;
         ConcurrencyToken = Guid.NewGuid();
     }
 

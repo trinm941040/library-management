@@ -77,7 +77,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [retrySuccess, setRetrySuccess] = useState<string | null>(null)
 
-  const loadData = useCallback(async (page = pageNumber) => {
+  const loadData = useCallback(async (page = 1) => {
     setLoading(true)
     setError(null)
     try {
@@ -90,16 +90,16 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
         pageSize: 10,
       })
       setData(res)
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải lịch sử thông báo.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tải lịch sử thông báo.')
     } finally {
       setLoading(false)
     }
-  }, [channel, status, fromDate, toDate, pageNumber])
+  }, [channel, status, fromDate, toDate])
 
   useEffect(() => {
     void loadData(1)
-  }, [channel, status])
+  }, [loadData])
 
   const handleApplyFilter = (e: React.FormEvent) => {
     e.preventDefault()

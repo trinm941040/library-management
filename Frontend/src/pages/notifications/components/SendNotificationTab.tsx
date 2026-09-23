@@ -89,7 +89,7 @@ const VARIABLE_LABELS: Record<string, string> = {
 
 function formatTemplateDisplay(text?: string | null): string {
   if (!text) return ''
-  return text.replace(/\{\{([a-zA-Z0-9_\-]+)\}\}/g, (_, varName) => {
+  return text.replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, (_, varName) => {
     const key = varName.toLowerCase().trim()
     const label = VARIABLE_LABELS[key] || varName
     return `[${label}]`
@@ -114,7 +114,7 @@ function getVariableMeta(varName: string) {
 
 export const SendNotificationTab: React.FC<Props> = ({
   templates,
-  loading: _loading,
+  loading,
   onSent,
   onSentSuccess,
 }) => {
@@ -153,7 +153,7 @@ export const SendNotificationTab: React.FC<Props> = ({
   const detectedVariables = useMemo(() => {
     if (!currentTemplate) return []
     const combined = `${currentTemplate.subjectTemplate || ''} ${currentTemplate.bodyTemplate}`
-    const matches = combined.matchAll(/\{\{([a-zA-Z0-9_\-]+)\}\}/g)
+    const matches = combined.matchAll(/\{\{([a-zA-Z0-9_-]+)\}\}/g)
     const vars = new Set<string>()
     for (const match of matches) {
       vars.add(match[1].trim())
@@ -426,10 +426,12 @@ export const SendNotificationTab: React.FC<Props> = ({
                   recipients.map((r) => {
                     const isSelected = selectedRecipient?.id === r.id
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={r.id}
                         onClick={() => handleSelectRecipient(r)}
-                        className={`flex cursor-pointer items-center justify-between rounded-md border p-2.5 text-sm transition-colors ${
+                        disabled={loading}
+                        className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-2.5 text-left text-sm transition-colors ${
                           isSelected
                             ? 'border-primary bg-primary/10 shadow-xs'
                             : 'border-transparent hover:bg-accent/60'
@@ -458,7 +460,7 @@ export const SendNotificationTab: React.FC<Props> = ({
                         {isSelected && (
                           <CheckCircle2 className="size-4 shrink-0 text-primary ml-2" />
                         )}
-                      </div>
+                      </button>
                     )
                   })
                 )}

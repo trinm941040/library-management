@@ -75,6 +75,9 @@ const ViolationsPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('../pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
+const SmtpSettingsPage = lazy(() =>
+  import('../pages/notifications/SmtpSettingsPage').then((m) => ({ default: m.SmtpSettingsPage })),
+)
 const RolePermissionPage = lazy(() =>
   import('../pages/roles/RolePermissionPage').then((m) => ({ default: m.RolePermissionPage })),
 )
@@ -179,6 +182,9 @@ export function AppRoutes() {
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/reports" element={page('/reports', <ReportsPage />)} />
         <Route path="/notifications" element={page('/notifications', <NotificationsPage />)} />
+        <Route path="/email-history" element={page('/email-history', <NotificationsPage initialTab="history" />)} />
+        <Route path="/email-templates" element={page('/email-templates', <NotificationsPage initialTab="templates" />)} />
+        <Route path="/smtp-settings" element={page('/smtp-settings', <SmtpSettingsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />
         <Route path="/members" element={page('/members', <MemberPage />)} />

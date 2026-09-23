@@ -14,6 +14,7 @@ import {
   RotateCcw,
   ScanLine,
   Settings,
+  Mail,
   ShieldCheck,
   UserRoundCog,
   Users,
@@ -115,6 +116,7 @@ export const navigationGroups: readonly NavigationGroup[] = [
         icon: Bell,
         requiredPermissions: ['notifications.read'],
       },
+      { path: '/email-history', label: 'Lịch sử email', icon: Mail, requiredPermissions: ['notifications.read'] },
     ],
   },
   {
@@ -139,6 +141,8 @@ export const navigationGroups: readonly NavigationGroup[] = [
         icon: Settings,
         requiredPermissions: ['settings.read'],
       },
+      { path: '/smtp-settings', label: 'Cấu hình SMTP', icon: Mail, requiredPermissions: ['settings.read'] },
+      { path: '/email-templates', label: 'Mẫu email', icon: Bell, requiredPermissions: ['notifications.read'] },
     ],
   },
 ]

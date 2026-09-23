@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -481,6 +482,14 @@ internal sealed class SystemConfigurationService(
         }
         static string? Boolean(JsonElement value) => value.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? null : "Giá trị phải là true hoặc false.";
+        static string? Email(JsonElement value, bool optional)
+        {
+            if (value.ValueKind != JsonValueKind.String) return "Giá trị phải là chuỗi.";
+            var text = value.GetString()?.Trim() ?? string.Empty;
+            if (optional && text.Length == 0) return null;
+            try { _ = new MailAddress(text); return null; }
+            catch (FormatException) { return "Địa chỉ email không hợp lệ."; }
+        }
 
         var values = new[]
         {
@@ -489,8 +498,17 @@ internal sealed class SystemConfigurationService(
             new SettingDefinition("notifications.email.enabled", "Bật gửi email", "Cho phép hệ thống gửi thông báo email.", SettingType.Boolean, SettingScope.Notifications, false, "false", Boolean),
             new SettingDefinition("notifications.smtp.host", "Máy chủ SMTP", "Tên máy chủ SMTP.", SettingType.String, SettingScope.Notifications, false, "\"smtp.gmail.com\"", value => String(value, 1, 253)),
             new SettingDefinition("notifications.smtp.port", "Cổng SMTP", "Cổng kết nối SMTP.", SettingType.Number, SettingScope.Notifications, false, "587", value => Number(value, 1, 65535)),
-            new SettingDefinition("notifications.smtp.username", "Tài khoản SMTP", "Tài khoản dùng để xác thực SMTP.", SettingType.String, SettingScope.Notifications, true, "null", value => String(value, 1, 256)),
+            new SettingDefinition("notifications.smtp.security-mode", "Bảo mật SMTP", "None, StartTls hoặc SslTls.", SettingType.String, SettingScope.Notifications, false, "\"StartTls\"", value => String(value, 3, 16, new HashSet<string>(["None", "StartTls", "SslTls"]))),
+            new SettingDefinition("notifications.smtp.username", "Tài khoản SMTP", "Tài khoản dùng để xác thực SMTP.", SettingType.String, SettingScope.Notifications, true, "null", value => String(value, 0, 256)),
             new SettingDefinition("notifications.smtp.password", "Mật khẩu SMTP", "Mật khẩu dùng để xác thực SMTP.", SettingType.String, SettingScope.Notifications, true, "null", value => String(value, 1, 1024)),
+            new SettingDefinition("notifications.smtp.from-address", "Email người gửi", "Địa chỉ From hợp lệ.", SettingType.String, SettingScope.Notifications, false, "\"no-reply@example.com\"", value => Email(value, false)),
+            new SettingDefinition("notifications.smtp.from-name", "Tên người gửi", "Tên hiển thị của thư viện.", SettingType.String, SettingScope.Notifications, false, "\"Thư viện UTH\"", value => String(value, 1, 150)),
+            new SettingDefinition("notifications.smtp.reply-to-address", "Email phản hồi", "Địa chỉ Reply-To tùy chọn.", SettingType.String, SettingScope.Notifications, false, "\"\"", value => Email(value, true)),
+            new SettingDefinition("notifications.smtp.timeout-seconds", "Thời gian chờ SMTP", "Thời gian chờ kết nối/gửi.", SettingType.Number, SettingScope.Notifications, false, "30", value => Number(value, 5, 120)),
+            new SettingDefinition("notifications.smtp.max-retry-count", "Số lần gửi lại", "Số lần thử lại tối đa khi SMTP lỗi.", SettingType.Number, SettingScope.Notifications, false, "5", value => Number(value, 0, 20)),
+            new SettingDefinition("notifications.email.batch-size", "Kích thước lô email", "Số email xử lý trong mỗi chu kỳ.", SettingType.Number, SettingScope.Notifications, false, "25", value => Number(value, 1, 200)),
+            new SettingDefinition("notifications.due-soon-days", "Số ngày nhắc sắp đến hạn", "Mốc tạo nhắc hạn trả.", SettingType.Number, SettingScope.Notifications, false, "3", value => Number(value, 1, 30)),
+            new SettingDefinition("notifications.membership-expiring-days", "Số ngày nhắc hết hạn thẻ", "Mốc tạo nhắc hết hạn thẻ.", SettingType.Number, SettingScope.Notifications, false, "14", value => Number(value, 1, 90)),
             new SettingDefinition("operations.backup.enabled", "Tự động sao lưu", "Bật lịch sao lưu dữ liệu tự động.", SettingType.Boolean, SettingScope.Operations, false, "true", Boolean),
             new SettingDefinition("operations.backup.retention-days", "Thời gian lưu bản sao", "Số ngày lưu bản sao dữ liệu.", SettingType.Number, SettingScope.Operations, false, "30", value => Number(value, 1, 3650))
         };

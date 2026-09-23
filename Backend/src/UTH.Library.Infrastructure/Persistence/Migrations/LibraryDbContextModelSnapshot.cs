@@ -1302,6 +1302,9 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1320,6 +1323,18 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<string>("FailureReason")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("EventCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uuid");
@@ -1351,7 +1366,10 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.HasIndex("Status", "ScheduledAtUtc");
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAtUtc");
 
                     b.ToTable("notifications", (string)null);
                 });

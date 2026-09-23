@@ -3,6 +3,7 @@ namespace UTH.Library.Application.Features.Notifications;
 public interface INotificationService
 {
     Task<IReadOnlyList<NotificationTemplateDto>> GetTemplatesAsync(CancellationToken cancellationToken);
+    IReadOnlyList<NotificationEventDefinition> GetEventDefinitions();
     Task<NotificationTemplateDto?> GetTemplateByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<NotificationTemplateDto> CreateTemplateAsync(
         CreateNotificationTemplateCommand command,

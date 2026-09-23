@@ -58,7 +58,7 @@ const VARIABLE_LABELS: Record<string, string> = {
 
 function formatTemplateDisplay(text?: string | null): string {
   if (!text) return ''
-  return text.replace(/\{\{([a-zA-Z0-9_\-]+)\}\}/g, (_, varName) => {
+  return text.replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, (_, varName) => {
     const key = varName.toLowerCase().trim()
     const label = VARIABLE_LABELS[key] || varName
     return `[${label}]`
@@ -156,6 +156,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
           bodyTemplate: bodyTemplate.trim(),
           allowedVariables: allowedVariables.trim() || undefined,
           isActive,
+          concurrencyToken: editingTemplate.concurrencyToken,
         }
         await updateTemplate(editingTemplate.id, payload)
       }

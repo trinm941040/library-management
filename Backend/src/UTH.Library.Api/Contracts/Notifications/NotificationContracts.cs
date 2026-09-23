@@ -15,7 +15,8 @@ public sealed record UpdateNotificationTemplateApiRequest(
     string? SubjectTemplate,
     string BodyTemplate,
     string? AllowedVariables,
-    bool IsActive);
+    bool IsActive,
+    Guid? ConcurrencyToken);
 
 public sealed record NotificationPreviewApiRequest(
     string TemplateCode,

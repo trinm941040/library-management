@@ -19,6 +19,8 @@ public interface INotificationRepository
     Task<Notification> CreateNotificationAsync(Notification notification, CancellationToken cancellationToken);
     Task<Notification?> GetNotificationByIdAsync(Guid id, CancellationToken cancellationToken);
     Task UpdateNotificationAsync(Notification notification, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Notification>> GetPendingBatchAsync(DateTime nowUtc, int batchSize, CancellationToken cancellationToken);
+    Task<bool> IdempotencyKeyExistsAsync(string idempotencyKey, CancellationToken cancellationToken);
     Task<(IReadOnlyList<NotificationDto> Items, int TotalCount)> GetNotificationHistoryAsync(
         string? channel,
         string? status,
