@@ -11,7 +11,8 @@ public sealed record NotificationTemplateDto(
     string BodyTemplate,
     string? AllowedVariables,
     bool IsActive,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    Guid ConcurrencyToken);
 
 public sealed record CreateNotificationTemplateCommand(
     string Code,
@@ -28,7 +29,8 @@ public sealed record UpdateNotificationTemplateCommand(
     string? SubjectTemplate,
     string BodyTemplate,
     string? AllowedVariables,
-    bool IsActive);
+    bool IsActive,
+    Guid? ConcurrencyToken);
 
 public sealed record RenderNotificationPreviewQuery(
     string TemplateCode,
@@ -45,7 +47,15 @@ public sealed record SendNotificationCommand(
     string RecipientType,
     Guid RecipientId,
     string? Destination,
-    Dictionary<string, string> Variables);
+    Dictionary<string, string> Variables,
+    string? EventCode = null,
+    string? IdempotencyKey = null);
+
+public sealed record NotificationEventDefinition(
+    string Code,
+    IReadOnlyList<string> AllowedVariables,
+    IReadOnlyList<string> RequiredVariables,
+    string RecipientRule);
 
 public sealed record NotificationDto(
     Guid Id,

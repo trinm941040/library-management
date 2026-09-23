@@ -17,6 +17,7 @@ export type NotificationTemplate = {
   allowedVariables?: string | null
   isActive: boolean
   updatedAtUtc: string
+  concurrencyToken: string
 }
 
 export type CreateNotificationTemplatePayload = {
@@ -36,6 +37,7 @@ export type UpdateNotificationTemplatePayload = {
   bodyTemplate: string
   allowedVariables?: string | null
   isActive: boolean
+  concurrencyToken: string
 }
 
 export type NotificationPreviewRequest = {

@@ -65,7 +65,6 @@ export function SaveFilterDialog({ open, onOpenChange, onSave }: SaveFilterDialo
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={150}
-                autoFocus
               />
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}

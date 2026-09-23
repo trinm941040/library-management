@@ -15,17 +15,16 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-export function NotificationsPage() {
+type NotificationsPageProps = { initialTab?: 'send' | 'history' | 'templates' }
+export function NotificationsPage({ initialTab = 'send' }: NotificationsPageProps) {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'templates'>('send')
+  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'templates'>(initialTab)
   const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const isManager = Boolean(
-    user?.roles?.includes('Administrator') ||
-      user?.roles?.includes('Manager') ||
-      user?.permissions?.includes('notifications.manage') ||
+    user?.permissions?.includes('notifications.manage') ||
       user?.permissions?.includes('notification-templates.manage'),
   )
 
@@ -35,8 +34,8 @@ export function NotificationsPage() {
     try {
       const list = await fetchTemplates()
       setTemplates(list)
-    } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách mẫu thông báo.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách mẫu thông báo.')
     } finally {
       setTemplatesLoading(false)
     }

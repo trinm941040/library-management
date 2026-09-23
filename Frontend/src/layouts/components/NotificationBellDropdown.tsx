@@ -161,10 +161,11 @@ export function NotificationBellDropdown() {
               </div>
             ) : (
               items.map((item) => (
-                <div
+                <button
+                  type="button"
                   key={item.id}
                   onClick={() => handleMarkAsRead(item.id)}
-                  className={`p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors text-xs flex gap-3 ${
+                  className={`w-full p-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors text-xs flex gap-3 ${
                     !item.isRead ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                   }`}
                 >
@@ -192,7 +193,7 @@ export function NotificationBellDropdown() {
                       {item.sentAtUtc ? new Date(item.sentAtUtc).toLocaleString('vi-VN') : 'Vừa xong'}
                     </div>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>

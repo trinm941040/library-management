@@ -72,6 +72,19 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Notification>> GetPendingBatchAsync(
+        DateTime nowUtc, int batchSize, CancellationToken cancellationToken) =>
+        await dbContext.Notifications
+            .Where(n => n.Status == NotificationStatus.Pending &&
+                        (n.NextAttemptAtUtc == null || n.NextAttemptAtUtc <= nowUtc) &&
+                        (n.ScheduledAtUtc == null || n.ScheduledAtUtc <= nowUtc))
+            .OrderBy(n => n.NextAttemptAtUtc ?? n.ScheduledAtUtc ?? DateTime.MinValue)
+            .Take(Math.Clamp(batchSize, 1, 200))
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> IdempotencyKeyExistsAsync(string idempotencyKey, CancellationToken cancellationToken) =>
+        dbContext.Notifications.AsNoTracking().AnyAsync(n => n.IdempotencyKey == idempotencyKey, cancellationToken);
+
     public async Task<(IReadOnlyList<NotificationDto> Items, int TotalCount)> GetNotificationHistoryAsync(
         string? channel,
         string? status,

@@ -11,6 +11,7 @@ using UTH.Library.Infrastructure.Identity;
 using UTH.Library.Application.Features.Settings;
 using UTH.Library.Infrastructure.Settings;
 using UTH.Library.Application.Features.Notifications.Adapters;
+using UTH.Library.Application.Features.Notifications;
 using UTH.Library.Infrastructure.Notifications;
 
 namespace UTH.Library.Infrastructure;
@@ -89,6 +90,9 @@ public static class DependencyInjection
         services.AddScoped<INotificationSenderAdapter, InAppNotificationSenderAdapter>();
         services.AddScoped<INotificationSenderAdapter, EmailNotificationSenderAdapter>();
         services.AddScoped<INotificationSenderAdapter, SmsNotificationSenderAdapter>();
+        services.AddScoped<ISmtpSettingsProvider, SmtpSettingsProvider>();
+        services.AddScoped<ISmtpAdministrationService, SmtpAdministrationService>();
+        services.AddHostedService<EmailOutboxWorker>();
         return services;
     }
 }

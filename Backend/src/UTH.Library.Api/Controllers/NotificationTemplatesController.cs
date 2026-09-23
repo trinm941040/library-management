@@ -14,6 +14,11 @@ public sealed class NotificationTemplatesController(
     INotificationService notificationService,
     ICurrentProfileService profileService) : ControllerBase
 {
+    [HttpGet("events")]
+    [ProducesResponseType(typeof(IReadOnlyList<NotificationEventDefinition>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<NotificationEventDefinition>> GetEvents() =>
+        Ok(notificationService.GetEventDefinitions());
+
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<NotificationTemplateDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<NotificationTemplateDto>>> GetAll(CancellationToken cancellationToken)
@@ -118,7 +123,8 @@ public sealed class NotificationTemplatesController(
                 request.SubjectTemplate,
                 request.BodyTemplate,
                 request.AllowedVariables,
-                request.IsActive);
+                request.IsActive,
+                request.ConcurrencyToken);
 
             var updated = await notificationService.UpdateTemplateAsync(
                 id,
@@ -137,6 +143,10 @@ public sealed class NotificationTemplatesController(
         catch (ArgumentException ex)
         {
             return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ProblemDetails { Detail = ex.Message });
         }
         catch (Exception ex)
         {
