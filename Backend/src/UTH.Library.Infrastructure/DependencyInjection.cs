@@ -89,7 +89,6 @@ public static class DependencyInjection
         services.AddScoped<ITodoRepository, TodoRepository>();
         services.AddScoped<INotificationSenderAdapter, InAppNotificationSenderAdapter>();
         services.AddScoped<INotificationSenderAdapter, EmailNotificationSenderAdapter>();
-        services.AddScoped<INotificationSenderAdapter, SmsNotificationSenderAdapter>();
         services.AddScoped<ISmtpSettingsProvider, SmtpSettingsProvider>();
         services.AddScoped<ISmtpAdministrationService, SmtpAdministrationService>();
         services.AddHostedService<EmailOutboxWorker>();

@@ -36,6 +36,13 @@ public interface INotificationService
         string? ipAddress,
         CancellationToken cancellationToken);
 
+    Task<BulkNotificationResult> SendBulkAsync(
+        SendBulkNotificationCommand command,
+        Guid actorUserId,
+        string? correlationId,
+        string? ipAddress,
+        CancellationToken cancellationToken);
+
     Task<NotificationDto> RetryAsync(
         Guid notificationId,
         Guid? actorUserId,
@@ -55,9 +62,14 @@ public interface INotificationService
     Task<NotificationPageResult> GetMyNotificationsAsync(
         Guid recipientId,
         bool unreadOnly,
+        string? severity,
+        DateTime? fromDateUtc,
+        DateTime? toDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken);
+
+    Task<NotificationDto?> GetMyNotificationAsync(Guid notificationId, Guid recipientId, CancellationToken cancellationToken);
 
     Task<NotificationUnreadCountResult> GetUnreadCountAsync(
         Guid recipientId,

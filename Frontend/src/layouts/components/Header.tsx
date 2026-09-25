@@ -1,8 +1,9 @@
-import { Bell, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import type { User } from '@/auth/auth-api'
 import { Button } from '@/common/components/ui/button'
 import { GlobalSearch } from '@/search/GlobalSearch'
 import { UserMenu } from './UserMenu'
+import { NotificationBellDropdown } from './NotificationBellDropdown'
 
 type HeaderProps = {
   user: User
@@ -48,16 +49,7 @@ export function Header({
       <GlobalSearch />
 
       <div className="top-actions">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="icon-button"
-          type="button"
-          aria-label="Xem thông báo"
-        >
-          <Bell />
-          <i />
-        </Button>
+        <NotificationBellDropdown />
         <UserMenu user={user} initials={initials} isLoggingOut={isLoggingOut} onLogout={onLogout} />
       </div>
     </header>

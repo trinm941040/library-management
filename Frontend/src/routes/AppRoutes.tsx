@@ -110,6 +110,9 @@ const ReportsPage = lazy(() =>
 const NotificationsPage = lazy(() =>
   import('../pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
 )
+const NotificationCenterPage = lazy(() =>
+  import('../pages/notifications/NotificationCenterPage').then((m) => ({ default: m.NotificationCenterPage })),
+)
 
 const page = (path: string, element: ReactNode) => (
   <ProtectedRoute requiredPermissions={routePermissions.get(path) ?? []}>
@@ -181,7 +184,7 @@ export function AppRoutes() {
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/reports" element={page('/reports', <ReportsPage />)} />
-        <Route path="/notifications" element={page('/notifications', <NotificationsPage />)} />
+        <Route path="/notifications" element={page('/notifications', <NotificationCenterPage />)} />
         <Route path="/email-history" element={page('/email-history', <NotificationsPage initialTab="history" />)} />
         <Route path="/email-templates" element={page('/email-templates', <NotificationsPage initialTab="templates" />)} />
         <Route path="/smtp-settings" element={page('/smtp-settings', <SmtpSettingsPage />)} />

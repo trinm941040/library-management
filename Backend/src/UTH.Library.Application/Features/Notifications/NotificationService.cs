@@ -36,7 +36,10 @@ public sealed class NotificationService(
     public async Task<IReadOnlyList<NotificationTemplateDto>> GetTemplatesAsync(CancellationToken cancellationToken)
     {
         var templates = await repository.GetTemplatesAsync(cancellationToken);
-        return templates.Select(MapTemplateToDto).ToList();
+        return templates
+            .Where(template => template.Channel != NotificationChannel.Sms)
+            .Select(MapTemplateToDto)
+            .ToList();
     }
 
     public async Task<NotificationTemplateDto?> GetTemplateByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -62,6 +65,7 @@ public sealed class NotificationService(
 
         if (!Enum.TryParse<NotificationChannel>(command.Channel, true, out var channel))
             throw new ArgumentException($"Kênh thông báo '{command.Channel}' không hợp lệ.");
+        EnsureSupportedChannel(channel);
 
         var exists = await repository.TemplateCodeExistsAsync(command.Code, null, cancellationToken);
         if (exists)
@@ -107,11 +111,14 @@ public sealed class NotificationService(
         var template = await repository.GetTemplateByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Không tìm thấy mẫu thông báo với ID: {id}");
 
+        EnsureSupportedChannel(template.Channel);
+
         if (command.ConcurrencyToken is null || command.ConcurrencyToken != template.ConcurrencyToken)
             throw new InvalidOperationException("Mẫu email đã thay đổi. Hãy tải lại trước khi lưu.");
 
         if (!Enum.TryParse<NotificationChannel>(command.Channel, true, out var channel))
             throw new ArgumentException($"Kênh thông báo '{command.Channel}' không hợp lệ.");
+        EnsureSupportedChannel(channel);
         ValidateTemplate(template.Code, command.SubjectTemplate, command.BodyTemplate, command.AllowedVariables);
 
         var beforeJson = JsonSerializer.Serialize(MapTemplateToDto(template));
@@ -153,6 +160,7 @@ public sealed class NotificationService(
     {
         var template = await repository.GetTemplateByIdAsync(id, cancellationToken);
         if (template is null) return false;
+        EnsureSupportedChannel(template.Channel);
 
         var beforeJson = JsonSerializer.Serialize(MapTemplateToDto(template));
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -181,6 +189,7 @@ public sealed class NotificationService(
     {
         var template = await repository.GetTemplateByCodeAsync(query.TemplateCode, cancellationToken)
             ?? throw new KeyNotFoundException($"Không tìm thấy mẫu thông báo '{query.TemplateCode}'.");
+        EnsureSupportedChannel(template.Channel);
 
         var allowedVars = ParseAllowedVariables(template.AllowedVariables);
 
@@ -209,9 +218,16 @@ public sealed class NotificationService(
 
         if (!template.IsActive)
             throw new InvalidOperationException($"Mẫu thông báo '{template.Code}' đang bị vô hiệu hóa.");
+        EnsureSupportedChannel(template.Channel);
 
         if (!Enum.TryParse<RecipientType>(command.RecipientType, true, out var recipientType))
             throw new ArgumentException($"Loại đối tượng nhận '{command.RecipientType}' không hợp lệ.");
+        if (template.Channel == NotificationChannel.InApp && recipientType != RecipientType.Staff)
+            throw new ArgumentException("Thông báo trong ứng dụng chỉ hỗ trợ tài khoản nhân viên.");
+
+        ValidateSeverity(command.Severity);
+        ValidateDeepLink(command.DeepLink);
+        ValidateMetadata(command.MetadataJson);
 
         // Retrieve recipient details
         var recipientDetails = await repository.GetRecipientDetailsAsync(recipientType, command.RecipientId, cancellationToken);
@@ -223,7 +239,6 @@ public sealed class NotificationService(
             destination = template.Channel switch
             {
                 NotificationChannel.Email => recipientDetails.Email,
-                NotificationChannel.Sms => recipientDetails.Phone,
                 NotificationChannel.InApp => command.RecipientId.ToString(),
                 _ => null
             };
@@ -261,11 +276,15 @@ public sealed class NotificationService(
             renderedSubject,
             renderedBody,
             eventCode: command.EventCode ?? template.Code,
-            idempotencyKey: command.IdempotencyKey);
+            idempotencyKey: command.IdempotencyKey,
+            severity: command.Severity,
+            deepLink: command.DeepLink,
+            metadataJson: command.MetadataJson,
+            createdAtUtc: timeProvider.GetUtcNow().UtcDateTime);
 
         if (!string.IsNullOrWhiteSpace(command.IdempotencyKey) &&
             await repository.IdempotencyKeyExistsAsync(command.IdempotencyKey, cancellationToken))
-            throw new InvalidOperationException("Email cho sự kiện và người nhận này đã được tạo trước đó.");
+            throw new InvalidOperationException("Thông báo cho sự kiện và người nhận này đã được tạo trước đó.");
 
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
         if (template.Channel != NotificationChannel.Email)
@@ -318,6 +337,11 @@ public sealed class NotificationService(
             created.ScheduledAtUtc,
             created.SentAtUtc,
             created.FailureReason,
+            created.EventCode,
+            created.Severity,
+            created.DeepLink,
+            created.MetadataJson,
+            created.CreatedAtUtc,
             created.ReadAtUtc,
             created.IsRead);
     }
@@ -337,6 +361,8 @@ public sealed class NotificationService(
 
         var template = await repository.GetTemplateByIdAsync(notification.TemplateId, cancellationToken)
             ?? throw new InvalidOperationException("Không tìm thấy mẫu thông báo liên kết.");
+        if (template.Channel != NotificationChannel.Email)
+            throw new InvalidOperationException("Chỉ thông báo email thất bại mới có thể gửi lại.");
 
         notification.Retry();
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -385,8 +411,83 @@ public sealed class NotificationService(
             notification.ScheduledAtUtc,
             notification.SentAtUtc,
             notification.FailureReason,
+            notification.EventCode,
+            notification.Severity,
+            notification.DeepLink,
+            notification.MetadataJson,
+            notification.CreatedAtUtc,
             notification.ReadAtUtc,
             notification.IsRead);
+    }
+
+    public async Task<BulkNotificationResult> SendBulkAsync(
+        SendBulkNotificationCommand command,
+        Guid actorUserId,
+        string? correlationId,
+        string? ipAddress,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.RoleName) &&
+            string.IsNullOrWhiteSpace(command.PermissionName) &&
+            command.BranchId is null)
+            throw new ArgumentException("Phải chọn ít nhất một phạm vi role, permission hoặc chi nhánh.");
+        if (string.IsNullOrWhiteSpace(command.EventCode) || string.IsNullOrWhiteSpace(command.IdempotencyKey))
+            throw new ArgumentException("Event code và idempotency key là bắt buộc khi gửi hàng loạt.");
+
+        var recipients = await repository.ResolveStaffRecipientsAsync(
+            command.RoleName,
+            command.PermissionName,
+            command.BranchId,
+            cancellationToken);
+        if (recipients.Count == 0)
+            throw new InvalidOperationException("Không có tài khoản nhân viên đang hoạt động trong phạm vi đã chọn.");
+
+        var notificationIds = new List<Guid>(recipients.Count);
+        foreach (var recipient in recipients.DistinctBy(value => value.Id))
+        {
+            var variables = new Dictionary<string, string>(command.Variables, StringComparer.OrdinalIgnoreCase);
+            variables.TryAdd("name", recipient.Name);
+            variables.TryAdd("recipient_name", recipient.Name);
+            var notification = await SendAsync(
+                new SendNotificationCommand(
+                    command.TemplateCode,
+                    nameof(RecipientType.Staff),
+                    recipient.Id,
+                    null,
+                    variables,
+                    command.EventCode,
+                    $"{command.IdempotencyKey}:{recipient.Id:N}",
+                    command.Severity,
+                    command.DeepLink,
+                    command.MetadataJson),
+                actorUserId,
+                correlationId,
+                ipAddress,
+                cancellationToken);
+            notificationIds.Add(notification.Id);
+        }
+
+        var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+        await repository.AddAuditLogAsync(AuditLog.Create(
+            actorUserId,
+            "notification.bulk-send",
+            "Notification",
+            notificationIds[0],
+            null,
+            JsonSerializer.Serialize(new
+            {
+                command.TemplateCode,
+                command.RoleName,
+                command.PermissionName,
+                command.BranchId,
+                RecipientCount = notificationIds.Count,
+                command.EventCode
+            }),
+            nowUtc,
+            correlationId,
+            ipAddress), cancellationToken);
+
+        return new BulkNotificationResult(notificationIds.Count, notificationIds);
     }
 
     public async Task<NotificationPageResult> GetHistoryAsync(
@@ -414,19 +515,43 @@ public sealed class NotificationService(
     public async Task<NotificationPageResult> GetMyNotificationsAsync(
         Guid recipientId,
         bool unreadOnly,
+        string? severity,
+        DateTime? fromDateUtc,
+        DateTime? toDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(severity)) ValidateSeverity(severity);
+        pageNumber = Math.Max(pageNumber, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var (items, totalCount) = await repository.GetUserNotificationsAsync(
             recipientId,
             unreadOnly,
+            severity,
+            fromDateUtc,
+            toDateUtc,
             pageNumber,
             pageSize,
             cancellationToken);
 
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
         return new NotificationPageResult(items, pageNumber, pageSize, totalCount, totalPages);
+    }
+
+    public async Task<NotificationDto?> GetMyNotificationAsync(
+        Guid notificationId,
+        Guid recipientId,
+        CancellationToken cancellationToken)
+    {
+        var notification = await repository.GetNotificationByIdAsync(notificationId, cancellationToken);
+        if (notification is null || notification.RecipientId != recipientId || notification.RecipientType != RecipientType.Staff)
+            return null;
+
+        var template = await repository.GetTemplateByIdAsync(notification.TemplateId, cancellationToken);
+        if (template is null || template.Channel != NotificationChannel.InApp) return null;
+        var recipient = await repository.GetRecipientDetailsAsync(RecipientType.Staff, recipientId, cancellationToken);
+        return MapNotificationToDto(notification, template, recipient.Name);
     }
 
     public async Task<NotificationUnreadCountResult> GetUnreadCountAsync(
@@ -443,14 +568,17 @@ public sealed class NotificationService(
         bool isAdmin,
         CancellationToken cancellationToken)
     {
+        _ = isAdmin;
         var notification = await repository.GetNotificationByIdAsync(notificationId, cancellationToken);
         if (notification is null) return false;
 
-        // Verify authorization: only recipient or Administrator
-        if (!isAdmin && notification.RecipientId != userId)
+        if (notification.RecipientId != userId || notification.RecipientType != RecipientType.Staff)
         {
             throw new UnauthorizedAccessException("Bạn không có quyền cập nhật trạng thái thông báo này.");
         }
+
+        var template = await repository.GetTemplateByIdAsync(notification.TemplateId, cancellationToken);
+        if (template?.Channel != NotificationChannel.InApp) return false;
 
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
         notification.MarkRead(nowUtc);
@@ -547,6 +675,78 @@ public sealed class NotificationService(
         if (eventDefinition is not null && used.Any(value => !eventDefinition.AllowedVariables.Contains(value, StringComparer.OrdinalIgnoreCase)))
             throw new ArgumentException("Mẫu sử dụng biến ngoài danh mục cho phép của sự kiện.");
     }
+
+    private static void EnsureSupportedChannel(NotificationChannel channel)
+    {
+        if (channel == NotificationChannel.Sms)
+            throw new InvalidOperationException("Kênh SMS đã ngừng hỗ trợ. Dữ liệu SMS cũ chỉ được phép tra cứu.");
+    }
+
+    private static void ValidateSeverity(string severity)
+    {
+        string[] supported = ["Info", "Success", "Warning", "Error"];
+        if (!supported.Contains(severity, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Mức độ thông báo phải là Info, Success, Warning hoặc Error.");
+    }
+
+    private static void ValidateDeepLink(string? deepLink)
+    {
+        if (string.IsNullOrWhiteSpace(deepLink)) return;
+        string[] allowedPrefixes =
+        [
+            "/dashboard", "/borrowings", "/loans", "/reservations", "/violations",
+            "/members", "/catalog", "/copies", "/stock-receipts", "/inventory-audits",
+            "/notifications", "/staff", "/access-accounts"
+        ];
+        var path = deepLink.Split('?', '#')[0];
+        if (!deepLink.StartsWith('/') || deepLink.StartsWith("//", StringComparison.Ordinal) ||
+            !allowedPrefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase) ||
+                                           path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Liên kết thông báo không thuộc danh sách route nội bộ được phép.");
+    }
+
+    private static void ValidateMetadata(string? metadataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metadataJson)) return;
+        if (metadataJson.Length > 4000)
+            throw new ArgumentException("Metadata thông báo không được vượt quá 4.000 ký tự.");
+        try
+        {
+            using var _ = JsonDocument.Parse(metadataJson);
+        }
+        catch (JsonException)
+        {
+            throw new ArgumentException("Metadata thông báo phải là JSON hợp lệ.");
+        }
+    }
+
+    private static NotificationDto MapNotificationToDto(
+        Notification notification,
+        NotificationTemplate template,
+        string? recipientName) =>
+        new(
+            notification.Id,
+            notification.TemplateId,
+            template.Code,
+            template.Name,
+            template.Channel.ToString(),
+            notification.RecipientType.ToString(),
+            notification.RecipientId,
+            recipientName ?? "Nhân viên",
+            notification.Destination,
+            notification.Subject,
+            notification.Body,
+            notification.Status.ToString(),
+            notification.ScheduledAtUtc,
+            notification.SentAtUtc,
+            notification.FailureReason,
+            notification.EventCode,
+            notification.Severity,
+            notification.DeepLink,
+            notification.MetadataJson,
+            notification.CreatedAtUtc,
+            notification.ReadAtUtc,
+            notification.IsRead);
 
     private static NotificationTemplateDto MapTemplateToDto(NotificationTemplate t) =>
         new(

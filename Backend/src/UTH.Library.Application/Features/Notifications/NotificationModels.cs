@@ -49,7 +49,10 @@ public sealed record SendNotificationCommand(
     string? Destination,
     Dictionary<string, string> Variables,
     string? EventCode = null,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    string Severity = "Info",
+    string? DeepLink = null,
+    string? MetadataJson = null);
 
 public sealed record NotificationEventDefinition(
     string Code,
@@ -73,6 +76,11 @@ public sealed record NotificationDto(
     DateTime? ScheduledAtUtc,
     DateTime? SentAtUtc,
     string? FailureReason,
+    string? EventCode,
+    string Severity,
+    string? DeepLink,
+    string? MetadataJson,
+    DateTime CreatedAtUtc,
     DateTime? ReadAtUtc,
     bool IsRead);
 
@@ -93,3 +101,17 @@ public sealed record NotificationRecipientDto(
 
 public sealed record NotificationUnreadCountResult(
     int UnreadCount);
+
+public sealed record SendBulkNotificationCommand(
+    string TemplateCode,
+    string? RoleName,
+    string? PermissionName,
+    Guid? BranchId,
+    Dictionary<string, string> Variables,
+    string EventCode,
+    string IdempotencyKey,
+    string Severity = "Info",
+    string? DeepLink = null,
+    string? MetadataJson = null);
+
+public sealed record BulkNotificationResult(int RecipientCount, IReadOnlyList<Guid> NotificationIds);
