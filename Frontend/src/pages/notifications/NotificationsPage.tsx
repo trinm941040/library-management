@@ -49,7 +49,7 @@ export function NotificationsPage({ initialTab = 'send' }: NotificationsPageProp
     <PageShell
       eyebrow="Vận hành & Giao tiếp"
       title="Thông báo & Mẫu thông báo"
-      description="Gửi thông báo vận hành đa kênh (In-App, Email, SMS), theo dõi trạng thái gửi và cấu hình mẫu thông báo chuẩn."
+      description="Gửi thông báo nội bộ hoặc email, theo dõi trạng thái gửi và cấu hình mẫu thông báo."
       actions={
         <Button
           variant="outline"

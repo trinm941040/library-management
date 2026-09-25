@@ -31,7 +31,6 @@ import {
   UserCheck,
   AlertCircle,
   Mail,
-  MessageSquare,
   Bell,
 } from 'lucide-react'
 
@@ -64,8 +63,6 @@ function getChannelLabel(channel?: string) {
   switch (channel) {
     case 'Email':
       return 'Thư điện tử'
-    case 'Sms':
-      return 'Tin nhắn SMS'
     case 'InApp':
     default:
       return 'Nội bộ'
@@ -182,11 +179,7 @@ export const SendNotificationTab: React.FC<Props> = ({
   const handleSelectRecipient = (r: NotificationRecipient) => {
     setSelectedRecipient(r)
     setCustomDestination(
-      currentTemplate?.channel === 'Email'
-        ? r.email || ''
-        : currentTemplate?.channel === 'Sms'
-        ? r.phoneNumber || ''
-        : r.id,
+      currentTemplate?.channel === 'Email' ? r.email || '' : r.id,
     )
 
     setVariables((prev) => {
@@ -261,8 +254,6 @@ export const SendNotificationTab: React.FC<Props> = ({
     switch (channel) {
       case 'Email':
         return <Mail className="size-4 text-sky-500" />
-      case 'Sms':
-        return <MessageSquare className="size-4 text-emerald-500" />
       case 'InApp':
       default:
         return <Bell className="size-4 text-amber-500" />
@@ -470,7 +461,7 @@ export const SendNotificationTab: React.FC<Props> = ({
                 <div className="rounded-md border bg-muted/30 p-3.5 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <Label htmlFor="customDestination" className="font-medium">
-                      Địa chỉ nhận ({currentTemplate?.channel === 'Email' ? 'Thư điện tử' : currentTemplate?.channel === 'Sms' ? 'Số điện thoại' : 'Tài khoản nội bộ'}):
+                      Địa chỉ nhận ({currentTemplate?.channel === 'Email' ? 'Thư điện tử' : 'Tài khoản nội bộ'}):
                     </Label>
                     <span className="text-xs text-muted-foreground">Tự động điền</span>
                   </div>

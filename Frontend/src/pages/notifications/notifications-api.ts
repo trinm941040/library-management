@@ -3,9 +3,11 @@ import { authenticatedFetch } from '@/auth/auth-api'
 const TEMPLATES_URL = '/api/v1/notification-templates'
 const NOTIFICATIONS_URL = '/api/v1/notifications'
 
-export type NotificationChannel = 'Email' | 'Sms' | 'InApp'
+export type NotificationChannel = 'Email' | 'InApp'
+export type HistoricalNotificationChannel = NotificationChannel | 'Sms'
 export type RecipientType = 'Staff' | 'Member'
-export type NotificationStatus = 'Pending' | 'Sent' | 'Failed' | 'Cancelled'
+export type NotificationStatus = 'Pending' | 'Processing' | 'Sent' | 'Failed' | 'Cancelled'
+export type NotificationSeverity = 'Info' | 'Success' | 'Warning' | 'Error'
 
 export type NotificationTemplate = {
   id: string
@@ -58,6 +60,11 @@ export type SendNotificationPayload = {
   recipientId: string
   destination?: string | null
   variables?: Record<string, string>
+  eventCode?: string | null
+  idempotencyKey?: string | null
+  severity?: NotificationSeverity
+  deepLink?: string | null
+  metadataJson?: string | null
 }
 
 export type NotificationItem = {
@@ -65,7 +72,7 @@ export type NotificationItem = {
   templateId: string
   templateCode: string
   templateName: string
-  channel: NotificationChannel
+  channel: HistoricalNotificationChannel
   recipientType: RecipientType
   recipientId: string
   recipientName: string
@@ -76,6 +83,11 @@ export type NotificationItem = {
   scheduledAtUtc?: string | null
   sentAtUtc?: string | null
   failureReason?: string | null
+  eventCode?: string | null
+  severity: NotificationSeverity
+  deepLink?: string | null
+  metadataJson?: string | null
+  createdAtUtc: string
   readAtUtc?: string | null
   isRead: boolean
 }
@@ -232,12 +244,24 @@ export async function fetchNotificationHistory(
 }
 
 // Recipient / Internal Notifications API
+export type MyNotificationParams = {
+  unreadOnly?: boolean
+  severity?: NotificationSeverity | 'all'
+  fromDate?: string
+  toDate?: string
+  pageNumber?: number
+  pageSize?: number
+}
+
 export async function fetchMyNotifications(
-  params: { unreadOnly?: boolean; pageNumber?: number; pageSize?: number } = {},
+  params: MyNotificationParams = {},
   signal?: AbortSignal,
 ): Promise<NotificationPageResult> {
   const query = new URLSearchParams()
   if (params.unreadOnly !== undefined) query.set('unreadOnly', String(params.unreadOnly))
+  if (params.severity && params.severity !== 'all') query.set('severity', params.severity)
+  if (params.fromDate) query.set('fromDate', params.fromDate)
+  if (params.toDate) query.set('toDate', params.toDate)
   if (params.pageNumber) query.set('pageNumber', params.pageNumber.toString())
   if (params.pageSize) query.set('pageSize', params.pageSize.toString())
 
@@ -245,6 +269,13 @@ export async function fetchMyNotifications(
   const res = await authenticatedFetch(url, { signal })
   return readResponse<NotificationPageResult>(res)
 }
+
+export async function fetchMyNotification(id: string, signal?: AbortSignal): Promise<NotificationItem> {
+  const res = await authenticatedFetch(`${NOTIFICATIONS_URL}/my/${id}`, { signal })
+  return readResponse<NotificationItem>(res)
+}
+
+export const notificationsChangedEvent = 'uth:notifications-changed'
 
 export async function fetchUnreadCount(signal?: AbortSignal): Promise<number> {
   const res = await authenticatedFetch(`${NOTIFICATIONS_URL}/unread-count`, { signal })

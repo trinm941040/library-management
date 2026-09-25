@@ -184,6 +184,11 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
                 n.ScheduledAtUtc,
                 n.SentAtUtc,
                 n.FailureReason,
+                n.EventCode,
+                n.Severity,
+                n.DeepLink,
+                n.MetadataJson,
+                n.CreatedAtUtc,
                 n.ReadAtUtc,
                 n.IsRead);
         }).ToList();
@@ -194,14 +199,18 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
     public async Task<(IReadOnlyList<NotificationDto> Items, int TotalCount)> GetUserNotificationsAsync(
         Guid recipientId,
         bool unreadOnly,
+        string? severity,
+        DateTime? fromDateUtc,
+        DateTime? toDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
     {
         // Internal notifications directed to this user/recipient
         var query = from n in dbContext.Notifications.AsNoTracking()
-                    where n.RecipientId == recipientId
                     join t in dbContext.NotificationTemplates.AsNoTracking() on n.TemplateId equals t.Id
+                    where n.RecipientId == recipientId && n.RecipientType == RecipientType.Staff &&
+                          t.Channel == NotificationChannel.InApp && n.Status == NotificationStatus.Sent
                     select new
                     {
                         Notification = n,
@@ -214,11 +223,17 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
         {
             query = query.Where(x => x.Notification.ReadAtUtc == null);
         }
+        if (!string.IsNullOrWhiteSpace(severity))
+            query = query.Where(x => x.Notification.Severity == severity);
+        if (fromDateUtc.HasValue)
+            query = query.Where(x => x.Notification.CreatedAtUtc >= DateTime.SpecifyKind(fromDateUtc.Value, DateTimeKind.Utc));
+        if (toDateUtc.HasValue)
+            query = query.Where(x => x.Notification.CreatedAtUtc <= DateTime.SpecifyKind(toDateUtc.Value, DateTimeKind.Utc));
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var pagedList = await query
-            .OrderByDescending(x => x.Notification.SentAtUtc ?? x.Notification.ScheduledAtUtc ?? DateTime.MinValue)
+            .OrderByDescending(x => x.Notification.CreatedAtUtc)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -239,6 +254,11 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
             x.Notification.ScheduledAtUtc,
             x.Notification.SentAtUtc,
             x.Notification.FailureReason,
+            x.Notification.EventCode,
+            x.Notification.Severity,
+            x.Notification.DeepLink,
+            x.Notification.MetadataJson,
+            x.Notification.CreatedAtUtc,
             x.Notification.ReadAtUtc,
             x.Notification.IsRead)).ToList();
 
@@ -247,15 +267,20 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
 
     public Task<int> GetUnreadCountAsync(Guid recipientId, CancellationToken cancellationToken)
     {
-        return dbContext.Notifications
-            .AsNoTracking()
-            .CountAsync(n => n.RecipientId == recipientId && n.ReadAtUtc == null && n.Status == NotificationStatus.Sent, cancellationToken);
+        return (from n in dbContext.Notifications.AsNoTracking()
+                join t in dbContext.NotificationTemplates.AsNoTracking() on n.TemplateId equals t.Id
+                where n.RecipientId == recipientId && n.RecipientType == RecipientType.Staff &&
+                      n.ReadAtUtc == null && n.Status == NotificationStatus.Sent &&
+                      t.Channel == NotificationChannel.InApp
+                select n).CountAsync(cancellationToken);
     }
 
     public async Task MarkAllReadAsync(Guid recipientId, DateTime readAtUtc, CancellationToken cancellationToken)
     {
         var unreadList = await dbContext.Notifications
-            .Where(n => n.RecipientId == recipientId && n.ReadAtUtc == null)
+            .Where(n => n.RecipientId == recipientId && n.RecipientType == RecipientType.Staff &&
+                        n.ReadAtUtc == null && dbContext.NotificationTemplates
+                            .Any(t => t.Id == n.TemplateId && t.Channel == NotificationChannel.InApp))
             .ToListAsync(cancellationToken);
 
         var utcTime = DateTime.SpecifyKind(readAtUtc, DateTimeKind.Utc);
@@ -290,7 +315,10 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
         }
         else
         {
-            var q = dbContext.Employees.AsNoTracking().Where(e => e.Status == EmploymentStatus.Active);
+            var q = from employee in dbContext.Employees.AsNoTracking()
+                    join user in dbContext.Users.AsNoTracking() on employee.UserId equals user.Id
+                    where employee.Status == EmploymentStatus.Active && user.IsActive
+                    select employee;
             if (!string.IsNullOrWhiteSpace(kw))
             {
                 q = q.Where(e => e.FullName.ToLower().Contains(kw) || e.EmployeeCode.ToLower().Contains(kw) || e.Email.ToLower().Contains(kw));
@@ -298,7 +326,7 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
 
             return await q.OrderBy(e => e.FullName)
                 .Take(limit)
-                .Select(e => new NotificationRecipientDto(e.UserId ?? e.Id, "Staff", e.EmployeeCode, e.FullName, e.Email, e.PhoneNumber))
+                .Select(e => new NotificationRecipientDto(e.UserId!.Value, "Staff", e.EmployeeCode, e.FullName, e.Email, e.PhoneNumber))
                 .ToListAsync(cancellationToken);
         }
     }
@@ -318,24 +346,66 @@ public sealed class NotificationRepository(LibraryDbContext dbContext) : INotifi
         }
         else
         {
-            var emp = await dbContext.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == recipientId || e.UserId == recipientId, cancellationToken);
+            var user = await dbContext.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == recipientId && u.IsActive, cancellationToken)
+                ?? throw new KeyNotFoundException("Tài khoản nhận thông báo không tồn tại hoặc đã ngừng hoạt động.");
+            var emp = await dbContext.Employees.AsNoTracking()
+                .FirstOrDefaultAsync(e => e.UserId == recipientId && e.Status == EmploymentStatus.Active, cancellationToken);
             if (emp is not null)
             {
                 return (emp.FullName, emp.Email, emp.PhoneNumber);
             }
-
-            var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == recipientId, cancellationToken);
-            if (user is not null)
-            {
-                return (user.DisplayName ?? user.UserName ?? "Nhân viên", user.Email, user.PhoneNumber);
-            }
+            throw new KeyNotFoundException("Tài khoản nhận thông báo không liên kết hồ sơ nhân viên đang hoạt động.");
         }
 
         return ("Người nhận", null, null);
     }
 
-    public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<NotificationRecipientDto>> ResolveStaffRecipientsAsync(
+        string? roleName,
+        string? permissionName,
+        Guid? branchId,
+        CancellationToken cancellationToken)
     {
-        return dbContext.AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
+        var query = from employee in dbContext.Employees.AsNoTracking()
+                    join user in dbContext.Users.AsNoTracking() on employee.UserId equals user.Id
+                    where employee.Status == EmploymentStatus.Active && user.IsActive
+                    select new { Employee = employee, User = user };
+
+        if (branchId.HasValue)
+            query = query.Where(row => row.Employee.BranchId == branchId.Value);
+        if (!string.IsNullOrWhiteSpace(roleName))
+        {
+            var normalizedRole = roleName.Trim().ToUpperInvariant();
+            query = query.Where(row => dbContext.UserRoles.Any(assignment =>
+                assignment.UserId == row.User.Id && dbContext.Roles.Any(role =>
+                    role.Id == assignment.RoleId && role.IsActive && role.NormalizedName == normalizedRole)));
+        }
+        if (!string.IsNullOrWhiteSpace(permissionName))
+        {
+            var normalizedPermission = permissionName.Trim().ToLowerInvariant();
+            query = query.Where(row => dbContext.UserRoles.Any(userRole =>
+                userRole.UserId == row.User.Id && dbContext.Roles.Any(role =>
+                    role.Id == userRole.RoleId && role.IsActive && dbContext.RolePermissions.Any(rolePermission =>
+                        rolePermission.RoleId == role.Id && rolePermission.Permission.Name.ToLower() == normalizedPermission))));
+        }
+
+        return await query
+            .OrderBy(row => row.Employee.FullName)
+            .Select(row => new NotificationRecipientDto(
+                row.User.Id,
+                "Staff",
+                row.Employee.EmployeeCode,
+                row.Employee.FullName,
+                row.User.Email,
+                row.User.PhoneNumber))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken)
+    {
+        await dbContext.AuditLogs.AddAsync(auditLog, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

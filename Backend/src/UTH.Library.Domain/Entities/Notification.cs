@@ -17,6 +17,10 @@ public sealed class Notification
     public string? FailureReason { get; private set; }
     public string IdempotencyKey { get; private set; } = string.Empty;
     public string? EventCode { get; private set; }
+    public string Severity { get; private set; } = "Info";
+    public string? DeepLink { get; private set; }
+    public string? MetadataJson { get; private set; }
+    public DateTime CreatedAtUtc { get; private set; }
     public int AttemptCount { get; private set; }
     public DateTime? NextAttemptAtUtc { get; private set; }
     public DateTime? ReadAtUtc { get; private set; }
@@ -34,7 +38,11 @@ public sealed class Notification
         string body,
         DateTime? scheduledAtUtc = null,
         string? eventCode = null,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        string severity = "Info",
+        string? deepLink = null,
+        string? metadataJson = null,
+        DateTime? createdAtUtc = null)
     {
         return new Notification
         {
@@ -49,6 +57,10 @@ public sealed class Notification
             ScheduledAtUtc = scheduledAtUtc,
             EventCode = eventCode?.Trim(),
             IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? Guid.NewGuid().ToString("N") : idempotencyKey.Trim(),
+            Severity = severity,
+            DeepLink = deepLink,
+            MetadataJson = metadataJson,
+            CreatedAtUtc = createdAtUtc ?? DateTime.UtcNow,
             NextAttemptAtUtc = scheduledAtUtc,
             ConcurrencyToken = Guid.NewGuid()
         };
@@ -104,6 +116,7 @@ public sealed class Notification
 
     public void MarkRead(DateTime readAtUtc)
     {
+        if (ReadAtUtc.HasValue) return;
         ReadAtUtc = readAtUtc;
         ConcurrencyToken = Guid.NewGuid();
     }

@@ -72,7 +72,12 @@ public sealed class NotificationsController(
                 request.RecipientType,
                 request.RecipientId,
                 request.Destination,
-                request.Variables ?? new Dictionary<string, string>());
+                request.Variables ?? new Dictionary<string, string>(),
+                request.EventCode,
+                request.IdempotencyKey,
+                request.Severity,
+                request.DeepLink,
+                request.MetadataJson);
 
             var result = await notificationService.SendAsync(
                 cmd,
@@ -98,6 +103,62 @@ public sealed class NotificationsController(
         catch (Exception ex)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails { Detail = ex.Message });
+        }
+    }
+
+    [HttpPost("send-bulk")]
+    [ProducesResponseType(typeof(BulkNotificationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BulkNotificationResult>> SendBulk(
+        [FromBody] SendBulkNotificationApiRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId)) return Unauthorized();
+        var profile = await profileService.GetAsync(userId, cancellationToken);
+        if (profile is null) return Unauthorized();
+        var isAdmin = profile.Roles.Contains(RoleNames.Administrator);
+        if (!isAdmin && !profile.Permissions.Contains(Permissions.NotificationsManage)) return Forbid();
+
+        var branchId = request.BranchId;
+        if (!isAdmin)
+        {
+            if (profile.Branch is null) return Forbid();
+            if (branchId.HasValue && branchId != profile.Branch.Id) return Forbid();
+            branchId = profile.Branch.Id;
+        }
+
+        try
+        {
+            var result = await notificationService.SendBulkAsync(
+                new SendBulkNotificationCommand(
+                    request.TemplateCode,
+                    request.RoleName,
+                    request.PermissionName,
+                    branchId,
+                    request.Variables ?? new Dictionary<string, string>(),
+                    request.EventCode,
+                    request.IdempotencyKey,
+                    request.Severity,
+                    request.DeepLink,
+                    request.MetadataJson),
+                userId,
+                HttpContext.TraceIdentifier,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ProblemDetails { Detail = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ProblemDetails { Detail = ex.Message });
         }
     }
 
@@ -185,11 +246,26 @@ public sealed class NotificationsController(
         var result = await notificationService.GetMyNotificationsAsync(
             userId,
             filter.UnreadOnly,
+            filter.Severity,
+            filter.FromDate,
+            filter.ToDate,
             filter.PageNumber,
             filter.PageSize,
             cancellationToken);
 
         return Ok(result);
+    }
+
+    [HttpGet("my/{id:guid}")]
+    [ProducesResponseType(typeof(NotificationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<NotificationDto>> GetMyNotification(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId)) return Unauthorized();
+        var result = await notificationService.GetMyNotificationAsync(id, userId, cancellationToken);
+        return result is null
+            ? NotFound(new ProblemDetails { Detail = $"Không tìm thấy thông báo ID: {id}" })
+            : Ok(result);
     }
 
     [HttpGet("unread-count")]
@@ -210,12 +286,9 @@ public sealed class NotificationsController(
     {
         if (!TryGetUserId(out var userId)) return Unauthorized();
 
-        var profile = await profileService.GetAsync(userId, cancellationToken);
-        var isAdmin = profile?.Roles.Contains(RoleNames.Administrator) == true;
-
         try
         {
-            var updated = await notificationService.MarkReadAsync(id, userId, isAdmin, cancellationToken);
+            var updated = await notificationService.MarkReadAsync(id, userId, false, cancellationToken);
             if (!updated)
             {
                 return NotFound(new ProblemDetails { Detail = $"Không tìm thấy thông báo ID: {id}" });

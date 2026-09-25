@@ -34,6 +34,9 @@ public interface INotificationRepository
     Task<(IReadOnlyList<NotificationDto> Items, int TotalCount)> GetUserNotificationsAsync(
         Guid recipientId,
         bool unreadOnly,
+        string? severity,
+        DateTime? fromDateUtc,
+        DateTime? toDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken);
@@ -45,6 +48,11 @@ public interface INotificationRepository
         RecipientType recipientType,
         string? keyword,
         int limit,
+        CancellationToken cancellationToken);
+    Task<IReadOnlyList<NotificationRecipientDto>> ResolveStaffRecipientsAsync(
+        string? roleName,
+        string? permissionName,
+        Guid? branchId,
         CancellationToken cancellationToken);
     Task<(string Name, string? Email, string? Phone)> GetRecipientDetailsAsync(
         RecipientType recipientType,

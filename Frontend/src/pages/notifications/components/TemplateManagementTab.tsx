@@ -32,7 +32,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/common/components/ui/dialog'
-import { Plus, Edit2, Trash2, Mail, MessageSquare, Bell, CheckCircle2, XCircle, Info } from 'lucide-react'
+import { Plus, Edit2, Trash2, Mail, Bell, CheckCircle2, XCircle, Info } from 'lucide-react'
 
 type Props = {
   templates: NotificationTemplate[]
@@ -69,8 +69,6 @@ function getChannelLabel(ch: NotificationChannel) {
   switch (ch) {
     case 'Email':
       return 'Thư điện tử'
-    case 'Sms':
-      return 'Tin nhắn SMS'
     case 'InApp':
     default:
       return 'Nội bộ'
@@ -142,7 +140,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
           code: code.trim().toUpperCase(),
           name: name.trim(),
           channel,
-          subjectTemplate: channel !== 'Sms' ? subjectTemplate.trim() : undefined,
+          subjectTemplate: subjectTemplate.trim(),
           bodyTemplate: bodyTemplate.trim(),
           allowedVariables: allowedVariables.trim() || undefined,
           isActive,
@@ -152,7 +150,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
         const payload: UpdateNotificationTemplatePayload = {
           name: name.trim(),
           channel,
-          subjectTemplate: channel !== 'Sms' ? subjectTemplate.trim() : undefined,
+          subjectTemplate: subjectTemplate.trim(),
           bodyTemplate: bodyTemplate.trim(),
           allowedVariables: allowedVariables.trim() || undefined,
           isActive,
@@ -188,8 +186,6 @@ export const TemplateManagementTab: React.FC<Props> = ({
     switch (ch) {
       case 'Email':
         return <Mail className="size-4 text-sky-500" />
-      case 'Sms':
-        return <MessageSquare className="size-4 text-emerald-500" />
       case 'InApp':
       default:
         return <Bell className="size-4 text-amber-500" />
@@ -351,7 +347,6 @@ export const TemplateManagementTab: React.FC<Props> = ({
                   <SelectContent>
                     <SelectItem value="InApp">Nội bộ</SelectItem>
                     <SelectItem value="Email">Email</SelectItem>
-                    <SelectItem value="Sms">Tin nhắn SMS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -368,8 +363,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
               />
             </div>
 
-            {channel !== 'Sms' && (
-              <div className="space-y-1.5">
+            <div className="space-y-1.5">
                 <Label htmlFor="templateSubject">Tiêu đề mẫu</Label>
                 <Input
                   id="templateSubject"
@@ -377,8 +371,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
                   value={subjectTemplate}
                   onChange={(e) => setSubjectTemplate(e.target.value)}
                 />
-              </div>
-            )}
+            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="templateBody">Nội dung mẫu</Label>

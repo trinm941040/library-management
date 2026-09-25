@@ -205,7 +205,6 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                   <SelectItem value="all">Tất cả kênh</SelectItem>
                   <SelectItem value="InApp">Nội bộ</SelectItem>
                   <SelectItem value="Email">Email</SelectItem>
-                  <SelectItem value="Sms">Tin nhắn SMS</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -394,7 +393,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                             <Eye className="size-4" />
                             <span className="hidden sm:inline">Chi tiết</span>
                           </Button>
-                          {item.status === 'Failed' && isManager && (
+                          {item.status === 'Failed' && item.channel === 'Email' && isManager && (
                             <Button
                               variant="outline"
                               size="sm"

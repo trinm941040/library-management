@@ -27,7 +27,24 @@ public sealed record SendNotificationApiRequest(
     string RecipientType,
     Guid RecipientId,
     string? Destination = null,
-    Dictionary<string, string>? Variables = null);
+    Dictionary<string, string>? Variables = null,
+    string? EventCode = null,
+    string? IdempotencyKey = null,
+    string Severity = "Info",
+    string? DeepLink = null,
+    string? MetadataJson = null);
+
+public sealed record SendBulkNotificationApiRequest(
+    string TemplateCode,
+    string? RoleName,
+    string? PermissionName,
+    Guid? BranchId,
+    Dictionary<string, string>? Variables,
+    string EventCode,
+    string IdempotencyKey,
+    string Severity = "Info",
+    string? DeepLink = null,
+    string? MetadataJson = null);
 
 public sealed record NotificationHistoryFilterRequest(
     string? Channel = null,
@@ -39,5 +56,8 @@ public sealed record NotificationHistoryFilterRequest(
 
 public sealed record UserNotificationFilterRequest(
     bool UnreadOnly = false,
+    string? Severity = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
     int PageNumber = 1,
     int PageSize = 10);

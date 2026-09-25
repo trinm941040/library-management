@@ -1,54 +1,31 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck, Clock, Mail, MessageSquare, ExternalLink } from 'lucide-react'
+import { Bell, CheckCheck, Clock, ExternalLink } from 'lucide-react'
+import { useAuth } from '@/auth/AuthProvider'
+import { useToast } from '@/common/components'
 import type { NotificationItem } from '@/pages/notifications/notifications-api'
-import {
-  fetchUnreadCount,
-  fetchMyNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
-} from '@/pages/notifications/notifications-api'
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useMyNotifications, useUnreadNotificationCount } from '@/pages/notifications/notification-queries'
+import { formatNotificationTime, resolveNotificationLink, stripNotificationHtml } from '@/pages/notifications/notification-navigation'
 
 export function NotificationBellDropdown() {
-  const [unreadCount, setUnreadCount] = useState<number>(0)
   const [isOpen, setIsOpen] = useState(false)
-  const [items, setItems] = useState<NotificationItem[]>([])
-  const [loading, setLoading] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const navigate = useNavigate()
-
-  const loadUnreadCount = useCallback(async () => {
-    try {
-      const count = await fetchUnreadCount()
-      setUnreadCount(count)
-    } catch {
-      // silently handle auth/network issues for unread poll
-    }
-  }, [])
-
-  const loadRecentNotifications = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetchMyNotifications({ pageSize: 5 })
-      setItems(res.items)
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadUnreadCount()
-    const interval = setInterval(loadUnreadCount, 30000) // poll every 30s
-    return () => clearInterval(interval)
-  }, [loadUnreadCount])
+  const { user } = useAuth()
+  const { showToast } = useToast()
+  const unreadQuery = useUnreadNotificationCount()
+  const recentQuery = useMyNotifications({ pageSize: 5 })
+  const markReadMutation = useMarkNotificationRead()
+  const markAllMutation = useMarkAllNotificationsRead()
+  const unreadCount = unreadQuery.data ?? 0
+  const items = recentQuery.data?.items ?? []
 
   // Handle open/close
   const toggleDropdown = () => {
     if (!isOpen) {
-      loadRecentNotifications()
-      loadUnreadCount()
+      void recentQuery.refetch()
+      void unreadQuery.refetch()
     }
     setIsOpen(!isOpen)
   }
@@ -62,34 +39,34 @@ export function NotificationBellDropdown() {
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setIsOpen(false)
+          triggerRef.current?.focus()
+        }
+      }
+      document.addEventListener('keydown', handleEscape)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('keydown', handleEscape)
+      }
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return undefined
   }, [isOpen])
 
-  const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation()
+  const handleMarkAsRead = async (id: string) => {
     try {
-      await markNotificationRead(id)
-      setItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isRead: true, readAtUtc: new Date().toISOString() } : item)),
-      )
-      setUnreadCount((c) => Math.max(0, c - 1))
+      await markReadMutation.mutateAsync(id)
     } catch {
-      // ignore
+      showToast('Không thể đánh dấu thông báo đã đọc.', 'error')
     }
   }
 
   const handleMarkAllRead = async () => {
     try {
-      await markAllNotificationsRead()
-      setItems((prev) =>
-        prev.map((item) => ({ ...item, isRead: true, readAtUtc: new Date().toISOString() })),
-      )
-      setUnreadCount(0)
+      await markAllMutation.mutateAsync()
     } catch {
-      // ignore
+      showToast('Không thể đánh dấu tất cả thông báo đã đọc.', 'error')
     }
   }
 
@@ -98,36 +75,40 @@ export function NotificationBellDropdown() {
     navigate('/notifications')
   }
 
-  const renderChannelIcon = (c: string) => {
-    switch (c) {
-      case 'Email':
-        return <Mail className="w-3.5 h-3.5 text-sky-500" />
-      case 'Sms':
-        return <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
-      case 'InApp':
-      default:
-        return <Bell className="w-3.5 h-3.5 text-indigo-500" />
+  const handleOpenNotification = async (item: NotificationItem) => {
+    if (!item.isRead) await handleMarkAsRead(item.id)
+    const link = resolveNotificationLink(item.deepLink, user?.permissions ?? [])
+    if (item.deepLink && !link.allowed) {
+      showToast(link.reason ?? 'Không thể mở liên kết thông báo.', 'error')
+      return
+    }
+    if (link.path) {
+      setIsOpen(false)
+      navigate(link.path)
     }
   }
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={toggleDropdown}
         aria-label="Xem thông báo"
+        aria-expanded={isOpen}
+        aria-controls="notification-dropdown"
         className="relative flex items-center justify-center w-9 h-9 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-500 rounded-full shadow-sm animate-pulse">
+          <span aria-live="polite" className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-500 rounded-full shadow-sm motion-safe:animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div id="notification-dropdown" role="dialog" aria-label="Thông báo gần đây" className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
             <div className="flex items-center gap-2">
@@ -142,6 +123,7 @@ export function NotificationBellDropdown() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
+                disabled={markAllMutation.isPending}
                 className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
@@ -152,8 +134,13 @@ export function NotificationBellDropdown() {
 
           {/* List */}
           <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[360px] overflow-y-auto">
-            {loading ? (
+            {recentQuery.isLoading ? (
               <div className="p-6 text-center text-xs text-slate-400">Đang tải thông báo...</div>
+            ) : recentQuery.isError ? (
+              <div className="p-6 text-center text-xs text-slate-500">
+                <p>Không thể tải thông báo.</p>
+                <button type="button" onClick={() => void recentQuery.refetch()} className="mt-2 font-semibold text-indigo-600 hover:underline">Thử lại</button>
+              </div>
             ) : items.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-400">
                 <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600 opacity-60" />
@@ -164,12 +151,12 @@ export function NotificationBellDropdown() {
                 <button
                   type="button"
                   key={item.id}
-                  onClick={() => handleMarkAsRead(item.id)}
+                  onClick={() => void handleOpenNotification(item)}
                   className={`w-full p-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors text-xs flex gap-3 ${
                     !item.isRead ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
                   }`}
                 >
-                  <div className="mt-0.5 shrink-0">{renderChannelIcon(item.channel)}</div>
+                  <div className="mt-0.5 shrink-0"><Bell className="w-3.5 h-3.5 text-indigo-500" /></div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-1">
                       <h4
@@ -186,11 +173,13 @@ export function NotificationBellDropdown() {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {item.body.replace(/<[^>]*>?/gm, '')}
+                      {stripNotificationHtml(item.body)}
                     </p>
                     <div className="flex items-center gap-1 text-[10px] text-slate-400">
                       <Clock className="w-3 h-3" />
-                      {item.sentAtUtc ? new Date(item.sentAtUtc).toLocaleString('vi-VN') : 'Vừa xong'}
+                      {formatNotificationTime(item.createdAtUtc || item.sentAtUtc)}
+                      <span aria-hidden="true">•</span>
+                      <span>{item.severity === 'Error' ? 'Quan trọng' : item.severity === 'Warning' ? 'Cảnh báo' : item.severity === 'Success' ? 'Thành công' : 'Thông tin'}</span>
                     </div>
                   </div>
                 </button>
@@ -205,7 +194,7 @@ export function NotificationBellDropdown() {
               onClick={handleViewAll}
               className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center justify-center gap-1.5 w-full py-1"
             >
-              Xem trang quản lý thông báo
+              Xem tất cả thông báo
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>

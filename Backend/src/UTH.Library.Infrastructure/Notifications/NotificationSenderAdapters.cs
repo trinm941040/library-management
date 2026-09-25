@@ -48,25 +48,3 @@ public sealed class EmailNotificationSenderAdapter(
         }
     }
 }
-
-public sealed class SmsNotificationSenderAdapter(ILogger<SmsNotificationSenderAdapter> logger) : INotificationSenderAdapter
-{
-    public NotificationChannel Channel => NotificationChannel.Sms;
-
-    public Task<NotificationSendResult> SendAsync(Notification notification, CancellationToken cancellationToken)
-    {
-        // Safe simulated delivery for local testing
-        if (notification.Destination == "0000000000")
-        {
-            logger.LogWarning("[SMS Notification] Simulated delivery failure to: {Destination}", notification.Destination);
-            return Task.FromResult(new NotificationSendResult(false, "Simulated SMS Gateway rejected phone number."));
-        }
-
-        logger.LogInformation(
-            "[SMS Notification] Sent SMS to: {Destination}, Body: {Body}",
-            notification.Destination,
-            notification.Body);
-
-        return Task.FromResult(new NotificationSendResult(true));
-    }
-}
