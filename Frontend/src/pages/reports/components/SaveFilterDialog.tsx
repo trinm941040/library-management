@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Bookmark, Loader2 } from 'lucide-react'
+import { Bookmark } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Button } from '@/common/components/ui/button'
 import {
   Dialog,
@@ -80,7 +81,7 @@ export function SaveFilterDialog({ open, onOpenChange, onSave }: SaveFilterDialo
               Hủy
             </Button>
             <Button type="submit" disabled={saving || !name.trim()}>
-              {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+              {saving && <Spinner size="sm" decorative />}
               Lưu bộ lọc
             </Button>
           </DialogFooter>

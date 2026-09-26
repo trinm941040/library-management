@@ -4,6 +4,7 @@ import { Button } from '@/common/components/ui/button'
 import { GlobalSearch } from '@/search/GlobalSearch'
 import { UserMenu } from './UserMenu'
 import { NotificationBellDropdown } from './NotificationBellDropdown'
+import { ThemeToggle } from '@/common/components/ThemeToggle'
 
 type HeaderProps = {
   user: User
@@ -46,9 +47,12 @@ export function Header({
         <Menu />
       </Button>
 
-      <GlobalSearch />
+      <div className="header-global-search">
+        <GlobalSearch />
+      </div>
 
       <div className="top-actions">
+        <ThemeToggle className="header-theme-toggle" />
         <NotificationBellDropdown />
         <UserMenu user={user} initials={initials} isLoggingOut={isLoggingOut} onLogout={onLogout} />
       </div>

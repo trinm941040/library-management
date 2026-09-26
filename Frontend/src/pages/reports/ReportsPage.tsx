@@ -7,10 +7,10 @@ import {
   FileSpreadsheet,
   FileText,
   Layers,
-  Loader2,
   RefreshCw,
   Users,
 } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button } from '@/common/components/ui/button'
 import { Card } from '@/common/components/ui/card'
@@ -220,7 +220,7 @@ export function ReportsPage() {
   return (
     <div className="content-wrap space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5">
+      <div className="flex flex-col justify-between gap-4 border-b pb-5 xl:flex-row xl:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ export function ReportsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex w-full items-center gap-2.5 xl:w-auto max-xl:[&>*]:w-full">
           <Button
             size="sm"
             onClick={handleExport}
@@ -243,7 +243,7 @@ export function ReportsPage() {
           >
             {exportLoading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Đang xuất tệp...
+                <Spinner size="sm" decorative /> Đang xuất tệp...
               </>
             ) : (
               <>
@@ -263,7 +263,7 @@ export function ReportsPage() {
       )}
 
       {error && (
-        <div className="flex items-center justify-between p-3 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>

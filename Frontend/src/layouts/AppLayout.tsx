@@ -10,7 +10,10 @@ export function AppLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { sidebarPinned } = useSettings()
-  const [sidebarVisible, setSidebarVisible] = useState(true)
+  const [isCompactLayout, setIsCompactLayout] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1050px)').matches,
+  )
+  const [sidebarVisible, setSidebarVisible] = useState(() => !isCompactLayout)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const displayName = user?.displayName ?? 'Người dùng'
@@ -22,8 +25,28 @@ export function AppLayout() {
     .toUpperCase()
 
   useEffect(() => {
-    if (sidebarPinned) setSidebarVisible(true)
+    if (sidebarPinned && !isCompactLayout) setSidebarVisible(true)
+  }, [isCompactLayout, sidebarPinned])
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 1050px)')
+    const syncSidebar = (event: MediaQueryListEvent) => {
+      setIsCompactLayout(event.matches)
+      if (event.matches) setSidebarVisible(false)
+      else if (sidebarPinned) setSidebarVisible(true)
+    }
+    mobileQuery.addEventListener('change', syncSidebar)
+    return () => mobileQuery.removeEventListener('change', syncSidebar)
   }, [sidebarPinned])
+
+  useEffect(() => {
+    if (!isCompactLayout || !sidebarVisible) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarVisible(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [isCompactLayout, sidebarVisible])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -57,15 +80,18 @@ export function AppLayout() {
         }}
       />
 
-      <div className="main-content">
+      <div
+        className="main-content"
+        inert={isCompactLayout && sidebarVisible ? true : undefined}
+      >
         {user ? (
           <Header
             user={user}
             initials={initials}
             sidebarVisible={sidebarVisible}
-            sidebarPinned={sidebarPinned}
+            sidebarPinned={sidebarPinned && !isCompactLayout}
             onToggleSidebar={() => {
-              if (!sidebarPinned) setSidebarVisible((visible) => !visible)
+              if (!sidebarPinned || isCompactLayout) setSidebarVisible((visible) => !visible)
             }}
             onLogout={handleLogout}
             isLoggingOut={isLoggingOut}

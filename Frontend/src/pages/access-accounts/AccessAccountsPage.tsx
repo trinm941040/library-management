@@ -98,14 +98,14 @@ export function AccessAccountsPage() {
   return (
     <PageShell eyebrow="Quản lý người dùng" title="Tài khoản truy cập"
       description="Cấp tài khoản cho nhân viên, kiểm soát vai trò, trạng thái và phiên đăng nhập."
-      actions={<div className="flex gap-2"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading} loading={loading && Boolean(page)} loadingLabel="Đang tải lại tài khoản"><RefreshCw />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
+      actions={<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><Button variant="outline" onClick={() => setReload((value) => value + 1)} disabled={loading} loading={loading && Boolean(page)} loadingLabel="Đang tải lại tài khoản"><RefreshCw />Làm mới</Button><PermissionBoundary requiredPermissions={['users.create', 'roles.read']}><Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}><Plus />Cấp tài khoản</Button></PermissionBoundary></div>}>
       <Card>
         <CardHeader className="gap-4">
-          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
             <div><CardTitle>Danh sách tài khoản</CardTitle><p className="mt-1 text-sm text-muted-foreground">{page?.totalCount ?? 0} tài khoản gắn với nhân viên.</p></div>
             <div className="relative md:w-80"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Tìm tên, email, mã nhân viên..." /></div>
           </div>
-          <Select value={status} onValueChange={(value) => update({ status: value, pageNumber: 1 })}><SelectTrigger className="w-52" aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem><SelectItem value="active">Đang hoạt động</SelectItem><SelectItem value="locked">Đã khóa</SelectItem></SelectContent></Select>
+          <Select value={status} onValueChange={(value) => update({ status: value, pageNumber: 1 })}><SelectTrigger className="w-full sm:w-52" aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem><SelectItem value="active">Đang hoạt động</SelectItem><SelectItem value="locked">Đã khóa</SelectItem></SelectContent></Select>
         </CardHeader>
         <CardContent>
           {error && !page ? <ScreenState kind="error" title="Không thể tải tài khoản" description={error} actionLabel="Thử lại" onAction={() => setReload((value) => value + 1)} /> : null}

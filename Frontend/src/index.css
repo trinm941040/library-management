@@ -83,11 +83,23 @@
 * {
   box-sizing: border-box;
 }
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+}
 body {
   margin: 0;
   min-width: 320px;
   background: var(--background);
   color: var(--foreground);
+}
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 button,
 input,
@@ -97,4 +109,82 @@ select {
 }
 button {
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  [data-slot='table-container'][data-mobile-layout='list'] {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] table,
+  [data-slot='table-container'][data-mobile-layout='list'] tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] thead {
+    display: none;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody tr {
+    display: grid;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.625rem 0.75rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td::before {
+    content: attr(data-mobile-label);
+    flex: 0 0 38%;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td + td {
+    border-top: 1px solid var(--border);
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td[data-mobile-secondary='true'] {
+    display: none;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td[colspan] {
+    display: block;
+    padding: 0;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td[colspan]::before,
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td[data-mobile-label='']::before {
+    display: none;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] tbody td[data-mobile-label='Thao tác'] > * {
+    margin-left: auto;
+  }
 }

@@ -1,8 +1,9 @@
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
 import { useSettings } from '@/settings/SettingsProvider'
+import { cn } from '@/utils/cn'
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme } = useSettings()
 
   const toggleTheme = () => {
@@ -13,9 +14,9 @@ export function ThemeToggle() {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size="icon"
-      className="fixed top-4 right-4 z-50 bg-background shadow-sm"
+      className={cn('header-action-button', className)}
       aria-label="Chuyển giao diện sáng hoặc tối"
       title="Chuyển giao diện sáng hoặc tối"
       onClick={toggleTheme}

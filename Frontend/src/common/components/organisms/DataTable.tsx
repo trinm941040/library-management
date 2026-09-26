@@ -82,8 +82,8 @@ export function DataTable<Row>({
     onSelectionChange?.(next)
   }
   return (
-    <div className="grid gap-3">
-      {filters ? <div>{filters}</div> : null}
+    <div className="grid min-w-0 max-w-full gap-3">
+      {filters ? <div className="min-w-0 max-w-full">{filters}</div> : null}
       {selectable && selectedIds.size > 0 ? (
         <div
           className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 p-2"
@@ -91,10 +91,10 @@ export function DataTable<Row>({
           aria-label="Thao tác hàng loạt"
         >
           <span className="text-sm font-medium">Đã chọn {selectedIds.size} dòng</span>
-          <div className="flex flex-wrap gap-2">{bulkActions}</div>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto max-sm:[&>*]:flex-1">{bulkActions}</div>
         </div>
       ) : null}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="min-w-0 max-w-full rounded-md border">
         <Table aria-busy={isLoading}>
           <caption className="sr-only">{caption}</caption>
           <TableHeader>
@@ -212,11 +212,12 @@ export function DataTable<Row>({
         </Table>
       </div>
       {page !== undefined && totalPages !== undefined && totalPages > 0 && onPageChange ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {typeof totalCount === 'number' ? `${totalCount} kết quả` : ''}
           </p>
           <Pagination
+            className="w-full sm:w-auto"
             currentPage={page}
             totalPages={totalPages}
             onPageChange={onPageChange}

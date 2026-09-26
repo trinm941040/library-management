@@ -184,7 +184,7 @@ export function DashboardPage() {
   return (
     <div className="content-wrap space-y-6 pb-12">
       {/* 1. Header & Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-5">
+      <div className="flex flex-col gap-4 border-b pb-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Calendar className="w-3.5 h-3.5" />
@@ -207,14 +207,14 @@ export function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid w-full grid-cols-1 items-center gap-2.5 min-[480px]:grid-cols-2 lg:flex lg:flex-wrap 2xl:w-auto">
           {/* Branch filter */}
           {isGlobalAdmin ? (
             <Select
               value={selectedBranchId}
               onValueChange={(val) => setSelectedBranchId(val)}
             >
-              <SelectTrigger className="w-[180px] h-9 text-xs" aria-label="Chọn chi nhánh">
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]" aria-label="Chọn chi nhánh">
                 <Building2 className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
                 <SelectValue placeholder="Chi nhánh" />
               </SelectTrigger>
@@ -239,7 +239,7 @@ export function DashboardPage() {
             value={range}
             onValueChange={(val: 'today' | '7d' | '30d' | 'month') => setRange(val)}
           >
-            <SelectTrigger className="w-[140px] h-9 text-xs" aria-label="Chọn khoảng thời gian">
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[140px]" aria-label="Chọn khoảng thời gian">
               <Clock className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -255,7 +255,7 @@ export function DashboardPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-3 text-xs"
+            className="h-9 min-w-0 px-3 text-xs"
             onClick={() => void loadData(true)}
             disabled={loading || refreshing}
             title="Làm mới số liệu"
@@ -267,7 +267,7 @@ export function DashboardPage() {
           {/* Quick actions */}
           <Button
             size="sm"
-            className="h-9 px-3 text-xs"
+            className="h-9 min-w-0 px-3 text-xs"
             onClick={() => navigate('/circulation/checkout')}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Mượn sách
@@ -275,7 +275,7 @@ export function DashboardPage() {
           <Button
             size="sm"
             variant="secondary"
-            className="h-9 px-3 text-xs"
+            className="h-9 min-w-0 px-3 text-xs"
             onClick={() => navigate('/circulation/return')}
           >
             <Undo2 className="w-3.5 h-3.5 mr-1" /> Nhận trả

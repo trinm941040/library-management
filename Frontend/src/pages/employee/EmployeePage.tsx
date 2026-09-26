@@ -238,7 +238,7 @@ export function EmployeePage() {
   return (
     <>
       <div className="mx-auto w-full max-w-7xl px-5 py-10 md:px-12">
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="mb-8 flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
               nhân sự và quyền truy cập

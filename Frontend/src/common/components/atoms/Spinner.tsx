@@ -1,9 +1,9 @@
 import { cn } from '@/utils/cn'
 
 const sizes = {
-  sm: 'size-3.5 border-2',
-  md: 'size-5 border-2',
-  lg: 'size-8 border-[3px]',
+  sm: 'size-4',
+  md: 'size-6',
+  lg: 'size-12',
 } as const
 
 export function Spinner({
@@ -24,11 +24,11 @@ export function Spinner({
       aria-label={decorative ? undefined : label}
       aria-hidden={decorative || undefined}
     >
-      <span
-        className={cn(
-          'block rounded-full border-current border-r-transparent motion-safe:animate-spin motion-reduce:animate-none',
-          sizes[size],
-        )}
+      <img
+        src="/assets/library-spinner.svg"
+        alt=""
+        aria-hidden="true"
+        className={cn('block shrink-0', sizes[size])}
       />
     </span>
   )

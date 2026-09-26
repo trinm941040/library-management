@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="library-spinner-title">
+  <title id="library-spinner-title">Đang tải</title>
+  <style>
+    .library-spinner-ring { transform-origin: 32px 32px; animation: library-spinner-rotate 1.1s linear infinite; }
+    .library-spinner-page-left { transform-origin: 31px 43px; animation: library-spinner-page-left 1.1s ease-in-out infinite; }
+    .library-spinner-page-right { transform-origin: 33px 43px; animation: library-spinner-page-right 1.1s ease-in-out infinite; }
+    @keyframes library-spinner-rotate { to { transform: rotate(360deg); } }
+    @keyframes library-spinner-page-left { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-3deg); } }
+    @keyframes library-spinner-page-right { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(3deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .library-spinner-ring, .library-spinner-page-left, .library-spinner-page-right { animation: none; }
+    }
+  </style>
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#DBEAFE" stroke-width="3" />
+  <g class="library-spinner-ring">
+    <path d="M32 5a27 27 0 0 1 24.9 16.5" fill="none" stroke="#2563EB" stroke-width="3.5" stroke-linecap="round" />
+    <circle cx="57" cy="22" r="2.5" fill="#F59E0B" />
+  </g>
+  <g fill="none" stroke="#1E3A5F" stroke-linecap="round" stroke-linejoin="round">
+    <path class="library-spinner-page-left" d="M31 23c-4.2-3.2-9.8-4.2-15-2.7v20.5c5.2-1.5 10.8-.5 15 2.7V23Z" fill="#EFF6FF" stroke-width="2.2" />
+    <path class="library-spinner-page-right" d="M33 23c4.2-3.2 9.8-4.2 15-2.7v20.5c-5.2-1.5-10.8-.5-15 2.7V23Z" fill="#FFF7E6" stroke-width="2.2" />
+    <path d="M32 23v21" stroke-width="2.2" />
+    <path d="M20 26.5c2.9-.4 5.7.2 8 1.6" stroke="#60A5FA" stroke-width="1.6" />
+    <path d="M20 31c2.9-.4 5.7.2 8 1.6" stroke="#60A5FA" stroke-width="1.6" />
+    <path d="M44 26.5c-2.9-.4-5.7.2-8 1.6" stroke="#F59E0B" stroke-width="1.6" />
+    <path d="M44 31c-2.9-.4-5.7.2-8 1.6" stroke="#F59E0B" stroke-width="1.6" />
+  </g>
+</svg>

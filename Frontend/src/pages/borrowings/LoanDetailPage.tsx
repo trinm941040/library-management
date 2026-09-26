@@ -178,7 +178,7 @@ export function LoanDetailPage() {
   return (
     <div className="container mx-auto max-w-6xl p-4 sm:p-6 space-y-6">
       {/* Thanh tiêu đề và điều hướng */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild className="-ml-2 h-8 px-2">
@@ -192,7 +192,7 @@ export function LoanDetailPage() {
           <h1 className="text-2xl font-bold tracking-tight">Chi tiết khoản mượn</h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -223,7 +223,7 @@ export function LoanDetailPage() {
 
       {/* Thông báo thao tác thành công */}
       {successMessage && (
-        <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-800 dark:text-emerald-300">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-800 dark:text-emerald-300">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <p className="text-sm font-medium">{successMessage}</p>
@@ -559,7 +559,7 @@ export function LoanDetailPage() {
             <div className="rounded-lg bg-muted/60 p-3 space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tác phẩm:</span>
-                <span className="font-medium text-right max-w-[240px] truncate">{borrowing.bookTitle}</span>
+                <span className="max-w-[min(240px,60vw)] truncate text-right font-medium">{borrowing.bookTitle}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Độc giả:</span>

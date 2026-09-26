@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertCircle, Check, Loader2, QrCode } from 'lucide-react'
+import { AlertCircle, Check, QrCode } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Button } from '@/common/components/ui/button'
 import {
   Dialog,
@@ -137,7 +138,7 @@ export function FulfillReservationDialog({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Đang xử lý...
+                  <Spinner size="sm" decorative /> Đang xử lý...
                 </>
               ) : (
                 'Xác nhận nhận sách'

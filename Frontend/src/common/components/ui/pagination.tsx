@@ -49,10 +49,13 @@ function Pagination({
   return (
     <nav
       aria-label="Phân trang"
-      className={cn('flex flex-wrap items-center justify-end gap-2', className)}
+      className={cn(
+        'grid min-w-0 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap sm:justify-end',
+        className,
+      )}
     >
       {pageSize !== undefined && onPageSizeChange ? (
-        <label className="mr-1 flex items-center gap-2 text-sm text-muted-foreground">
+        <label className="col-span-2 flex items-center justify-between gap-2 text-sm text-muted-foreground sm:mr-1 sm:justify-start">
           <span>Số dòng</span>
           <select
             value={pageSize}
@@ -75,6 +78,7 @@ function Pagination({
         disabled={page === 1}
         onClick={() => onPageChange(1)}
         aria-label="Đến trang đầu"
+        className="hidden sm:inline-flex"
       >
         <ChevronFirst aria-hidden="true" />
       </Button>
@@ -82,6 +86,7 @@ function Pagination({
         type="button"
         variant="outline"
         size="sm"
+        className="w-full sm:w-auto"
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
         aria-label="Đến trang trước"
@@ -90,7 +95,7 @@ function Pagination({
         <span className="hidden sm:inline">Trước</span>
       </Button>
 
-      <div className="flex items-center gap-1" aria-live="polite">
+      <div className="hidden items-center gap-1 sm:flex" aria-live="polite">
         {pageItems.map((item) =>
           typeof item === 'number' ? (
             <Button
@@ -116,10 +121,18 @@ function Pagination({
         )}
       </div>
 
+      <span
+        className="col-span-2 row-start-3 text-center text-sm text-muted-foreground sm:hidden"
+        aria-live="polite"
+      >
+        Trang {page} / {lastPage}
+      </span>
+
       <Button
         type="button"
         variant="outline"
         size="sm"
+        className="w-full sm:w-auto"
         disabled={page === lastPage}
         onClick={() => onPageChange(page + 1)}
         aria-label="Đến trang sau"
@@ -134,10 +147,14 @@ function Pagination({
         disabled={page === lastPage}
         onClick={() => onPageChange(lastPage)}
         aria-label="Đến trang cuối"
+        className="hidden sm:inline-flex"
       >
         <ChevronLast aria-hidden="true" />
       </Button>
-      <form className="ml-1 flex items-center gap-2" onSubmit={goToPage}>
+      <form
+        className="col-span-2 flex items-center justify-end gap-2 border-t pt-2 sm:ml-1 sm:border-0 sm:pt-0"
+        onSubmit={goToPage}
+      >
         <label htmlFor={targetPageId} className="text-sm text-muted-foreground">
           Đến trang
         </label>

@@ -195,7 +195,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle className="text-base font-semibold">Danh mục mẫu thông báo vận hành</CardTitle>
             <CardDescription>
@@ -203,7 +203,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </CardDescription>
           </div>
           {isManager && (
-            <Button onClick={openCreateModal} className="gap-2 shrink-0">
+            <Button onClick={openCreateModal} className="w-full shrink-0 gap-2 sm:w-auto">
               <Plus className="size-4" /> Thêm mẫu mới
             </Button>
           )}

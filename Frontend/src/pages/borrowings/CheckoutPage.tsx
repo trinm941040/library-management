@@ -216,7 +216,7 @@ export function CheckoutPage() {
       title="Lập phiếu mượn bằng mã thẻ và mã vạch"
       description="Quét mã thẻ độc giả và mã vạch sách để kiểm tra điều kiện mượn, tính hạn trả theo chính sách và lập phiếu tức thì."
       actions={
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button variant="outline" onClick={handleResetAll}>
             <RotateCcw className="mr-2 h-4 w-4" /> Làm mới
           </Button>
@@ -230,7 +230,7 @@ export function CheckoutPage() {
       {createdBorrowing && (
         <Card className="mb-6 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 <CardTitle className="text-emerald-900 dark:text-emerald-100">
@@ -323,7 +323,7 @@ export function CheckoutPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={onMemberFormSubmit} className="flex gap-2">
+              <form onSubmit={onMemberFormSubmit} className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative flex-1">
                   <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -350,7 +350,7 @@ export function CheckoutPage() {
               {/* Thông tin độc giả chi tiết */}
               {member && (
                 <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <h4 className="font-semibold text-base flex items-center gap-2">
                         <User className="h-4 w-4 text-primary" /> {member.fullName}
@@ -447,7 +447,7 @@ export function CheckoutPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={onCopyFormSubmit} className="flex gap-2">
+              <form onSubmit={onCopyFormSubmit} className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative flex-1">
                   <Barcode className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -474,7 +474,7 @@ export function CheckoutPage() {
               {/* Thông tin cuốn sách chi tiết */}
               {copy && (
                 <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <h4 className="font-semibold text-base flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-primary" /> {copy.title}
@@ -585,12 +585,12 @@ export function CheckoutPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
               <Button
                 size="lg"
                 disabled={!isCheckoutReady}
                 onClick={handleCheckout}
-                className="w-full md:w-auto min-w-[200px]"
+                className="w-full sm:min-w-[200px] md:w-auto"
               >
                 {isSubmitting ? (
                   'Đang xử lý...'

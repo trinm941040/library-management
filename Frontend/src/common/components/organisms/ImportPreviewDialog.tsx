@@ -52,6 +52,7 @@ export function ImportPreviewDialog({
         </DialogHeader>
         <input
           type="file"
+          className="max-w-full text-sm"
           accept=".csv,text/csv"
           aria-label="Chọn tệp CSV"
           disabled={Boolean(pendingAction)}

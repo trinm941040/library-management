@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react'
+import { Settings, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/common/components/ui/button'
 import { BrandLogo } from '@/common/components/BrandLogo'
@@ -26,11 +26,21 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
         aria-hidden={!isVisible}
         inert={!isVisible}
       >
+        <Button
+          variant="ghost"
+          size="icon"
+          type="button"
+          className="sidebar-close"
+          aria-label="Đóng thanh điều hướng"
+          onClick={onClose}
+        >
+          <X aria-hidden="true" />
+        </Button>
         <div className="brand">
           <BrandLogo variant="horizontal" tone="auto" className="brand-logo" />
         </div>
 
-        <nav aria-label="Điều hướng chính">
+        <nav className="sidebar-nav" aria-label="Điều hướng chính">
           {groups.map((group) => (
             <div className="pb-2 pt-2" key={group.label}>
               <p className="nav-label pd-[10px]">{group.label}</p>
@@ -39,6 +49,9 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
                   to={path}
                   key={label}
                   className={({ isActive }) => `nav-item justify-start ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (window.matchMedia('(max-width: 1050px)').matches) onClose()
+                  }}
                 >
                   <Icon aria-hidden="true" />
                   <span>{label}</span>
@@ -53,6 +66,9 @@ export function Sidebar({ isVisible, permissions, onClose }: SidebarProps) {
             <NavLink
               to={settingsNavigationItem.path}
               className={({ isActive }) => `nav-item sidebar-settings ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                if (window.matchMedia('(max-width: 1050px)').matches) onClose()
+              }}
             >
               <Settings aria-hidden="true" />
               <span>{settingsNavigationItem.label}</span>

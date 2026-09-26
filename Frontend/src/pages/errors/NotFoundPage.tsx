@@ -4,7 +4,7 @@ import { ScreenState } from '@/common/components/molecules/ScreenState'
 export function NotFoundPage() {
   const navigate = useNavigate()
   return (
-    <main className="p-8">
+    <main className="p-4 sm:p-8">
       <ScreenState
         kind="empty"
         title="Không tìm thấy trang"

@@ -42,17 +42,17 @@ export function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950">
+    <main className="relative min-h-screen min-h-dvh overflow-x-hidden overflow-y-auto bg-slate-950">
       <img
         src="/assets/bg.jpg"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        className="absolute inset-0 h-full min-h-dvh w-full object-cover object-[58%_center] sm:object-center"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,15,30,0.92)_0%,rgba(8,22,38,0.72)_44%,rgba(8,16,28,0.48)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,30,0.72)_0%,rgba(8,22,38,0.58)_45%,rgba(4,12,24,0.88)_100%)] lg:bg-[linear-gradient(90deg,rgba(5,15,30,0.92)_0%,rgba(8,22,38,0.72)_44%,rgba(8,16,28,0.48)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_50%,transparent_0%,rgba(2,8,18,0.24)_75%)]" />
 
-      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-7xl items-center gap-12 px-5 py-10 md:px-10 lg:grid-cols-[1.15fr_0.85fr] lg:px-14">
+      <div className="relative z-10 mx-auto grid min-h-screen min-h-dvh w-full max-w-7xl items-center gap-8 px-4 py-6 [padding-bottom:max(1.5rem,env(safe-area-inset-bottom))] [padding-top:max(1.5rem,env(safe-area-inset-top))] sm:px-6 sm:py-10 md:px-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:gap-12 lg:px-14">
         <section className="hidden max-w-xl text-white lg:block">
           <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md">
             <BrandLogo variant="app-icon" alt="" className="size-5" />
@@ -74,22 +74,22 @@ export function LoginPage() {
           </div>
         </section>
 
-        <div className="mx-auto w-full max-w-md">
+        <div className="mx-auto w-full min-w-0 max-w-md">
           <Card className="overflow-hidden border-white/40 bg-white/92 shadow-[0_28px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90">
-            <CardHeader className="space-y-4 px-6 pt-7 text-center sm:px-9 sm:pt-9">
+            <CardHeader className="space-y-3 px-5 pt-5 text-center sm:space-y-4 sm:px-9 sm:pt-9">
               <BrandLogo
                 variant="login"
                 tone="auto"
-                className="mx-auto h-auto w-56 max-w-full sm:w-64"
+                className="mx-auto h-auto w-44 max-w-full sm:w-56 lg:w-64"
               />
               <div className="space-y-2">
-                <CardTitle className="text-3xl tracking-tight">Đăng nhập</CardTitle>
+                <CardTitle className="text-2xl tracking-tight sm:text-3xl">Đăng nhập</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Nhập thông tin tài khoản để tiếp tục.
                 </p>
               </div>
             </CardHeader>
-            <CardContent className="px-6 pb-7 sm:px-9 sm:pb-9">
+            <CardContent className="px-5 pb-5 sm:px-9 sm:pb-9">
               {(location.state as { notice?: string } | null)?.notice ? (
                 <p
                   className="mb-5 rounded-md border border-green-600/20 bg-green-600/10 p-3 text-sm text-green-700"
@@ -98,13 +98,13 @@ export function LoginPage() {
                   {(location.state as { notice?: string }).notice}
                 </p>
               ) : null}
-              <form className="grid gap-6" onSubmit={handleSubmit}>
+              <form className="grid gap-5 sm:gap-6" onSubmit={handleSubmit}>
                 <div className="grid gap-2.5">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      className="h-11 pl-10"
+                      className="h-11 pl-10 text-base sm:text-sm"
                       type="email"
                       id="email"
                       name="email"
@@ -122,7 +122,7 @@ export function LoginPage() {
                   <div className="relative">
                     <LockKeyhole className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      className="h-11 pl-10"
+                      className="h-11 pl-10 text-base sm:text-sm"
                       type="password"
                       id="password"
                       name="password"
@@ -150,12 +150,12 @@ export function LoginPage() {
                   Đăng nhập
                 </Button>
               </form>
-              <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
+              <p className="mt-5 text-center text-xs leading-5 text-muted-foreground sm:mt-6">
                 Việc truy cập hệ thống được ghi nhận nhằm bảo đảm an toàn dữ liệu.
               </p>
             </CardContent>
           </Card>
-          <p className="mt-5 text-center text-xs text-white/70 lg:hidden">
+          <p className="mt-4 text-center text-xs text-white/80 sm:mt-5 lg:hidden">
             Hệ thống Quản lý Thư viện
           </p>
         </div>

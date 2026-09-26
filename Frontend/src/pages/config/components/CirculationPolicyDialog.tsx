@@ -359,7 +359,7 @@ export function CirculationPolicyDialog({
           {/* Giới hạn mượn sách */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">2. Quy định mượn & giữ chỗ</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="max-books">Số sách tối đa (cuốn)</Label>
                 <Input
@@ -444,7 +444,7 @@ export function CirculationPolicyDialog({
           {/* Tiền phạt */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">3. Chính sách tiền phạt</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <div className="flex flex-col justify-between space-y-1.5">
                 <Label htmlFor="fine-per-day" className="min-h-9 flex items-end text-sm font-medium">
                   Phạt quá hạn (VNĐ/ngày)

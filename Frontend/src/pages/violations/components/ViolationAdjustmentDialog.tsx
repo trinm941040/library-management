@@ -191,7 +191,7 @@ export function ViolationAdjustmentDialog({
           {/* Tab chọn hình thức điều chỉnh */}
           <div className="space-y-1.5">
             <Label>Hình thức điều chỉnh</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {canAdjust && (
                 <Button
                   type="button"

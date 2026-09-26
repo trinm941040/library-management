@@ -1,6 +1,7 @@
 /* Styles for the authenticated app shell and dashboard content. */
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .app-shell {
   display: flex;
@@ -11,19 +12,20 @@
   background: #f5f7fb;
 }
 .sidebar {
+  position: sticky;
+  top: 0;
   width: 254px;
   height: 100%;
   min-height: 0;
   flex: 0 0 254px;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   background: #fff;
   border-right: 1px solid #e9edf5;
-  padding: 29px 16px 20px;
+  padding: 29px 0 20px 16px;
   z-index: 3;
   transition:
     width 0.2s ease,
@@ -43,8 +45,10 @@
 .brand {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   min-height: 42px;
   padding: 0 10px 31px;
+  background: inherit;
 }
 .brand-logo {
   display: block;
@@ -112,7 +116,57 @@
   font-size: 10px;
 }
 .sidebar-bottom {
+  flex: 0 0 auto;
   margin-top: auto;
+}
+.sidebar-nav {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 0;
+}
+.sidebar-nav > div {
+  padding-right: 16px;
+}
+.sidebar-bottom {
+  padding-right: 16px;
+}
+@media (min-width: 1051px) {
+  .sidebar-nav {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .sidebar:hover .sidebar-nav,
+  .sidebar:focus-within .sidebar-nav {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .sidebar-nav::-webkit-scrollbar {
+    width: 8px;
+  }
+  .sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-nav::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    background-clip: padding-box;
+  }
+  .sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb,
+  .sidebar:focus-within .sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+  }
+  [data-theme='dark'] .sidebar:hover .sidebar-nav,
+  [data-theme='dark'] .sidebar:focus-within .sidebar-nav {
+    scrollbar-color: #475569 transparent;
+  }
+  [data-theme='dark'] .sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb,
+  [data-theme='dark'] .sidebar:focus-within .sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: #475569;
+  }
 }
 .sidebar-settings {
   margin-bottom: 12px;
@@ -183,9 +237,17 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
+.content-scroll-region > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.content-scroll-region .flex.justify-between {
+  flex-wrap: wrap;
+}
 .topbar {
   display: flex;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
   align-items: center;
   justify-content: space-between;
@@ -200,6 +262,45 @@
   align-items: center;
   gap: 12px;
   color: #78849a;
+}
+.header-global-search {
+  min-width: 0;
+  max-width: 36rem;
+  flex: 1;
+}
+.header-theme-toggle {
+  flex: 0 0 auto;
+}
+.header-action-button {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  color: #64748b;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.header-action-button:hover {
+  color: #334155;
+  background: #f1f5f9;
+}
+.header-action-button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px #6366f1;
+}
+[data-theme='dark'] .header-action-button {
+  color: #cbd5e1;
+}
+[data-theme='dark'] .header-action-button:hover {
+  color: #f8fafc;
+  background: #1e293b;
 }
 .icon-button,
 .mobile-menu {
@@ -371,6 +472,9 @@
 .sidebar-scrim {
   display: none;
 }
+.sidebar-close {
+  display: none;
+}
 
 [data-theme='dark'] .app-shell {
   background: #0f1725;
@@ -483,6 +587,9 @@
     margin-right: 0;
     gap: 4px;
   }
+  .header-global-search {
+    display: none;
+  }
   .top-name {
     display: none;
   }
@@ -494,6 +601,28 @@
   }
   .content-wrap {
     padding: 28px 18px 50px;
+  }
+  .content-scroll-region h1,
+  .content-scroll-region h2,
+  .content-scroll-region h3,
+  .content-scroll-region p,
+  .content-scroll-region dd,
+  .content-scroll-region code {
+    overflow-wrap: anywhere;
+  }
+  .content-scroll-region .flex.justify-between {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+  .content-scroll-region .flex > * {
+    min-width: 0;
+  }
+  .content-scroll-region [data-slot='select-trigger'] {
+    width: 100%;
+  }
+  .content-scroll-region pre {
+    max-width: 100%;
+    overflow: auto;
   }
 }
 
@@ -975,24 +1104,45 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 1050px) {
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
+    z-index: 40;
+    width: min(86vw, 280px);
+    max-width: 100%;
+    flex-basis: auto;
     box-shadow: 8px 0 25px #26334e1a;
   }
   .sidebar.is-open {
     transform: translateX(0);
   }
+  .sidebar-close {
+    display: inline-flex;
+    position: absolute;
+    top: 12px;
+    right: 10px;
+    z-index: 1;
+  }
   .sidebar-scrim {
     display: block;
     position: fixed;
     inset: 0;
-    z-index: 2;
+    z-index: 30;
+    width: auto;
+    height: auto;
+    border-radius: 0;
     border: 0;
-    background: #18243b55;
+    background: rgb(15 23 42 / 58%);
+    backdrop-filter: blur(1px);
+    cursor: default;
+    touch-action: none;
+  }
+  .sidebar-scrim:hover,
+  .sidebar-scrim:focus-visible {
+    background: rgb(15 23 42 / 58%);
   }
   .mobile-menu {
     display: block;
@@ -1003,6 +1153,8 @@
   }
   .topbar {
     justify-content: flex-start;
+    flex-basis: 64px;
+    height: 64px;
     padding: 0 20px;
   }
   .top-actions {
@@ -1074,6 +1226,18 @@
   }
 }
 @media (max-width: 430px) {
+  .topbar {
+    padding: 0 10px;
+  }
+  .mobile-menu {
+    margin-right: 4px;
+  }
+  .top-actions {
+    gap: 0;
+  }
+  .content-wrap {
+    padding: 24px 14px 40px;
+  }
   .metrics {
     grid-template-columns: 1fr 1fr;
   }

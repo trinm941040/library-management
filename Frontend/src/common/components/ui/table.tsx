@@ -5,14 +5,35 @@ import * as React from 'react'
 import { cn } from '@/utils/cn'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
+  const tableRef = React.useRef<HTMLTableElement>(null)
+
+  React.useLayoutEffect(() => {
+    const table = tableRef.current
+    if (!table) return
+    const labels = Array.from(table.querySelectorAll('thead th')).map((cell) =>
+      (cell.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    )
+    const secondaryLabels = /^(Mô tả|Ngày tạo|Đăng nhập cuối|Cập nhật lúc)$/i
+    table.querySelectorAll('tbody tr').forEach((row) => {
+      Array.from(row.querySelectorAll(':scope > td')).forEach((cell, index) => {
+        const label = labels[index] ?? ''
+        cell.setAttribute('data-mobile-label', label)
+        if (secondaryLabels.test(label)) cell.setAttribute('data-mobile-secondary', 'true')
+        else cell.removeAttribute('data-mobile-secondary')
+      })
+    })
+  })
+
   return (
     <div
       data-slot="table-container"
-      className="relative max-h-[70vh] w-full max-w-full min-w-0 overflow-auto overscroll-contain"
+      data-mobile-layout="list"
+      className="relative max-h-[70dvh] w-full max-w-full min-w-0 overflow-auto overscroll-contain [scrollbar-gutter:stable]"
     >
       <table
+        ref={tableRef}
         data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('w-max min-w-full caption-bottom text-sm', className)}
         {...props}
       />
     </div>
@@ -83,7 +104,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     <td
       data-slot="table-cell"
       className={cn(
-        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'max-w-[24rem] p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}

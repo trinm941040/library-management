@@ -229,7 +229,7 @@ export function ViolationsPage() {
   return (
     <>
       <div className="mx-auto w-full max-w-7xl px-5 py-10 md:px-12">
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="mb-8 flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
               Quản lý lưu thông
@@ -279,7 +279,7 @@ export function ViolationsPage() {
 
               {/* Bộ lọc mở rộng */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="relative min-w-[220px] flex-1 sm:w-64">
+                <div className="relative min-w-0 flex-1 basis-full sm:min-w-[220px] sm:basis-auto sm:w-64">
                   <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
@@ -296,7 +296,7 @@ export function ViolationsPage() {
                     setCurrentPage(1)
                   }}
                 >
-                  <SelectTrigger className="w-[150px]" aria-label="Lọc theo loại vi phạm">
+                  <SelectTrigger className="w-full sm:w-[150px]" aria-label="Lọc theo loại vi phạm">
                     <SelectValue placeholder="Loại vi phạm" />
                   </SelectTrigger>
                   <SelectContent>
@@ -315,7 +315,7 @@ export function ViolationsPage() {
                     setCurrentPage(1)
                   }}
                 >
-                  <SelectTrigger className="w-[170px]" aria-label="Lọc theo trạng thái">
+                  <SelectTrigger className="w-full sm:w-[170px]" aria-label="Lọc theo trạng thái">
                     <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>

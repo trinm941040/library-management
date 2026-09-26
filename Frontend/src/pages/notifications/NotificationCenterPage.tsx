@@ -83,7 +83,7 @@ export function NotificationCenterPage() {
 
   return (
     <PageShell eyebrow="Thông báo" title="Trung tâm thông báo" description="Theo dõi các cập nhật dành riêng cho tài khoản của bạn."
-      actions={<Button onClick={markAll} disabled={mutating || !data.items.some((item) => !item.isRead)}><CheckCheck />Đọc tất cả</Button>}>
+      actions={<Button className="w-full sm:w-auto" onClick={markAll} disabled={mutating || !data.items.some((item) => !item.isRead)}><CheckCheck />Đọc tất cả</Button>}>
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="size-5" />Thông báo của tôi</CardTitle></CardHeader>
         <CardContent className="space-y-4">

@@ -6,8 +6,8 @@ import {
   XCircle,
   FileCode,
   ArrowRight,
-  Loader2,
 } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Button } from '@/common/components/ui/button'
 import { Badge } from '@/common/components/ui/badge'
 import {
@@ -113,7 +113,7 @@ export function ConfigPackageDialog({ open, onOpenChange, onSuccess }: ConfigPac
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) handleReset() }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] max-w-4xl flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <Upload className="h-5 w-5 text-primary" />
@@ -157,7 +157,7 @@ export function ConfigPackageDialog({ open, onOpenChange, onSuccess }: ConfigPac
           {/* Loading State */}
           {isValidating && (
             <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <Spinner decorative />
               <span>Đang giải mã và kiểm tra mã toàn vẹn Checksum SHA-256...</span>
             </div>
           )}
@@ -312,7 +312,7 @@ export function ConfigPackageDialog({ open, onOpenChange, onSuccess }: ConfigPac
             >
               {isImporting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner size="sm" decorative />
                   Đang ghi nhận vào Transaction...
                 </>
               ) : (

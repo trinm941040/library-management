@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Button } from '@/common/components/ui/button'
 import {
   Dialog,
@@ -119,7 +120,7 @@ export function CancelReservationDialog({
             <Button type="submit" variant="destructive" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Đang hủy...
+                  <Spinner size="sm" decorative /> Đang hủy...
                 </>
               ) : (
                 'Xác nhận hủy'

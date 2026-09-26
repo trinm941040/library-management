@@ -113,7 +113,7 @@ export function ProfilePage() {
 
   return (
     <div className="content-wrap max-w-6xl">
-      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="eyebrow">TÀI KHOẢN CỦA TÔI</p>
           <h1 className="text-3xl font-bold">Thông tin cá nhân</h1>

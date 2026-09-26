@@ -31,8 +31,8 @@ export function ScreenState({
     <div
       className={
         compact
-          ? 'grid place-items-center gap-2 p-6 text-center'
-          : 'grid min-h-52 place-items-center gap-3 rounded-lg border border-dashed p-8 text-center'
+          ? 'grid min-w-0 place-items-center gap-2 p-4 text-center sm:p-6'
+          : 'grid min-h-52 min-w-0 place-items-center gap-3 rounded-lg border border-dashed p-4 text-center sm:p-8'
       }
       role={kind === 'error' || kind === 'conflict' ? 'alert' : 'status'}
       aria-label={kind === 'loading' ? title : undefined}
@@ -44,7 +44,7 @@ export function ScreenState({
       ) : Icon ? (
         <Icon className="size-6 text-muted-foreground" aria-hidden="true" />
       ) : null}
-      <div>
+      <div className="min-w-0">
         <p className="font-medium">{title}</p>
         {description ? (
           <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>

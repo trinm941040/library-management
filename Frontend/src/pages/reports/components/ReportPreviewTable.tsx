@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {
@@ -21,7 +22,7 @@ export function ReportPreviewTable({ preview, loading, onPageChange }: ReportPre
   if (loading) {
     return (
       <div className="border rounded-lg p-12 text-center bg-card shadow-xs">
-        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
+        <Spinner size="lg" decorative className="mx-auto mb-3" />
         <p className="text-sm font-semibold text-foreground">Đang tổng hợp dữ liệu báo cáo...</p>
         <p className="text-xs text-muted-foreground mt-1">Đang phân tích và truy vấn số liệu theo bộ lọc của bạn.</p>
       </div>
@@ -154,7 +155,7 @@ export function ReportPreviewTable({ preview, loading, onPageChange }: ReportPre
         </div>
 
         {/* Pagination footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-xs text-muted-foreground">
           <span>
             Hiển thị{' '}
             <strong className="text-foreground">

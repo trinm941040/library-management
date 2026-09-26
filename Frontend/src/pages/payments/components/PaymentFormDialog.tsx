@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, CreditCard, ShieldCheck } from 'lucide-react'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import {
@@ -163,7 +164,7 @@ export function PaymentFormDialog({
 
           {isLoadingPreview ? (
             <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm">
-              <Loader2 className="size-6 animate-spin text-primary" />
+              <Spinner size="lg" decorative />
               Đang tính toán số dư vi phạm...
             </div>
           ) : previewError ? (
@@ -352,7 +353,7 @@ export function PaymentFormDialog({
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Đang ghi nhận...
+                  <Spinner size="sm" decorative /> Đang ghi nhận...
                 </>
               ) : (
                 <>

@@ -135,7 +135,7 @@ export function PaymentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <CreditCard className="size-6 text-primary" /> Thu Tiền Phạt
@@ -145,7 +145,7 @@ export function PaymentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row max-sm:[&>*]:w-full">
           <Button
             variant="outline"
             size="sm"

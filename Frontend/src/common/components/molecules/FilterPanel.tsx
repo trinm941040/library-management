@@ -28,14 +28,16 @@ export function FilterPanel({
         className="hidden size-4 shrink-0 text-muted-foreground sm:block"
         aria-hidden="true"
       />
-      <div className="grid min-w-0 flex-1 gap-3 sm:flex sm:items-center">{children}</div>
+      <div className="grid min-w-0 flex-1 gap-3 sm:flex sm:flex-wrap sm:items-center max-sm:[&>*]:w-full">
+        {children}
+      </div>
       {typeof resultCount === 'number' ? (
         <span className="text-xs whitespace-nowrap text-muted-foreground" aria-live="polite">
           {resultCount} kết quả
         </span>
       ) : null}
       {onReset ? (
-        <Button type="button" variant="ghost" size="sm" disabled={!hasFilters} onClick={onReset}>
+        <Button className="w-full sm:w-auto" type="button" variant="ghost" size="sm" disabled={!hasFilters} onClick={onReset}>
           <X /> Xóa lọc
         </Button>
       ) : null}

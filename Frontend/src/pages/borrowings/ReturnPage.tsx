@@ -198,7 +198,7 @@ export function ReturnPage() {
           {/* Barcode Scanner Card */}
           <Card className="border-indigo-200 dark:border-indigo-900 shadow-sm">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
                     <Barcode className="h-5 w-5" />
@@ -216,7 +216,7 @@ export function ReturnPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative flex-1">
                   <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
@@ -231,7 +231,7 @@ export function ReturnPage() {
                     autoComplete="off"
                   />
                 </div>
-                <Button onClick={handleLookup} disabled={isSearching || !barcodeInput.trim()} className="min-w-28">
+                <Button onClick={handleLookup} disabled={isSearching || !barcodeInput.trim()} className="w-full sm:w-auto sm:min-w-28">
                   {isSearching ? 'Đang tìm...' : (
                     <>
                       <Search className="h-4 w-4 mr-1.5" /> Tra cứu
