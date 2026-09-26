@@ -9,6 +9,10 @@ import { getActiveSuppliers, type Supplier } from '@/pages/suppliers/supplier-ap
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
 import { getReceipts, type ReceiptStatus, type StockReceipt } from './receipt-api'
 
+const receiptStatusLabels: Record<ReceiptStatus, string> = {
+  Draft: 'Bản nháp', Received: 'Đã tiếp nhận', Confirmed: 'Đã xác nhận', Cancelled: 'Đã hủy',
+}
+
 export function StockReceiptsPage() {
   const [items, setItems] = useState<StockReceipt[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -55,7 +59,7 @@ export function StockReceiptsPage() {
           <Button type="submit" variant="outline">Tìm</Button></form>
         <select className="rounded-md border bg-background px-3" aria-label="Nhà cung cấp" value={supplierId} onChange={event => { setSupplierId(event.target.value); setPage(1) }}><option value="">Tất cả nhà cung cấp</option>{suppliers.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
         <select className="rounded-md border bg-background px-3" aria-label="Chi nhánh" value={branchId} onChange={event => { setBranchId(event.target.value); setPage(1) }}><option value="">Tất cả chi nhánh</option>{branches.map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select>
-        <select className="rounded-md border bg-background px-3" aria-label="Trạng thái" value={status} onChange={event => { setStatus(event.target.value as ReceiptStatus | ''); setPage(1) }}><option value="">Tất cả trạng thái</option>{(['Draft', 'Received', 'Confirmed', 'Cancelled'] as const).map(x => <option key={x} value={x}>{x}</option>)}</select>
+        <select className="rounded-md border bg-background px-3" aria-label="Trạng thái" value={status} onChange={event => { setStatus(event.target.value as ReceiptStatus | ''); setPage(1) }}><option value="">Tất cả trạng thái</option>{(['Draft', 'Received', 'Confirmed', 'Cancelled'] as const).map(x => <option key={x} value={x}>{receiptStatusLabels[x]}</option>)}</select>
         <label className="text-sm" htmlFor="receipt-from">Từ ngày <Input id="receipt-from" type="date" value={from} onChange={event => { setFrom(event.target.value); setPage(1) }} /></label>
         <label className="text-sm" htmlFor="receipt-to">Đến ngày <Input id="receipt-to" type="date" value={to} onChange={event => { setTo(event.target.value); setPage(1) }} /></label>
       </div>}
@@ -64,7 +68,7 @@ export function StockReceiptsPage() {
         { id: 'supplier', header: 'Nhà cung cấp', cell: row => row.supplierName },
         { id: 'branch', header: 'Chi nhánh', cell: row => row.branchCode },
         { id: 'date', header: 'Ngày nhập', cell: row => new Date(row.receivedAtUtc).toLocaleDateString('vi-VN') },
-        { id: 'status', header: 'Trạng thái', cell: row => row.status },
+        { id: 'status', header: 'Trạng thái', cell: row => receiptStatusLabels[row.status] },
         { id: 'quantity', header: 'Số lượng', cell: row => row.totalQuantity },
         { id: 'value', header: 'Thành tiền', cell: row => row.totalValue.toLocaleString('vi-VN') },
       ]} />

@@ -39,7 +39,7 @@ const sessionSchema = z.object({
   currentUser: userSchema,
 })
 export const loginSchema = z.object({
-  email: z.string().trim().email('Email không hợp lệ.').max(256),
+  email: z.string().trim().min(1, 'Vui lòng nhập email.').email('Email không hợp lệ.').max(256),
   password: z.string().min(1, 'Vui lòng nhập mật khẩu.').max(1024, 'Mật khẩu quá dài.'),
 })
 

@@ -17,6 +17,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -24,9 +25,17 @@ export function LoginPage() {
     if (isSubmitting) return
     const parsed = loginSchema.safeParse({ email, password })
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Thông tin đăng nhập không hợp lệ.')
+      const nextErrors: { email?: string; password?: string } = {}
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0]
+        if (field === 'email' && !nextErrors.email) nextErrors.email = issue.message
+        if (field === 'password' && !nextErrors.password) nextErrors.password = issue.message
+      }
+      setFieldErrors(nextErrors)
+      setError('')
       return
     }
+    setFieldErrors({})
     setError('')
     setIsSubmitting(true)
 
@@ -109,12 +118,18 @@ export function LoginPage() {
                       id="email"
                       name="email"
                       placeholder="ban@example.com"
-                      required
                       autoComplete="email"
                       value={email}
-                      onChange={(event) => setEmail(event.target.value)}
+                      aria-required="true"
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                      onChange={(event) => {
+                        setEmail(event.target.value)
+                        if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }))
+                      }}
                     />
                   </div>
+                  {fieldErrors.email ? <p id="email-error" role="alert" className="text-sm text-destructive">{fieldErrors.email}</p> : null}
                 </div>
 
                 <div className="grid gap-2.5">
@@ -127,12 +142,18 @@ export function LoginPage() {
                       id="password"
                       name="password"
                       placeholder="••••••••"
-                      required
                       autoComplete="current-password"
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      aria-required="true"
+                      aria-invalid={Boolean(fieldErrors.password)}
+                      aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                      onChange={(event) => {
+                        setPassword(event.target.value)
+                        if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }))
+                      }}
                     />
                   </div>
+                  {fieldErrors.password ? <p id="password-error" role="alert" className="text-sm text-destructive">{fieldErrors.password}</p> : null}
                 </div>
 
                 {error ? (

@@ -7,7 +7,7 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Trash2,
+  ArchiveX,
   Upload,
 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -325,13 +325,14 @@ export function BooksPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Xóa ${book.title}`}
+                aria-label={`Ngừng sử dụng ${book.title}`}
+                title={`Ngừng sử dụng ${book.title}`}
                 onClick={() => {
                   setDeleteError('')
                   setDeletingBook(book)
                 }}
               >
-                <Trash2 />
+                <ArchiveX />
               </Button>
             </PermissionBoundary>
           </div>
@@ -449,7 +450,7 @@ export function BooksPage() {
                 <>
                   <PermissionBoundary requiredPermissions={['books.delete']}>
                     <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-                      Xóa mục đã chọn
+                      Ngừng sử dụng mục đã chọn
                     </Button>
                   </PermissionBoundary>
                   <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
@@ -512,9 +513,9 @@ export function BooksPage() {
       <PermissionBoundary requiredPermissions={['books.delete']}>
         <ConfirmDialog
           open={bulkDeleteOpen}
-          title="Xóa các sách đã chọn?"
-          description={`${selectedIds.size} sách sẽ được xử lý. Các dòng không thể xóa sẽ được báo riêng.`}
-          confirmLabel="Xóa hàng loạt"
+          title="Ngừng sử dụng các sách đã chọn?"
+          description={`${selectedIds.size} sách sẽ được xử lý. Các dòng không thể ngừng sử dụng sẽ được báo riêng.`}
+          confirmLabel="Ngừng sử dụng"
           destructive
           isPending={isDeleting}
           error={deleteError}

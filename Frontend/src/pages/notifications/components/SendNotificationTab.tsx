@@ -509,8 +509,10 @@ export const SendNotificationTab: React.FC<Props> = ({
                     const meta = getVariableMeta(v)
                     return (
                       <div key={v} className="space-y-1.5">
-                        <Label className="text-sm font-medium">{meta.label}</Label>
+                        <Label htmlFor={`notification-variable-${v}`} className="text-sm font-medium">{meta.label}</Label>
                         <Input
+                          id={`notification-variable-${v}`}
+                          name={v}
                           placeholder={meta.placeholder}
                           value={variables[v] || ''}
                           onChange={(e) => handleVariableChange(v, e.target.value)}

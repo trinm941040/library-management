@@ -23,6 +23,9 @@ const statusLabels: Record<CopyStatus, string> = {
   Available: 'Sẵn sàng', Borrowed: 'Đang mượn', Reserved: 'Đã giữ chỗ',
   InTransit: 'Đang chuyển', Lost: 'Mất', Damaged: 'Hư hỏng', Withdrawn: 'Thanh lý',
 }
+const conditionLabels: Record<CopyCondition, string> = {
+  New: 'Mới', Good: 'Tốt', Worn: 'Đã qua sử dụng', Damaged: 'Hư hỏng', Lost: 'Mất',
+}
 type Action = { copy: BookCopy; status?: CopyStatus; shelfId?: string }
 
 export function CopiesPage() {
@@ -197,7 +200,7 @@ export function CopiesPage() {
           <option value="">Mọi trạng thái</option>{statuses.map((item) => <option key={item} value={item}>{statusLabels[item]}</option>)}
         </select>
         <select className="h-10 rounded-md border bg-background px-3" value={condition} aria-label="Lọc tình trạng" onChange={(event) => { setPage(1); setCondition(event.target.value as CopyCondition | '') }}>
-          <option value="">Mọi tình trạng</option>{conditions.map((item) => <option key={item} value={item}>{item}</option>)}
+          <option value="">Mọi tình trạng</option>{conditions.map((item) => <option key={item} value={item}>{conditionLabels[item]}</option>)}
         </select>
         <select className="h-10 rounded-md border bg-background px-3 sm:col-span-3" value={shelfId} aria-label="Lọc kệ" onChange={(event) => { setPage(1); setShelfId(event.target.value) }}>
           <option value="">Mọi kệ</option>{shelves.map((shelf) => <option key={shelf.id} value={shelf.id}>{shelf.branchCode} / {shelf.areaCode} / {shelf.code}</option>)}
@@ -213,7 +216,7 @@ export function CopiesPage() {
           { id: 'barcode', header: 'Mã vạch', cell: (copy) => <button type="button" className="font-mono text-primary underline" onClick={() => openDetails(copy)}>{copy.barcode}</button> },
           { id: 'book', header: 'Sách', cell: (copy) => copy.bookTitle },
           { id: 'location', header: 'Vị trí', cell: (copy) => `${copy.branchCode ?? '—'} / ${copy.shelfCode ?? '—'}` },
-          { id: 'condition', header: 'Tình trạng', cell: (copy) => copy.condition },
+          { id: 'condition', header: 'Tình trạng', cell: (copy) => conditionLabels[copy.condition] },
           { id: 'status', header: 'Trạng thái', cell: (copy) => <StatusBadge label={statusLabels[copy.status]} tone={copy.status === 'Available' ? 'success' : copy.status === 'Damaged' || copy.status === 'Lost' ? 'danger' : 'neutral'} /> },
         ]} />
     </div>
@@ -221,7 +224,7 @@ export function CopiesPage() {
     {bulkOperation ? <section className="mt-4 grid gap-3 rounded-xl border bg-card p-4" aria-label="Xác nhận thao tác hàng loạt"><h2 className="font-semibold">Áp dụng cho {selectedIds.size} bản sao trên trang hiện tại</h2>
       {bulkOperation === 'relocate' ? <select aria-label="Kệ đích" className="h-10 rounded-md border bg-background px-3" value={bulkShelfId} onChange={event => setBulkShelfId(event.target.value)}><option value="">Chọn kệ hoạt động</option>{shelves.map(shelf => <option key={shelf.id} value={shelf.id}>{shelf.branchCode} / {shelf.areaCode} / {shelf.code}</option>)}</select> : null}
       {bulkOperation === 'status' ? <select aria-label="Trạng thái mới" className="h-10 rounded-md border bg-background px-3" value={bulkStatus} onChange={event => setBulkStatus(event.target.value as CopyStatus)}>{statuses.filter(value => value !== 'Borrowed' && value !== 'Withdrawn').map(value => <option key={value} value={value}>{statusLabels[value]}</option>)}</select> : null}
-      {bulkOperation === 'condition' ? <select aria-label="Tình trạng mới" className="h-10 rounded-md border bg-background px-3" value={bulkCondition} onChange={event => setBulkCondition(event.target.value as CopyCondition)}>{conditions.map(value => <option key={value} value={value}>{value}</option>)}</select> : null}
+      {bulkOperation === 'condition' ? <select aria-label="Tình trạng mới" className="h-10 rounded-md border bg-background px-3" value={bulkCondition} onChange={event => setBulkCondition(event.target.value as CopyCondition)}>{conditions.map(value => <option key={value} value={value}>{conditionLabels[value]}</option>)}</select> : null}
       {bulkOperation === 'withdraw' ? <Input aria-label="Lý do thanh lý" placeholder="Lý do thanh lý bắt buộc" maxLength={500} value={bulkReason} onChange={event => setBulkReason(event.target.value)} /> : null}
       {actionError ? <p role="alert" className="text-sm text-destructive">{actionError}</p> : null}
       <div className="flex gap-2"><Button variant={bulkOperation === 'withdraw' ? 'destructive' : 'default'} loading={pending} disabled={bulkOperation === 'relocate' && !bulkShelfId || bulkOperation === 'withdraw' && !bulkReason.trim()} onClick={() => void executeBulk()}>Xác nhận {bulkOperation === 'withdraw' ? 'thanh lý' : 'cập nhật'}</Button><Button variant="outline" onClick={() => setBulkOperation(null)}>Hủy</Button></div>
@@ -233,7 +236,7 @@ export function CopiesPage() {
         <DialogTitle>{selected.barcode} · {selected.bookTitle}</DialogTitle>
         <DialogDescription>Thông tin và thao tác trên bản sao vật lý.</DialogDescription>
       </DialogHeader>
-      <p className="text-sm">Vị trí: {selected.branchCode ?? 'Chưa có'} / {selected.shelfCode ?? 'Chưa có'} · Tình trạng: {selected.condition} · Ngày nhập: {new Date(selected.acquiredAtUtc).toLocaleDateString('vi-VN')}</p>
+      <p className="text-sm">Vị trí: {selected.branchCode ?? 'Chưa có'} / {selected.shelfCode ?? 'Chưa có'} · Tình trạng: {conditionLabels[selected.condition]} · Ngày nhập: {new Date(selected.acquiredAtUtc).toLocaleDateString('vi-VN')}</p>
       <PermissionBoundary requiredPermissions={['copies.update']}><div className="flex flex-wrap gap-2">
         <select className="h-10 rounded-md border bg-background px-3" aria-label="Trạng thái mới" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as CopyStatus)}>
           {statuses.filter((item) => item !== 'Borrowed' && item !== 'Withdrawn').map((item) => <option key={item} value={item}>{statusLabels[item]}</option>)}
@@ -259,7 +262,7 @@ export function CopiesPage() {
       </select>
       <BarcodeInput value={createBarcode} onChange={setCreateBarcode} aria-label="Mã vạch mới" placeholder="Mã vạch duy nhất" />
       <select className="h-10 rounded-md border bg-background px-3" aria-label="Tình trạng" value={createCondition} onChange={(event) => setCreateCondition(event.target.value as CopyCondition)}>
-        {conditions.map((item) => <option key={item} value={item}>{item}</option>)}
+        {conditions.map((item) => <option key={item} value={item}>{conditionLabels[item]}</option>)}
       </select>
       <select className="h-10 rounded-md border bg-background px-3" aria-label="Kệ" value={createShelfId} onChange={(event) => setCreateShelfId(event.target.value)}>
         <option value="">Chọn kệ active</option>{shelves.map((shelf) => <option key={shelf.id} value={shelf.id}>{shelf.branchCode} / {shelf.areaCode} / {shelf.code}</option>)}

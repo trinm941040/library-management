@@ -71,6 +71,38 @@ import {
 export type RolePermissionView = 'roles' | 'permissions'
 type DeleteTarget = { type: 'role'; value: Role } | { type: 'permission'; value: Permission }
 
+const moduleLabels: Record<string, string> = {
+  books: 'Sách', borrowings: 'Mượn/trả', 'audit-logs': 'Nhật ký kiểm toán',
+  users: 'Tài khoản', roles: 'Vai trò', permissions: 'Quyền hạn', employees: 'Nhân viên',
+  members: 'Độc giả', copies: 'Bản sao', reservations: 'Đặt trước', violations: 'Vi phạm',
+  payments: 'Thanh toán', reports: 'Báo cáo', notifications: 'Thông báo', settings: 'Thiết lập',
+  branches: 'Chi nhánh', locations: 'Vị trí', suppliers: 'Nhà cung cấp',
+  'stock-receipts': 'Phiếu nhập', 'inventory-audits': 'Kiểm kê', todos: 'Công việc',
+}
+
+function localizeModule(value: string) {
+  return moduleLabels[value.trim().toLowerCase().replaceAll('_', '-')] ?? value
+}
+
+function localizeRoleDescription(value?: string | null) {
+  if (!value) return 'Chưa có mô tả.'
+  return value === 'Full system access.' ? 'Toàn quyền truy cập hệ thống.' : value
+}
+
+function localizePermissionDescription(permission: Permission) {
+  if (!permission.description) return 'Chưa có mô tả.'
+  if (permission.name.toLowerCase() === 'borrowings.return') return 'Ghi nhận trả sách.'
+  const action = permission.name.split('.').at(-1)?.toLowerCase()
+  const actionLabels: Record<string, string> = {
+    create: 'Tạo', read: 'Xem', update: 'Cập nhật', delete: 'Xóa', export: 'Xuất',
+    import: 'Nhập', assign: 'Gán', manage: 'Quản lý', activate: 'Kích hoạt', deactivate: 'Ngừng sử dụng',
+  }
+  if (/^[A-Za-z][A-Za-z -]*\.$/.test(permission.description) && action && actionLabels[action]) {
+    return `${actionLabels[action]} ${localizeModule(permission.module).toLocaleLowerCase('vi-VN')}.`
+  }
+  return permission.description
+}
+
 export function RolePermissionPage({ initialView }: { initialView: RolePermissionView }) {
   const view = initialView
   const navigate = useNavigate()
@@ -529,7 +561,7 @@ function RolesTable({
                     <div className="grid min-w-56 gap-1">
                       <strong>{role.name}</strong>
                       <small className="max-w-md whitespace-normal text-muted-foreground">
-                        {role.description || 'Chưa có mô tả.'}
+                        {localizeRoleDescription(role.description)}
                       </small>
                     </div>
                   </TableCell>
@@ -664,7 +696,7 @@ function PermissionsTable({
             <SelectItem value="all">Tất cả phân hệ</SelectItem>
             {modules.map((module) => (
               <SelectItem key={module} value={module}>
-                {module}
+                {localizeModule(module)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -697,7 +729,7 @@ function PermissionsTable({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {permission.module}
+                        {localizeModule(permission.module)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -707,7 +739,7 @@ function PermissionsTable({
                     </TableCell>
                     <TableCell>
                       <span className="block max-w-sm whitespace-normal text-muted-foreground">
-                        {permission.description || 'Chưa có mô tả.'}
+                        {localizePermissionDescription(permission)}
                       </span>
                     </TableCell>
                     <TableCell>{formatDate(permission.createdAtUtc)}</TableCell>

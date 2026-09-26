@@ -337,7 +337,7 @@ export function MemberPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Chi tiết"
+                          aria-label={`Xem ${m.fullName}`}
                           onClick={() => openDetails(m)}
                         >
                           <Eye />
@@ -346,7 +346,7 @@ export function MemberPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Sửa"
+                            aria-label={`Sửa ${m.fullName}`}
                             onClick={() => {
                               setEditing(m)
                               setFormOpen(true)
@@ -428,10 +428,10 @@ function Summary({
 function Status({ value }: { value: MemberStatus }) {
   return <Badge variant={value === 'Active' ? 'default' : 'secondary'}>{statusLabels[value]}</Badge>
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       {children}
     </div>
   )
@@ -491,50 +491,57 @@ function MemberForm({
           <DialogTitle>{member ? 'Cập nhật độc giả' : 'Tạo hồ sơ độc giả'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-          <Field label="Mã độc giả">
+          <Field id="member-code" label="Mã độc giả">
             <Input
+              id="member-code" name="memberCode"
               required
               value={data.memberCode}
               onChange={(e) => set('memberCode', e.target.value)}
             />
           </Field>
-          <Field label="Họ tên">
+          <Field id="member-full-name" label="Họ tên">
             <Input
+              id="member-full-name" name="fullName"
               required
               value={data.fullName}
               onChange={(e) => set('fullName', e.target.value)}
             />
           </Field>
-          <Field label="Email">
+          <Field id="member-email" label="Email">
             <Input
+              id="member-email" name="email"
               required
               type="email"
               value={data.email}
               onChange={(e) => set('email', e.target.value)}
             />
           </Field>
-          <Field label="Số điện thoại">
+          <Field id="member-phone" label="Số điện thoại">
             <Input
+              id="member-phone" name="phoneNumber"
               value={data.phoneNumber ?? ''}
               onChange={(e) => set('phoneNumber', e.target.value || null)}
             />
           </Field>
-          <Field label="Ngày sinh">
+          <Field id="member-date-of-birth" label="Ngày sinh">
             <Input
+              id="member-date-of-birth" name="dateOfBirth"
               type="date"
               value={data.dateOfBirth ?? ''}
               onChange={(e) => set('dateOfBirth', e.target.value || null)}
             />
           </Field>
-          <Field label="Nhóm độc giả">
+          <Field id="member-group" label="Nhóm độc giả">
             <Input
+              id="member-group" name="memberGroup"
               required
               value={data.memberGroup}
               onChange={(e) => set('memberGroup', e.target.value)}
             />
           </Field>
-          <Field label="Giới hạn số sách">
+          <Field id="member-borrowing-limit" label="Giới hạn số sách">
             <Input
+              id="member-borrowing-limit" name="borrowingLimit"
               type="number"
               min={1}
               max={100}
@@ -542,8 +549,9 @@ function MemberForm({
               onChange={(e) => set('borrowingLimit', Number(e.target.value))}
             />
           </Field>
-          <Field label="Số ngày mượn">
+          <Field id="member-loan-period" label="Số ngày mượn">
             <Input
+              id="member-loan-period" name="loanPeriodDays"
               type="number"
               min={1}
               max={365}
@@ -551,9 +559,9 @@ function MemberForm({
               onChange={(e) => set('loanPeriodDays', Number(e.target.value))}
             />
           </Field>
-          <Field label="Trạng thái">
+          <Field id="member-status" label="Trạng thái">
             <Select value={data.status} onValueChange={(v) => set('status', v)}>
-              <SelectTrigger>
+              <SelectTrigger id="member-status" aria-label="Trạng thái độc giả">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -565,8 +573,9 @@ function MemberForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Địa chỉ">
+          <Field id="member-address" label="Địa chỉ">
             <Input
+              id="member-address" name="address"
               value={data.address ?? ''}
               onChange={(e) => set('address', e.target.value || null)}
             />
@@ -987,7 +996,7 @@ function ActionDialog({
                   </p>
                 ) : (
                   <>
-                    <Field label="Ngày hết hạn mới">
+                    <Field id="card-new-expiry" label="Ngày hết hạn mới">
                       <Input
                         required
                         type="date"
@@ -1032,10 +1041,10 @@ function ActionDialog({
               </>
             ) : (
               <>
-                <Field label="Số thẻ">
+                <Field id="card-number" label="Số thẻ">
                   <Input required value={a} onChange={(e) => setA(e.target.value)} />
                 </Field>
-                <Field label="Ngày cấp">
+                <Field id="card-issued-on" label="Ngày cấp">
                   <Input
                     required
                     type="date"
@@ -1043,14 +1052,14 @@ function ActionDialog({
                     onChange={(e) => setB(e.target.value)}
                   />
                 </Field>
-                <Field label="Ngày hết hạn">
+                <Field id="card-expires-on" label="Ngày hết hạn">
                   <Input required type="date" value={c} onChange={(e) => setC(e.target.value)} />
                 </Field>
               </>
             )
           ) : action === 'restriction' ? (
             <>
-              <Field label="Loại hạn chế">
+              <Field id="restriction-type" label="Loại hạn chế">
                 <Select value={a} onValueChange={setA}>
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn loại" />
@@ -1062,16 +1071,16 @@ function ActionDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Lý do">
+              <Field id="restriction-reason" label="Lý do">
                 <Input required value={b} onChange={(e) => setB(e.target.value)} />
               </Field>
-              <Field label="Kết thúc (tùy chọn)">
+              <Field id="restriction-end" label="Kết thúc (tùy chọn)">
                 <Input type="datetime-local" value={c} onChange={(e) => setC(e.target.value)} />
               </Field>
             </>
           ) : action === 'payment' ? (
             <>
-              <Field label="Số tiền">
+              <Field id="payment-amount" label="Số tiền">
                 <Input
                   required
                   type="number"
@@ -1080,7 +1089,7 @@ function ActionDialog({
                   onChange={(e) => setA(e.target.value)}
                 />
               </Field>
-              <Field label="Phương thức">
+              <Field id="payment-method" label="Phương thức">
                 <Select value={b || 'Cash'} onValueChange={setB}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1093,13 +1102,13 @@ function ActionDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Mã tham chiếu">
+              <Field id="payment-reference" label="Mã tham chiếu">
                 <Input value={c} onChange={(e) => setC(e.target.value)} />
               </Field>
             </>
           ) : (
             <>
-              <Field label="Số tiền điều chỉnh">
+              <Field id="fine-adjustment-amount" label="Số tiền điều chỉnh">
                 <Input
                   required
                   type="number"
@@ -1108,7 +1117,7 @@ function ActionDialog({
                   placeholder="Âm để giảm, dương để tăng"
                 />
               </Field>
-              <Field label="Lý do">
+              <Field id="fine-adjustment-reason" label="Lý do">
                 <Input required value={b} onChange={(e) => setB(e.target.value)} />
               </Field>
             </>
