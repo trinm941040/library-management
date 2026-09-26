@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/common/components/ui/button'
 import { Pagination } from '@/common/components/ui/pagination'
 import {
@@ -66,8 +66,43 @@ export function DataTable<Row>({
   pageSize?: number
   onPageSizeChange?: (pageSize: number) => void
 }) {
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  const [mobilePages, setMobilePages] = useState<Map<number, readonly Row[]>>(new Map())
+  const previousPageSizeRef = useRef(pageSize)
+
+  useEffect(() => {
+    if (!isMobile || page === undefined) return
+    setMobilePages((current) => {
+      const currentIds = current.get(page)?.map(getRowId) ?? []
+      const nextIds = rows.map(getRowId)
+      const pageChanged = currentIds.length !== nextIds.length
+        || currentIds.some((id, index) => id !== nextIds[index])
+      if (!pageChanged) return current
+      const next = new Map(current)
+      if (previousPageSizeRef.current !== pageSize || (page === 1 && current.has(1))) next.clear()
+      next.set(page, rows)
+      previousPageSizeRef.current = pageSize
+      return next
+    })
+  }, [getRowId, isMobile, page, pageSize, rows])
+
+  useEffect(() => {
+    if (!isMobile || pageSize === undefined || pageSize === 100 || !onPageSizeChange) return
+    setMobilePages(new Map())
+    onPageSizeChange(100)
+  }, [isMobile, onPageSizeChange, pageSize])
+
+  const displayedRows = useMemo(() => {
+    if (!isMobile || page === undefined || mobilePages.size === 0) return rows
+    return [...mobilePages.entries()]
+      .sort(([left], [right]) => left - right)
+      .flatMap(([, pageRows]) => [...pageRows])
+  }, [isMobile, mobilePages, page, rows])
+  const loadedPageNumbers = [...mobilePages.keys()]
+  const firstLoadedPage = loadedPageNumbers.length > 0 ? Math.min(...loadedPageNumbers) : page
+  const lastLoadedPage = loadedPageNumbers.length > 0 ? Math.max(...loadedPageNumbers) : page
   const selectable = Boolean(onSelectionChange)
-  const visibleIds = rows.map(getRowId)
+  const visibleIds = displayedRows.map(getRowId)
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
   const toggleAll = () =>
     onSelectionChange?.(
@@ -156,7 +191,7 @@ export function DataTable<Row>({
           </TableHeader>
           <TableBody>
             {!error
-              ? rows.map((row) => {
+              ? displayedRows.map((row) => {
                   const id = getRowId(row)
                   return (
                     <TableRow key={id} data-state={selectedIds.has(id) ? 'selected' : undefined}>
@@ -180,7 +215,7 @@ export function DataTable<Row>({
                   )
                 })
               : null}
-            {(isLoading && rows.length === 0) || error || rows.length === 0 ? (
+            {(isLoading && displayedRows.length === 0) || error || displayedRows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns.length + (selectable ? 1 : 0)}
@@ -223,6 +258,9 @@ export function DataTable<Row>({
             totalCount={totalCount}
             itemCount={rows.length}
             loading={isLoading}
+            preserveMobileAnchor={isMobile}
+            mobileFirstLoadedPage={firstLoadedPage}
+            mobileLastLoadedPage={lastLoadedPage}
             onPageChange={onPageChange}
             pageSize={pageSize}
             onPageSizeChange={onPageSizeChange}

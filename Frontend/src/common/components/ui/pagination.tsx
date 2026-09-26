@@ -11,6 +11,9 @@ type PaginationProps = {
   totalCount?: number
   itemCount?: number
   loading?: boolean
+  preserveMobileAnchor?: boolean
+  mobileFirstLoadedPage?: number
+  mobileLastLoadedPage?: number
   onPageChange: (page: number) => void
   pageSize?: number
   pageSizeOptions?: readonly number[]
@@ -25,6 +28,9 @@ function Pagination({
   totalCount,
   itemCount,
   loading,
+  preserveMobileAnchor = false,
+  mobileFirstLoadedPage,
+  mobileLastLoadedPage,
   onPageChange,
   pageSize,
   pageSizeOptions = [10, 20, 50, 100],
@@ -34,10 +40,12 @@ function Pagination({
 }: PaginationProps) {
   const lastPage = Math.max(1, totalPages)
   const page = Math.min(Math.max(currentPage, 1), lastPage)
+  const effectiveLastLoadedPage = mobileLastLoadedPage ?? page
+  const effectiveFirstLoadedPage = mobileFirstLoadedPage ?? page
   const loadedThrough = pageSize === undefined
     ? undefined
-    : (page - 1) * pageSize + (itemCount ?? pageSize)
-  const hasNextPage = page < lastPage
+    : (effectiveLastLoadedPage - 1) * pageSize + (itemCount ?? pageSize)
+  const hasNextPage = effectiveLastLoadedPage < lastPage
     && (itemCount === undefined || itemCount > 0)
     && (totalCount === undefined || loadedThrough === undefined || loadedThrough < totalCount)
   const [targetPage, setTargetPage] = useState(String(page))
@@ -87,11 +95,11 @@ function Pagination({
     const requestPage = (direction: 'previous' | 'next') => {
       if (pendingMobilePageRef.current || !userHasScrolled) return
       if (direction === 'next' && !hasNextPage) return
-      if (direction === 'previous' && page <= 1) return
+      if (direction === 'previous' && effectiveFirstLoadedPage <= 1) return
       pendingMobilePageRef.current = true
       setMobileLoading(true)
       mobileDirectionRef.current = direction
-      onPageChange(direction === 'next' ? page + 1 : page - 1)
+      onPageChange(direction === 'next' ? effectiveLastLoadedPage + 1 : effectiveFirstLoadedPage - 1)
     }
     const handleScroll = () => {
       const nextScrollTop = scrollRoot.scrollTop
@@ -108,7 +116,7 @@ function Pagination({
       if (tableContainer && scrollDirection > 0
         && scrollRoot.scrollHeight - nextScrollTop - scrollRoot.clientHeight <= 4)
         requestPage('next')
-      if (tableContainer && scrollDirection < 0 && nextScrollTop <= 4)
+      if (tableContainer && scrollDirection < 0 && nextScrollTop <= 4 && effectiveFirstLoadedPage > 1)
         requestPage('previous')
     }
     scrollRoot.addEventListener('scroll', handleScroll, { passive: true })
@@ -120,7 +128,7 @@ function Pagination({
         for (const entry of entries) {
           if (!entry.isIntersecting) continue
           if (entry.target === marker && scrollDirection > 0 && hasNextPage) requestPage('next')
-          if (entry.target === listStart && scrollDirection < 0 && page > 1) requestPage('previous')
+          if (entry.target === listStart && scrollDirection < 0 && effectiveFirstLoadedPage > 1) requestPage('previous')
         }
       },
       { root: scrollRoot, rootMargin: '0px', threshold: 0.9 },
@@ -131,7 +139,7 @@ function Pagination({
       observer.disconnect()
       scrollRoot.removeEventListener('scroll', handleScroll)
     }
-  }, [hasNextPage, mobileLazy, onPageChange, page])
+  }, [effectiveFirstLoadedPage, effectiveLastLoadedPage, hasNextPage, mobileLazy, onPageChange, page])
 
   useEffect(() => {
     if (previousPageRef.current === page) return
@@ -141,6 +149,7 @@ function Pagination({
     const direction = mobileDirectionRef.current
     mobileDirectionRef.current = null
     if (!marker || !direction) return
+    if (preserveMobileAnchor) return
     let scope: HTMLElement | null = marker.parentElement
     let tableContainer: HTMLElement | null = null
     while (scope && !tableContainer) {
@@ -158,19 +167,19 @@ function Pagination({
     suppressMobileScrollRef.current = true
     requestAnimationFrame(() => {
       if (tableContainer && direction === 'next') {
-        tableContainer.scrollTo({ top: 1 })
+        tableContainer.scrollTo({ top: 96 })
       } else if (tableContainer) {
-        tableContainer.scrollTo({ top: Math.max(0, tableContainer.scrollHeight - tableContainer.clientHeight - 1) })
+        tableContainer.scrollTo({ top: Math.max(0, tableContainer.scrollHeight - tableContainer.clientHeight - 96) })
       } else if (direction === 'next') {
         listStart?.scrollIntoView({ block: 'start' })
-        scrollRoot?.scrollBy({ top: 1 })
+        scrollRoot?.scrollBy({ top: 96 })
       } else {
         marker.scrollIntoView({ block: 'end' })
-        scrollRoot?.scrollBy({ top: -1 })
+        scrollRoot?.scrollBy({ top: -96 })
       }
-      window.setTimeout(() => { suppressMobileScrollRef.current = false }, 350)
+      window.setTimeout(() => { suppressMobileScrollRef.current = false }, 120)
     })
-  }, [page])
+  }, [page, preserveMobileAnchor])
 
   useEffect(() => {
     if (!pendingMobilePageRef.current || loading) return
