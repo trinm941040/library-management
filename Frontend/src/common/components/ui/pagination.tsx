@@ -1,32 +1,54 @@
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react'
-import { type FormEvent, useEffect, useId, useState } from 'react'
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
+import { Spinner } from '@/common/components/atoms/Spinner'
 import { cn } from '@/utils/cn'
 
 type PaginationProps = {
   currentPage: number
   totalPages: number
+  totalCount?: number
+  itemCount?: number
+  loading?: boolean
   onPageChange: (page: number) => void
   pageSize?: number
   pageSizeOptions?: readonly number[]
   onPageSizeChange?: (pageSize: number) => void
+  mobileLazy?: boolean
   className?: string
 }
 
 function Pagination({
   currentPage,
   totalPages,
+  totalCount,
+  itemCount,
+  loading,
   onPageChange,
   pageSize,
   pageSizeOptions = [10, 20, 50, 100],
   onPageSizeChange,
+  mobileLazy = true,
   className,
 }: PaginationProps) {
   const lastPage = Math.max(1, totalPages)
   const page = Math.min(Math.max(currentPage, 1), lastPage)
+  const loadedThrough = pageSize === undefined
+    ? undefined
+    : (page - 1) * pageSize + (itemCount ?? pageSize)
+  const hasNextPage = page < lastPage
+    && (itemCount === undefined || itemCount > 0)
+    && (totalCount === undefined || loadedThrough === undefined || loadedThrough < totalCount)
   const [targetPage, setTargetPage] = useState(String(page))
+  const [mobileLoading, setMobileLoading] = useState(false)
   const targetPageId = useId()
+  const mobileMarkerRef = useRef<HTMLDivElement>(null)
+  const loadingOverlayRef = useRef<HTMLDivElement>(null)
+  const pendingMobilePageRef = useRef(false)
+  const suppressMobileScrollRef = useRef(false)
+  const mobileDirectionRef = useRef<'previous' | 'next' | null>(null)
+  const previousPageRef = useRef(page)
 
   const pageItems: Array<number | 'start-ellipsis' | 'end-ellipsis'> = (() => {
     if (lastPage <= 5) return Array.from({ length: lastPage }, (_, index) => index + 1)
@@ -38,6 +60,144 @@ function Pagination({
 
   useEffect(() => setTargetPage(String(page)), [page])
 
+  useEffect(() => {
+    if (!mobileLazy || !window.matchMedia('(max-width: 639px)').matches) return
+    const marker = mobileMarkerRef.current
+    if (!marker) return
+
+    let scope: HTMLElement | null = marker.parentElement
+    let tableContainer: HTMLElement | null = null
+    while (scope && !tableContainer) {
+      tableContainer = scope.querySelector<HTMLElement>("[data-slot='table-container']")
+      scope = scope.parentElement
+    }
+    let listStart: HTMLElement | null = null
+    if (!tableContainer) {
+      const previous = marker.previousElementSibling as HTMLElement | null
+      listStart = previous?.tagName === 'P'
+        ? marker.parentElement?.previousElementSibling as HTMLElement | null
+        : previous
+    }
+    const scrollRoot = tableContainer ?? marker.closest<HTMLElement>('.content-scroll-region')
+    if ((!tableContainer && !listStart) || !scrollRoot) return
+
+    let lastScrollTop = scrollRoot.scrollTop
+    let scrollDirection = 0
+    let userHasScrolled = false
+    const requestPage = (direction: 'previous' | 'next') => {
+      if (pendingMobilePageRef.current || !userHasScrolled) return
+      if (direction === 'next' && !hasNextPage) return
+      if (direction === 'previous' && page <= 1) return
+      pendingMobilePageRef.current = true
+      setMobileLoading(true)
+      mobileDirectionRef.current = direction
+      onPageChange(direction === 'next' ? page + 1 : page - 1)
+    }
+    const handleScroll = () => {
+      const nextScrollTop = scrollRoot.scrollTop
+      const delta = nextScrollTop - lastScrollTop
+      if (suppressMobileScrollRef.current) {
+        lastScrollTop = nextScrollTop
+        return
+      }
+      if (Math.abs(delta) > 2) {
+        scrollDirection = Math.sign(delta)
+        userHasScrolled = true
+      }
+      lastScrollTop = nextScrollTop
+      if (tableContainer && scrollDirection > 0
+        && scrollRoot.scrollHeight - nextScrollTop - scrollRoot.clientHeight <= 4)
+        requestPage('next')
+      if (tableContainer && scrollDirection < 0 && nextScrollTop <= 4)
+        requestPage('previous')
+    }
+    scrollRoot.addEventListener('scroll', handleScroll, { passive: true })
+
+    if (tableContainer) return () => scrollRoot.removeEventListener('scroll', handleScroll)
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          if (entry.target === marker && scrollDirection > 0 && hasNextPage) requestPage('next')
+          if (entry.target === listStart && scrollDirection < 0 && page > 1) requestPage('previous')
+        }
+      },
+      { root: scrollRoot, rootMargin: '0px', threshold: 0.9 },
+    )
+    observer.observe(marker)
+    observer.observe(listStart!)
+    return () => {
+      observer.disconnect()
+      scrollRoot.removeEventListener('scroll', handleScroll)
+    }
+  }, [hasNextPage, mobileLazy, onPageChange, page])
+
+  useEffect(() => {
+    if (previousPageRef.current === page) return
+    previousPageRef.current = page
+    if (!window.matchMedia('(max-width: 639px)').matches) return
+    const marker = mobileMarkerRef.current
+    const direction = mobileDirectionRef.current
+    mobileDirectionRef.current = null
+    if (!marker || !direction) return
+    let scope: HTMLElement | null = marker.parentElement
+    let tableContainer: HTMLElement | null = null
+    while (scope && !tableContainer) {
+      tableContainer = scope.querySelector<HTMLElement>("[data-slot='table-container']")
+      scope = scope.parentElement
+    }
+    let listStart: HTMLElement | null = tableContainer?.querySelector<HTMLElement>('tbody tr') ?? null
+    if (!tableContainer) {
+      const previous = marker.previousElementSibling as HTMLElement | null
+      listStart = previous?.tagName === 'P'
+        ? marker.parentElement?.previousElementSibling as HTMLElement | null
+        : previous
+    }
+    const scrollRoot = tableContainer ?? marker.closest<HTMLElement>('.content-scroll-region')
+    suppressMobileScrollRef.current = true
+    requestAnimationFrame(() => {
+      if (tableContainer && direction === 'next') {
+        tableContainer.scrollTo({ top: 1 })
+      } else if (tableContainer) {
+        tableContainer.scrollTo({ top: Math.max(0, tableContainer.scrollHeight - tableContainer.clientHeight - 1) })
+      } else if (direction === 'next') {
+        listStart?.scrollIntoView({ block: 'start' })
+        scrollRoot?.scrollBy({ top: 1 })
+      } else {
+        marker.scrollIntoView({ block: 'end' })
+        scrollRoot?.scrollBy({ top: -1 })
+      }
+      window.setTimeout(() => { suppressMobileScrollRef.current = false }, 350)
+    })
+  }, [page])
+
+  useEffect(() => {
+    if (!pendingMobilePageRef.current || loading) return
+    const timeout = window.setTimeout(() => {
+      pendingMobilePageRef.current = false
+      setMobileLoading(false)
+    }, loading === undefined ? 700 : 150)
+    return () => window.clearTimeout(timeout)
+  }, [itemCount, loading, page])
+
+  useEffect(() => {
+    if (!mobileLoading) return
+    loadingOverlayRef.current?.focus({ preventScroll: true })
+    const blockInteraction = (event: Event) => {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('keydown', blockInteraction, true)
+    document.addEventListener('wheel', blockInteraction, { capture: true, passive: false })
+    document.addEventListener('touchmove', blockInteraction, { capture: true, passive: false })
+    return () => {
+      document.removeEventListener('keydown', blockInteraction, true)
+      document.removeEventListener('wheel', blockInteraction, true)
+      document.removeEventListener('touchmove', blockInteraction, true)
+    }
+  }, [mobileLoading])
+
   const goToPage = (event: FormEvent) => {
     event.preventDefault()
     const parsed = Number.parseInt(targetPage, 10)
@@ -47,10 +207,37 @@ function Pagination({
   }
 
   return (
-    <nav
+    <>
+      {mobileLazy ? (
+        <div
+          ref={mobileMarkerRef}
+          className="h-px overflow-hidden sm:hidden"
+          aria-hidden="true"
+        >
+          &nbsp;
+        </div>
+      ) : null}
+      {mobileLazy && mobileLoading ? (
+        <div
+          ref={loadingOverlayRef}
+          className="fixed inset-0 z-[200] grid touch-none place-items-center bg-slate-950/65 backdrop-blur-[2px] sm:hidden"
+          role="alertdialog"
+          aria-modal="true"
+          aria-live="assertive"
+          aria-label="Đang tải trang dữ liệu tiếp theo"
+          aria-busy="true"
+          tabIndex={-1}
+        >
+          <span className="grid size-20 place-items-center rounded-2xl border border-white/15 bg-slate-950/90 shadow-2xl">
+            <Spinner size="lg" decorative />
+          </span>
+        </div>
+      ) : null}
+      <nav
       aria-label="Phân trang"
       className={cn(
         'grid min-w-0 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap sm:justify-end',
+        mobileLazy && 'max-sm:hidden',
         className,
       )}
     >
@@ -133,7 +320,7 @@ function Pagination({
         variant="outline"
         size="sm"
         className="w-full sm:w-auto"
-        disabled={page === lastPage}
+        disabled={!hasNextPage}
         onClick={() => onPageChange(page + 1)}
         aria-label="Đến trang sau"
       >
@@ -172,7 +359,8 @@ function Pagination({
           Đi
         </Button>
       </form>
-    </nav>
+      </nav>
+    </>
   )
 }
 

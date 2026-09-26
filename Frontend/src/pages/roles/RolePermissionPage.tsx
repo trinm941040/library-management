@@ -594,6 +594,9 @@ function RolesTable({
             className="mt-4"
             currentPage={currentPage}
             totalPages={totalPages}
+            totalCount={totalCount}
+            itemCount={roles.length}
+            loading={isLoading}
             pageSize={pageSize}
             onPageChange={onPageChange}
             onPageSizeChange={onPageSizeChange}
@@ -747,6 +750,9 @@ function PermissionsTable({
             className="mt-4"
             currentPage={currentPage}
             totalPages={totalPages}
+            totalCount={totalCount}
+            itemCount={permissions.length}
+            loading={isLoading}
             pageSize={pageSize}
             onPageChange={onPageChange}
             onPageSizeChange={onPageSizeChange}

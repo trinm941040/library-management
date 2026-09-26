@@ -31,7 +31,7 @@ export function PageShell({
           ) : null}
         </div>
         {actions ? (
-          <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:flex sm:flex-wrap xl:w-auto [&>*]:max-w-full [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
+          <div className="page-shell-actions grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap xl:w-auto [&>*]:max-w-full [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
             {actions}
           </div>
         ) : null}

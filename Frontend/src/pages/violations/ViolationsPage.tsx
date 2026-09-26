@@ -490,6 +490,9 @@ export function ViolationsPage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
+                  totalCount={page.totalCount}
+                  itemCount={page.items.length}
+                  loading={isLoading}
                   onPageChange={setCurrentPage}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {

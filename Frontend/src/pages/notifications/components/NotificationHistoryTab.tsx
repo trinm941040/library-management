@@ -421,6 +421,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                 Hiển thị trang {data.pageNumber} / {data.totalPages || 1} (Tổng cộng {data.totalCount} thông báo)
               </span>
               <Pagination
+                mobileLazy={false}
                 currentPage={data.pageNumber}
                 totalPages={data.totalPages || 1}
                 onPageChange={(page) => {

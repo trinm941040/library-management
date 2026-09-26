@@ -318,6 +318,9 @@ export function CirculationPolicyList({ canManage }: CirculationPolicyListProps)
               <Pagination
                 currentPage={pageNumber}
                 totalPages={totalPages}
+                totalCount={totalCount}
+                itemCount={policies.length}
+                loading={isLoading}
                 pageSize={pageSize}
                 onPageChange={setPageNumber}
                 onPageSizeChange={(size) => {

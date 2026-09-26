@@ -437,7 +437,7 @@ export function BooksPage() {
               rows={page?.items ?? []}
               columns={columns}
               getRowId={(book) => book.id}
-              isLoading={isLoading && !page}
+              isLoading={isLoading}
               error={pageError || undefined}
               onRetry={() => refresh()}
               emptyTitle="Chưa có sách trong kho"

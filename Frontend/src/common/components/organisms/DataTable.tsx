@@ -220,6 +220,9 @@ export function DataTable<Row>({
             className="w-full sm:w-auto"
             currentPage={page}
             totalPages={totalPages}
+            totalCount={totalCount}
+            itemCount={rows.length}
+            loading={isLoading}
             onPageChange={onPageChange}
             pageSize={pageSize}
             onPageSizeChange={onPageSizeChange}

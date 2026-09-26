@@ -477,6 +477,9 @@ export function EmployeePage() {
                 <Pagination
                   currentPage={page.pageNumber}
                   totalPages={page.totalPages}
+                  totalCount={page.totalCount}
+                  itemCount={page.items.length}
+                  loading={isLoading}
                   onPageChange={(nextPage) => updateUrlFilters({ page: String(nextPage) })}
                   pageSize={pageSize}
                   onPageSizeChange={(size) => {

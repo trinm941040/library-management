@@ -122,7 +122,7 @@ export function AccessAccountsPage() {
               </TableRow>)}
             </TableBody></Table></div>
           )}
-          {page && page.totalPages > 0 ? <Pagination className="mt-4" currentPage={page.pageNumber} totalPages={page.totalPages} onPageChange={(value) => update({ pageNumber: value })} pageSize={pageSize} onPageSizeChange={(size) => update({ pageSize: size, pageNumber: 1 })} /> : null}
+          {page && page.totalPages > 0 ? <Pagination className="mt-4" currentPage={page.pageNumber} totalPages={page.totalPages} totalCount={page.totalCount} itemCount={page.items.length} loading={loading} onPageChange={(value) => update({ pageNumber: value })} pageSize={pageSize} onPageSizeChange={(size) => update({ pageSize: size, pageNumber: 1 })} /> : null}
         </CardContent>
       </Card>
       <CreateAccountDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={() => { setCreateOpen(false); update({ pageNumber: 1 }); setReload((value) => value + 1); showToast('Đã cấp tài khoản truy cập.') }} />

@@ -367,6 +367,9 @@ export function MemberPage() {
               <Pagination
                 currentPage={page}
                 totalPages={pages}
+                totalCount={total}
+                itemCount={items.length}
+                loading={loading}
                 onPageChange={(value) => updateUrl({ pageNumber: value })}
                 pageSize={pageSize}
                 onPageSizeChange={(size) => {
@@ -860,6 +863,9 @@ function MemberHistory({ memberId }: { memberId: string }) {
         <Pagination
           currentPage={history.pageNumber}
           totalPages={history.totalPages}
+          totalCount={history.totalCount}
+          itemCount={history.items.length}
+          loading={loading}
           onPageChange={setPage}
           pageSize={pageSize}
           onPageSizeChange={(size) => {

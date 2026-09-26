@@ -102,7 +102,7 @@ export function NotificationCenterPage() {
               </button>)}
             </div>
           )}
-          {data.totalCount > 0 ? <div className="border-t pt-4"><p className="mb-3 text-sm text-muted-foreground">Tổng cộng {data.totalCount} thông báo</p><Pagination currentPage={data.pageNumber} totalPages={data.totalPages || 1} pageSize={pageSize} onPageChange={setPageNumber} onPageSizeChange={(value) => { setPageSize(value); setPageNumber(1) }} /></div> : null}
+          {data.totalCount > 0 ? <div className="border-t pt-4"><p className="mb-3 text-sm text-muted-foreground">Tổng cộng {data.totalCount} thông báo</p><Pagination currentPage={data.pageNumber} totalPages={data.totalPages || 1} totalCount={data.totalCount} itemCount={data.items.length} loading={notificationsQuery.isFetching} pageSize={pageSize} onPageChange={setPageNumber} onPageSizeChange={(value) => { setPageSize(value); setPageNumber(1) }} /></div> : null}
         </CardContent>
       </Card>
 

@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react'
+import { FileSpreadsheet } from 'lucide-react'
 import { Spinner } from '@/common/components/atoms/Spinner'
 import { Badge } from '@/common/components/ui/badge'
-import { Button } from '@/common/components/ui/button'
+import { Pagination } from '@/common/components/ui/pagination'
 import {
   Table,
   TableBody,
@@ -165,31 +165,15 @@ export function ReportPreviewTable({ preview, loading, onPageChange }: ReportPre
             trong tổng số <strong className="text-foreground">{totalRows.toLocaleString('vi-VN')}</strong> bản ghi
           </span>
 
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => onPageChange(pageNumber - 1)}
-              disabled={pageNumber <= 1}
-              aria-label="Trang trước"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </Button>
-            <span className="px-2 font-medium text-foreground">
-              {pageNumber} / {Math.max(1, totalPages)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => onPageChange(pageNumber + 1)}
-              disabled={pageNumber >= totalPages}
-              aria-label="Trang sau"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+          <Pagination
+            currentPage={pageNumber}
+            totalPages={totalPages}
+            totalCount={totalRows}
+            itemCount={rows.length}
+            pageSize={pageSize}
+            loading={loading}
+            onPageChange={onPageChange}
+          />
         </div>
       </div>
     </div>

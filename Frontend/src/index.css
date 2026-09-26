@@ -112,9 +112,36 @@ button {
 }
 
 @media (max-width: 640px) {
-  [data-slot='table-container'][data-mobile-layout='list'] {
+  [class*='overflow-auto']:has(> [data-slot='table-container']),
+  [class*='overflow-x-auto']:has(> [data-slot='table-container']) {
     max-height: none;
     overflow: visible;
+  }
+
+  .page-shell-actions > div {
+    display: contents;
+  }
+
+  .page-shell-actions > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .page-shell-actions [data-slot='button'] {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .page-shell-actions [data-slot='button'] > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-slot='table-container'][data-mobile-layout='list'] {
+    max-height: min(65dvh, 40rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 0;
   }
 
