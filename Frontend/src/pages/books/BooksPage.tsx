@@ -460,8 +460,11 @@ export function BooksPage() {
               }
               filters={
                 <FilterPanel
-                  hasFilters={Boolean(searchInput)}
-                  onReset={() => setSearchInput('')}
+                  hasFilters={Boolean(searchInput) || status !== 'Active'}
+                  onReset={() => {
+                    setSearchInput('')
+                    updateUrl({ search: undefined, status: undefined, pageNumber: 1 })
+                  }}
                   resultCount={page?.totalCount}
                 >
                   <div className="relative w-full lg:w-80">

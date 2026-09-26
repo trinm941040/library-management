@@ -49,6 +49,7 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 type Props = {
   isManager: boolean
@@ -66,16 +67,17 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
   const [error, setError] = useState<string | null>(null)
 
   // Filters
-  const [channel, setChannel] = useState<string>('all')
-  const [status, setStatus] = useState<string>('all')
-  const [fromDate, setFromDate] = useState<string>('')
-  const [toDate, setToDate] = useState<string>('')
-  const [pageNumber, setPageNumber] = useState(1)
+  const [channel, setChannel] = useState<string>(() => readUrlFilter('channel', 'all'))
+  const [status, setStatus] = useState<string>(() => readUrlFilter('status', 'all'))
+  const [fromDate, setFromDate] = useState<string>(() => readUrlFilter('from'))
+  const [toDate, setToDate] = useState<string>(() => readUrlFilter('to'))
+  const [pageNumber, setPageNumber] = useState(() => readUrlPage('pageNumber', 1))
 
   // Detail Modal
   const [viewingItem, setViewingItem] = useState<NotificationItem | null>(null)
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [retrySuccess, setRetrySuccess] = useState<string | null>(null)
+  useFilterUrlSync({ channel, status, from: fromDate, to: toDate, pageNumber })
 
   const loadData = useCallback(async (page = 1) => {
     setLoading(true)
@@ -98,8 +100,8 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
   }, [channel, status, fromDate, toDate])
 
   useEffect(() => {
-    void loadData(1)
-  }, [loadData])
+    void loadData(pageNumber)
+  }, [loadData, pageNumber])
 
   const handleApplyFilter = (e: React.FormEvent) => {
     e.preventDefault()

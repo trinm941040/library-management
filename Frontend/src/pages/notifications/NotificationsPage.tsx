@@ -14,14 +14,19 @@ import {
   FileCode,
   RefreshCw,
 } from 'lucide-react'
+import { readUrlFilter, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 type NotificationsPageProps = { initialTab?: 'send' | 'history' | 'templates' }
 export function NotificationsPage({ initialTab = 'send' }: NotificationsPageProps) {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'templates'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'send' | 'history' | 'templates'>(() => {
+    const tab = readUrlFilter('tab', initialTab)
+    return tab === 'history' || tab === 'templates' ? tab : 'send'
+  })
   const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useFilterUrlSync({ tab: activeTab === initialTab ? undefined : activeTab })
 
   const isManager = Boolean(
     user?.permissions?.includes('notifications.manage') ||

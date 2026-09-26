@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { NotificationItem, NotificationPageResult, NotificationSeverity } from './notifications-api'
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useMyNotifications } from './notification-queries'
 import { formatNotificationTime, resolveNotificationLink, stripNotificationHtml } from './notification-navigation'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 const severityLabel: Record<NotificationSeverity, string> = {
   Info: 'Thông tin', Success: 'Thành công', Warning: 'Cảnh báo', Error: 'Quan trọng',
@@ -25,12 +26,13 @@ export function NotificationCenterPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [unreadOnly, setUnreadOnly] = useState(false)
-  const [severity, setSeverity] = useState<NotificationSeverity | 'all'>('all')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const [pageNumber, setPageNumber] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [severity, setSeverity] = useState<NotificationSeverity | 'all'>(() => readUrlFilter('severity', 'all') as NotificationSeverity | 'all')
+  const [fromDate, setFromDate] = useState(() => readUrlFilter('from'))
+  const [toDate, setToDate] = useState(() => readUrlFilter('to'))
+  const [pageNumber, setPageNumber] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 10))
   const [selected, setSelected] = useState<NotificationItem | null>(null)
+  useFilterUrlSync({ severity, from: fromDate, to: toDate, pageNumber, pageSize })
   const params = useMemo(() => ({
     unreadOnly,
     severity,

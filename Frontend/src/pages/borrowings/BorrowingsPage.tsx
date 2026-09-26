@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Barcode, BookOpen, CircleAlert, Plus, RefreshCw, RotateCcw, Search, Undo2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 import { Badge } from '@/common/components/ui/badge'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -38,17 +39,18 @@ const statusLabels: Record<string, string> = {
 
 export function BorrowingsPage() {
   const [page, setPage] = useState<BorrowingPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(() => readUrlFilter('search'))
+  const [search, setSearch] = useState(() => readUrlFilter('search'))
+  const [status, setStatus] = useState(() => readUrlFilter('status', 'all'))
+  const [currentPage, setCurrentPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
   const [notice, setNotice] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [returningId, setReturningId] = useState<string | null>(null)
+  useFilterUrlSync({ search, status, pageNumber: currentPage, pageSize })
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

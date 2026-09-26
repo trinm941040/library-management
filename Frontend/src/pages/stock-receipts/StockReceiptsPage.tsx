@@ -8,6 +8,7 @@ import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { getActiveSuppliers, type Supplier } from '@/pages/suppliers/supplier-api'
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
 import { getReceipts, type ReceiptStatus, type StockReceipt } from './receipt-api'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 const receiptStatusLabels: Record<ReceiptStatus, string> = {
   Draft: 'Bản nháp', Received: 'Đã tiếp nhận', Confirmed: 'Đã xác nhận', Cancelled: 'Đã hủy',
@@ -17,19 +18,20 @@ export function StockReceiptsPage() {
   const [items, setItems] = useState<StockReceipt[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [branches, setBranches] = useState<LocationNode[]>([])
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [supplierId, setSupplierId] = useState('')
-  const [branchId, setBranchId] = useState('')
-  const [status, setStatus] = useState<ReceiptStatus | ''>('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(() => readUrlFilter('search'))
+  const [search, setSearch] = useState(() => readUrlFilter('search'))
+  const [supplierId, setSupplierId] = useState(() => readUrlFilter('supplierId'))
+  const [branchId, setBranchId] = useState(() => readUrlFilter('branchId'))
+  const [status, setStatus] = useState<ReceiptStatus | ''>(() => readUrlFilter('status') as ReceiptStatus | '')
+  const [from, setFrom] = useState(() => readUrlFilter('from'))
+  const [to, setTo] = useState(() => readUrlFilter('to'))
+  const [page, setPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  useFilterUrlSync({ search, supplierId, branchId, status, from, to, pageNumber: page, pageSize })
   const load = useCallback((signal?: AbortSignal) => {
     setLoading(true); setError('')
     return getReceipts({ search, supplierId: supplierId || undefined, branchId: branchId || undefined,

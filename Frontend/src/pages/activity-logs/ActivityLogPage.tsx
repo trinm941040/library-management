@@ -19,7 +19,7 @@ import { downloadResponse } from '@/shared/data/table-contracts'
 
 const filterKeys = [
   'actorUserId', 'action', 'entityType', 'entityId',
-  'correlationId', 'ipAddress', 'fromUtc', 'toUtc',
+  'correlationId', 'ipAddress', 'from', 'to',
 ] as const
 type FilterKey = (typeof filterKeys)[number]
 type FilterDraft = Record<FilterKey, string>
@@ -114,7 +114,9 @@ export function ActivityLogPage() {
     setIsLoading(true)
     setError('')
     const filters: AuditLogFilters = {
-      ...Object.fromEntries(Object.entries(activeFilters).filter(([, value]) => value)),
+      ...Object.fromEntries(Object.entries(activeFilters).filter(([key, value]) => value && key !== 'from' && key !== 'to')),
+      fromUtc: activeFilters.from || undefined,
+      toUtc: activeFilters.to || undefined,
       pageNumber, pageSize,
     }
     getAuditLogs(filters, controller.signal)
@@ -164,7 +166,9 @@ export function ActivityLogPage() {
 
   const exportFiltered = async () => {
     const filters: AuditLogFilters = {
-      ...Object.fromEntries(Object.entries(activeFilters).filter(([, value]) => value)),
+      ...Object.fromEntries(Object.entries(activeFilters).filter(([key, value]) => value && key !== 'from' && key !== 'to')),
+      fromUtc: activeFilters.from || undefined,
+      toUtc: activeFilters.to || undefined,
       pageNumber: 1, pageSize,
     }
     try { await downloadResponse(await exportAuditLogs(filters), 'audit-log.csv') }
@@ -210,8 +214,8 @@ export function ActivityLogPage() {
                 <Input value={draft.actorUserId} onChange={(event) => setDraft((value) => ({ ...value, actorUserId: event.target.value }))} placeholder="Mã người thực hiện" aria-label="Lọc theo mã người thực hiện" />
                 <Input value={draft.ipAddress} onChange={(event) => setDraft((value) => ({ ...value, ipAddress: event.target.value }))} placeholder="Địa chỉ IP" aria-label="Lọc theo địa chỉ IP" />
                 <Input value={draft.correlationId} onChange={(event) => setDraft((value) => ({ ...value, correlationId: event.target.value }))} placeholder="Correlation ID" aria-label="Lọc theo correlation ID" />
-                <Input type="datetime-local" value={toLocalDateTimeInput(draft.fromUtc)} onChange={(event) => setDraft((value) => ({ ...value, fromUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Từ thời điểm" />
-                <Input type="datetime-local" value={toLocalDateTimeInput(draft.toUtc)} onChange={(event) => setDraft((value) => ({ ...value, toUtc: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Đến thời điểm" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.from)} onChange={(event) => setDraft((value) => ({ ...value, from: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Từ thời điểm" />
+                <Input type="datetime-local" value={toLocalDateTimeInput(draft.to)} onChange={(event) => setDraft((value) => ({ ...value, to: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Đến thời điểm" />
                 <Button type="submit" className="xl:col-start-4"><Search />Áp dụng bộ lọc</Button>
               </form>
             </FilterPanel>}

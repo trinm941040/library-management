@@ -16,6 +16,7 @@ import {
   type CopyCondition, type CopyImportPreview, type CopyImportRow, type CopyStatus,
 } from './copy-api'
 import { downloadCopyTemplate, parseCopyImport } from './copy-import'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 const statuses: CopyStatus[] = ['Available', 'Borrowed', 'Reserved', 'InTransit', 'Lost', 'Damaged', 'Withdrawn']
 const conditions: CopyCondition[] = ['New', 'Good', 'Worn', 'Damaged', 'Lost']
@@ -32,13 +33,13 @@ export function CopiesPage() {
   const [copies, setCopies] = useState<BookCopy[]>([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(0)
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
-  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
+  const [search, setSearch] = useState(() => readUrlFilter('search'))
   const [barcode, setBarcode] = useState('')
-  const [status, setStatus] = useState<CopyStatus | ''>('')
-  const [condition, setCondition] = useState<CopyCondition | ''>('')
-  const [shelfId, setShelfId] = useState('')
+  const [status, setStatus] = useState<CopyStatus | ''>(() => readUrlFilter('status') as CopyStatus | '')
+  const [condition, setCondition] = useState<CopyCondition | ''>(() => readUrlFilter('condition') as CopyCondition | '')
+  const [shelfId, setShelfId] = useState(() => readUrlFilter('shelfId'))
   const [shelves, setShelves] = useState<ActiveShelf[]>([])
   const [books, setBooks] = useState<LibraryBook[]>([])
   const [bookSearch, setBookSearch] = useState('')
@@ -71,6 +72,7 @@ export function CopiesPage() {
   const { user } = useAuth()
   const canOperate = canAny(user?.permissions ?? [], ['copies.update', 'copies.withdraw'])
   const { showToast } = useToast()
+  useFilterUrlSync({ search, status, condition, shelfId, pageNumber: page, pageSize })
 
   const load = useCallback((signal?: AbortSignal) => {
     setLoading(true)

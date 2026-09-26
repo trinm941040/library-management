@@ -8,16 +8,17 @@ import {
   changeSupplierStatus, createSupplier, getSuppliers, updateSupplier,
   type Supplier, type SupplierInput, type SupplierStatus,
 } from './supplier-api'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 const empty: SupplierInput = { code: '', name: '', contactName: '', email: '', phoneNumber: '', address: '' }
 
 export function SuppliersPage() {
   const [items, setItems] = useState<Supplier[]>([])
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<SupplierStatus | ''>('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(() => readUrlFilter('search'))
+  const [search, setSearch] = useState(() => readUrlFilter('search'))
+  const [status, setStatus] = useState<SupplierStatus | ''>(() => readUrlFilter('status') as SupplierStatus | '')
+  const [page, setPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -30,6 +31,7 @@ export function SuppliersPage() {
   const [pending, setPending] = useState(false)
   const [changingStatus, setChangingStatus] = useState<Supplier | null>(null)
   const { showToast } = useToast()
+  useFilterUrlSync({ search, status, pageNumber: page, pageSize })
 
   const load = useCallback((signal?: AbortSignal) => {
     setLoading(true)

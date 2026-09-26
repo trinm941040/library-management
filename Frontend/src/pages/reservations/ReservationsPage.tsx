@@ -22,6 +22,7 @@ import {
 } from '@/common/components/ui/table'
 import { ReservationFormDialog, type ReservationFormData } from './components/ReservationFormDialog'
 import { ReservationDetailDialog } from './components/ReservationDetailDialog'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 import { FulfillReservationDialog } from './components/FulfillReservationDialog'
 import { CancelReservationDialog } from './components/CancelReservationDialog'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
@@ -52,11 +53,11 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
 
 export function ReservationsPage() {
   const [page, setPage] = useState<ReservationPageResponse | null>(null)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [searchInput, setSearchInput] = useState(() => readUrlFilter('search'))
+  const [search, setSearch] = useState(() => readUrlFilter('search'))
+  const [status, setStatus] = useState(() => readUrlFilter('status', 'all'))
+  const [currentPage, setCurrentPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
   const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState('')
@@ -70,6 +71,7 @@ export function ReservationsPage() {
   const [fulfillOpen, setFulfillOpen] = useState(false)
   const [selectedCancel, setSelectedCancel] = useState<LibraryReservation | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
+  useFilterUrlSync({ search, status, pageNumber: currentPage, pageSize })
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

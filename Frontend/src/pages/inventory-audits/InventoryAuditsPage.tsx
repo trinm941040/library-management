@@ -7,23 +7,29 @@ import { Input } from '@/common/components/ui/input'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import type { LocationNode } from '@/pages/branches/branch-api'
 import { createAudit, getAuditLocations, getAudits, type AuditStatus, type InventoryAudit } from './inventory-audit-api'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
+
+const auditStatusLabels: Record<AuditStatus, string> = {
+  Draft: 'Bản nháp', InProgress: 'Đang thực hiện', Completed: 'Đã hoàn tất', Cancelled: 'Đã hủy',
+}
 
 export function InventoryAuditsPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<InventoryAudit[]>([])
   const [branches, setBranches] = useState<LocationNode[]>([])
-  const [branchId, setBranchId] = useState('')
+  const [branchId, setBranchId] = useState(() => readUrlFilter('branchId'))
   const [areaId, setAreaId] = useState('')
   const [shelfId, setShelfId] = useState('')
   const [notes, setNotes] = useState('')
-  const [status, setStatus] = useState<AuditStatus | ''>('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [status, setStatus] = useState<AuditStatus | ''>(() => readUrlFilter('status') as AuditStatus | '')
+  const [page, setPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 20))
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  useFilterUrlSync({ branchId, status, pageNumber: page, pageSize })
   const currentBranch = branches.find(node => node.id === branchId)
   const areas = currentBranch?.children.filter(node => node.type === 'Area' && node.isActive) ?? []
   const shelves = areas.find(node => node.id === areaId)?.children.filter(node => node.type === 'Shelf' && node.isActive) ?? []
@@ -65,12 +71,12 @@ export function InventoryAuditsPage() {
       isLoading={loading} error={error} onRetry={() => void load()}
       page={page} pageSize={pageSize} totalPages={pages} totalCount={total}
       onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}
-      filters={<div className="flex flex-wrap gap-2"><select aria-label="Lọc trạng thái" className="h-10 rounded-md border bg-background px-3" value={status} onChange={event => { setStatus(event.target.value as AuditStatus | ''); setPage(1) }}><option value="">Tất cả trạng thái</option>{(['InProgress', 'Completed', 'Cancelled'] as const).map(value => <option key={value} value={value}>{value}</option>)}</select></div>}
+      filters={<div className="flex flex-wrap gap-2"><select aria-label="Lọc trạng thái" className="h-10 rounded-md border bg-background px-3" value={status} onChange={event => { setStatus(event.target.value as AuditStatus | ''); setPage(1) }}><option value="">Tất cả trạng thái</option>{(['InProgress', 'Completed', 'Cancelled'] as const).map(value => <option key={value} value={value}>{auditStatusLabels[value]}</option>)}</select></div>}
       columns={[
         { id: 'id', header: 'Đợt kiểm kê', cell: row => <Link className="text-primary underline" to={`/inventory-audits/${row.id}`}>{row.id.slice(0, 8)}</Link> },
         { id: 'scope', header: 'Phạm vi', cell: row => row.shelfId ? 'Kệ' : row.areaId ? 'Khu vực' : 'Chi nhánh' },
         { id: 'started', header: 'Bắt đầu', cell: row => new Date(row.startedAtUtc).toLocaleString('vi-VN') },
-        { id: 'status', header: 'Trạng thái', cell: row => row.status === 'InProgress' ? 'Đang kiểm kê' : row.status === 'Completed' ? 'Đã hoàn tất' : row.status },
+        { id: 'status', header: 'Trạng thái', cell: row => auditStatusLabels[row.status] },
         { id: 'progress', header: 'Tiến độ', cell: row => `${row.scannedCount}/${row.expectedCount}` },
         { id: 'differences', header: 'Chênh lệch', cell: row => row.discrepancyCount },
       ]} />

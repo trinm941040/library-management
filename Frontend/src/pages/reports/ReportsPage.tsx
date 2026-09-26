@@ -32,6 +32,7 @@ import {
   type ReportPreviewResult,
   type SavedFilter,
 } from './reports-api'
+import { readUrlFilter, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 const REPORT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   circulation_loans: RefreshCw,
@@ -44,12 +45,13 @@ export function ReportsPage() {
   const { user } = useAuth()
 
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([])
-  const [selectedReportCode, setSelectedReportCode] = useState<string>('circulation_loans')
+  const [selectedReportCode, setSelectedReportCode] = useState<string>(() => readUrlFilter('report', 'circulation_loans'))
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([])
 
-  const [filters, setFilters] = useState<Record<string, string>>({
-    range: 'month',
-    status: 'all',
+  const [filters, setFilters] = useState<Record<string, string>>(() => {
+    const params = new URLSearchParams(window.location.search)
+    const values = Object.fromEntries([...params.entries()].filter(([key]) => key !== 'report'))
+    return { range: 'month', status: 'all', ...values }
   })
 
   const [preview, setPreview] = useState<ReportPreviewResult | null>(null)
@@ -63,6 +65,7 @@ export function ReportsPage() {
 
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  useFilterUrlSync({ report: selectedReportCode, ...filters })
 
   const isGlobalAdmin = useMemo(() => {
     if (!user) return false

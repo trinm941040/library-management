@@ -67,6 +67,7 @@ import {
   type Role,
   type RoleInput,
 } from './role-permission-api'
+import { readUrlFilter, readUrlPage, useFilterUrlSync } from '@/shared/data/use-filter-url-sync'
 
 export type RolePermissionView = 'roles' | 'permissions'
 type DeleteTarget = { type: 'role'; value: Role } | { type: 'permission'; value: Permission }
@@ -112,19 +113,19 @@ export function RolePermissionPage({ initialView }: { initialView: RolePermissio
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [permissionCatalog, setPermissionCatalog] = useState<Permission[]>([])
   const [modules, setModules] = useState<string[]>([])
-  const [rolePage, setRolePage] = useState(1)
-  const [rolePageSize, setRolePageSize] = useState(10)
+  const [rolePage, setRolePage] = useState(() => readUrlPage('pageNumber', 1))
+  const [rolePageSize, setRolePageSize] = useState(() => readUrlPage('pageSize', 10))
   const [roleTotalCount, setRoleTotalCount] = useState(0)
   const [roleTotalPages, setRoleTotalPages] = useState(0)
-  const [permissionPage, setPermissionPage] = useState(1)
-  const [permissionPageSize, setPermissionPageSize] = useState(10)
+  const [permissionPage, setPermissionPage] = useState(() => readUrlPage('pageNumber', 1))
+  const [permissionPageSize, setPermissionPageSize] = useState(() => readUrlPage('pageSize', 10))
   const [permissionTotalCount, setPermissionTotalCount] = useState(0)
   const [permissionTotalPages, setPermissionTotalPages] = useState(0)
-  const [roleSearchInput, setRoleSearchInput] = useState('')
-  const [roleSearch, setRoleSearch] = useState('')
-  const [permissionSearchInput, setPermissionSearchInput] = useState('')
-  const [permissionSearch, setPermissionSearch] = useState('')
-  const [moduleFilter, setModuleFilter] = useState('all')
+  const [roleSearchInput, setRoleSearchInput] = useState(() => readUrlFilter('search'))
+  const [roleSearch, setRoleSearch] = useState(() => readUrlFilter('search'))
+  const [permissionSearchInput, setPermissionSearchInput] = useState(() => readUrlFilter('search'))
+  const [permissionSearch, setPermissionSearch] = useState(() => readUrlFilter('search'))
+  const [moduleFilter, setModuleFilter] = useState(() => readUrlFilter('module', 'all'))
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -137,6 +138,9 @@ export function RolePermissionPage({ initialView }: { initialView: RolePermissio
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  useFilterUrlSync(view === 'roles'
+    ? { search: roleSearch, pageNumber: rolePage, pageSize: rolePageSize }
+    : { search: permissionSearch, module: moduleFilter, pageNumber: permissionPage, pageSize: permissionPageSize })
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
