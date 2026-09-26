@@ -27,6 +27,7 @@ import { Button } from '@/common/components/ui/button'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select'
 import { BookFormDialog, type BookFormData } from './components/BookFormDialog'
 import { EntityActivityLink } from '@/pages/activity-logs/EntityActivityLink'
 import {
@@ -419,18 +420,18 @@ export function BooksPage() {
           </CardHeader>
           <CardContent>
             <FilterPanel className="mb-4">
-              <label className="grid gap-1 text-sm font-medium" htmlFor="catalog-status">
-                Trạng thái
-                <select
-                  id="catalog-status"
-                  className="h-10 rounded-md border bg-background px-3"
-                  value={status}
-                  onChange={(event) => updateUrl({ status: event.target.value, pageNumber: 1 })}
-                >
-                  <option value="Active">Đang sử dụng</option>
-                  <option value="Inactive">Ngừng sử dụng</option>
-                </select>
-              </label>
+              <div className="grid gap-1 text-sm font-medium">
+                <label htmlFor="catalog-status">Trạng thái</label>
+                <Select value={status} onValueChange={(value) => updateUrl({ status: value, pageNumber: 1 })}>
+                  <SelectTrigger id="catalog-status" className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Đang sử dụng</SelectItem>
+                    <SelectItem value="Inactive">Ngừng sử dụng</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </FilterPanel>
             <DataTable
               caption="Danh sách sách trong kho"
