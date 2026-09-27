@@ -98,17 +98,24 @@ export function SuppliersPage() {
       </PermissionBoundary>
     </div>}>
     <div className="grid gap-3">
-      <div className="flex flex-wrap gap-2">
+      <form className="flex flex-wrap gap-2" onSubmit={(event) => {
+        event.preventDefault()
+        const value = new FormData(event.currentTarget).get('search')?.toString().trim() ?? ''
+        setSearchInput(value)
+        setSearch(value)
+        setPage(1)
+      }}>
         <Input className="min-w-56 flex-1" aria-label="Tìm nhà cung cấp" placeholder="Mã, tên, liên hệ, email hoặc điện thoại"
+          name="search"
           value={searchInput} onChange={(event) => setSearchInput(event.target.value)}
-          onKeyDown={(event) => { if (event.key === 'Enter') { setPage(1); setSearch(searchInput.trim()) } }} />
+        />
         <select className="h-10 rounded-md border bg-background px-3" aria-label="Lọc trạng thái nhà cung cấp"
           value={status} onChange={(event) => { setPage(1); setStatus(event.target.value as SupplierStatus | '') }}>
           <option value="">Mọi trạng thái</option><option value="Active">Đang hoạt động</option>
           <option value="Inactive">Ngừng hoạt động</option>
         </select>
-        <Button variant="outline" onClick={() => { setPage(1); setSearch(searchInput.trim()) }}>Tìm kiếm</Button>
-      </div>
+        <Button type="submit" variant="outline">Tìm kiếm</Button>
+      </form>
       <DataTable caption="Danh sách nhà cung cấp" rows={items} getRowId={(item) => item.id}
         isLoading={loading} error={error} onRetry={() => void load()} emptyTitle="Chưa có nhà cung cấp phù hợp"
         page={page} pageSize={pageSize} totalPages={pages} totalCount={total}

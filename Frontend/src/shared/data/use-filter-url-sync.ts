@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { updateSearchParams } from './table-contracts'
 
@@ -12,15 +12,13 @@ export const readUrlPage = (key: string, fallback: number) => {
 
 export function useFilterUrlSync(values: Record<string, string | number | undefined>) {
   const [, setSearchParams] = useSearchParams()
-  const initialized = useRef(false)
   const serialized = JSON.stringify(values)
   useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true
-      return
-    }
     const changes = JSON.parse(serialized) as Record<string, string | number | undefined>
-    setSearchParams((current) => updateSearchParams(current, changes))
+    setSearchParams((current) => {
+      const next = updateSearchParams(current, changes)
+      return next.toString() === current.toString() ? current : next
+    }, { replace: true })
   }, [serialized, setSearchParams])
   useEffect(() => {
     const restore = () => window.location.reload()

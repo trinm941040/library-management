@@ -25,14 +25,14 @@ export function NotificationCenterPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const [unreadOnly, setUnreadOnly] = useState(false)
+  const [unreadOnly, setUnreadOnly] = useState(() => readUrlFilter('state') === 'unread')
   const [severity, setSeverity] = useState<NotificationSeverity | 'all'>(() => readUrlFilter('severity', 'all') as NotificationSeverity | 'all')
-  const [fromDate, setFromDate] = useState(() => readUrlFilter('from'))
-  const [toDate, setToDate] = useState(() => readUrlFilter('to'))
+  const [fromDate, setFromDate] = useState(() => readUrlFilter('fromDate'))
+  const [toDate, setToDate] = useState(() => readUrlFilter('toDate'))
   const [pageNumber, setPageNumber] = useState(() => readUrlPage('pageNumber', 1))
   const [pageSize, setPageSize] = useState(() => readUrlPage('pageSize', 10))
   const [selected, setSelected] = useState<NotificationItem | null>(null)
-  useFilterUrlSync({ severity, from: fromDate, to: toDate, pageNumber, pageSize })
+  useFilterUrlSync({ state: unreadOnly ? 'unread' : undefined, severity, fromDate, toDate, pageNumber, pageSize })
   const params = useMemo(() => ({
     unreadOnly,
     severity,
@@ -92,8 +92,8 @@ export function NotificationCenterPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div><Label htmlFor="notification-state">Trạng thái</Label><Select value={unreadOnly ? 'unread' : 'all'} onValueChange={(value) => { setUnreadOnly(value === 'unread'); setPageNumber(1) }}><SelectTrigger id="notification-state"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả</SelectItem><SelectItem value="unread">Chưa đọc</SelectItem></SelectContent></Select></div>
             <div><Label htmlFor="notification-severity">Mức độ</Label><Select value={severity} onValueChange={(value) => { setSeverity(value as NotificationSeverity | 'all'); setPageNumber(1) }}><SelectTrigger id="notification-severity"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả</SelectItem>{Object.entries(severityLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label htmlFor="notification-from">Từ ngày</Label><Input id="notification-from" type="date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPageNumber(1) }} /></div>
-            <div><Label htmlFor="notification-to">Đến ngày</Label><Input id="notification-to" type="date" min={fromDate || undefined} value={toDate} onChange={(event) => { setToDate(event.target.value); setPageNumber(1) }} /></div>
+            <div><Label htmlFor="notification-from">Từ ngày</Label><Input id="notification-from" type="date" value={fromDate} onInput={(event) => { setFromDate(event.currentTarget.value); setPageNumber(1) }} onChange={(event) => { setFromDate(event.target.value); setPageNumber(1) }} /></div>
+            <div><Label htmlFor="notification-to">Đến ngày</Label><Input id="notification-to" type="date" min={fromDate || undefined} value={toDate} onInput={(event) => { setToDate(event.currentTarget.value); setPageNumber(1) }} onChange={(event) => { setToDate(event.target.value); setPageNumber(1) }} /></div>
           </div>
 
           {notificationsQuery.isLoading ? <ScreenState kind="loading" title="Đang tải thông báo" /> : notificationsQuery.isError ? <ScreenState kind="error" title="Không thể tải thông báo" description={notificationsQuery.error instanceof Error ? notificationsQuery.error.message : 'Không thể tải thông báo.'} actionLabel="Thử lại" onAction={() => void notificationsQuery.refetch()} /> : data.items.length === 0 ? <ScreenState kind="empty" title="Không có thông báo" description="Không tìm thấy thông báo phù hợp với bộ lọc." /> : (

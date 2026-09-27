@@ -15,11 +15,11 @@ internal sealed class SupplierRepository(LibraryDbContext db) : ISupplierReposit
         if (!string.IsNullOrWhiteSpace(search))
         {
             var pattern = $"%{EscapeLike(search.Trim())}%";
-            query = query.Where(x => EF.Functions.ILike(x.Code, pattern, "\\") ||
-                EF.Functions.ILike(x.Name, pattern, "\\") ||
-                (x.ContactName != null && EF.Functions.ILike(x.ContactName, pattern, "\\")) ||
-                (x.Email != null && EF.Functions.ILike(x.Email, pattern, "\\")) ||
-                (x.PhoneNumber != null && EF.Functions.ILike(x.PhoneNumber, pattern, "\\")));
+            query = query.Where(x => EF.Functions.ILike(x.Code, pattern) ||
+                EF.Functions.ILike(x.Name, pattern) ||
+                (x.ContactName != null && EF.Functions.ILike(x.ContactName, pattern)) ||
+                (x.Email != null && EF.Functions.ILike(x.Email, pattern)) ||
+                (x.PhoneNumber != null && EF.Functions.ILike(x.PhoneNumber, pattern)));
         }
         if (status is not null) query = query.Where(x => x.Status == status);
         var total = await query.CountAsync(cancellationToken);

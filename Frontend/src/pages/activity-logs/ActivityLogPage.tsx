@@ -150,9 +150,18 @@ export function ActivityLogPage() {
     })
   }, [setSearchParams])
 
-  const submitFilters = (event: FormEvent) => {
+  const submitFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    updateParams({ ...draft, pageNumber: 1 })
+    const form = event.currentTarget
+    const fromValue = new FormData(form).get('from')?.toString() ?? ''
+    const toValue = new FormData(form).get('to')?.toString() ?? ''
+    const nextDraft = {
+      ...draft,
+      from: fromValue ? new Date(fromValue).toISOString() : '',
+      to: toValue ? new Date(toValue).toISOString() : '',
+    }
+    setDraft(nextDraft)
+    updateParams({ ...nextDraft, pageNumber: 1 })
   }
 
   const openDetail = async (item: AuditLog) => {
@@ -214,8 +223,8 @@ export function ActivityLogPage() {
                 <Input value={draft.actorUserId} onChange={(event) => setDraft((value) => ({ ...value, actorUserId: event.target.value }))} placeholder="Mã người thực hiện" aria-label="Lọc theo mã người thực hiện" />
                 <Input value={draft.ipAddress} onChange={(event) => setDraft((value) => ({ ...value, ipAddress: event.target.value }))} placeholder="Địa chỉ IP" aria-label="Lọc theo địa chỉ IP" />
                 <Input value={draft.correlationId} onChange={(event) => setDraft((value) => ({ ...value, correlationId: event.target.value }))} placeholder="Correlation ID" aria-label="Lọc theo correlation ID" />
-                <Input type="datetime-local" value={toLocalDateTimeInput(draft.from)} onChange={(event) => setDraft((value) => ({ ...value, from: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Từ thời điểm" />
-                <Input type="datetime-local" value={toLocalDateTimeInput(draft.to)} onChange={(event) => setDraft((value) => ({ ...value, to: event.target.value ? new Date(event.target.value).toISOString() : '' }))} aria-label="Đến thời điểm" />
+                <Input name="from" type="datetime-local" value={toLocalDateTimeInput(draft.from)} onChange={(event) => setDraft((value) => ({ ...value, from: event.target.value }))} aria-label="Từ thời điểm" />
+                <Input name="to" type="datetime-local" value={toLocalDateTimeInput(draft.to)} onChange={(event) => setDraft((value) => ({ ...value, to: event.target.value }))} aria-label="Đến thời điểm" />
                 <Button type="submit" className="xl:col-start-4"><Search />Áp dụng bộ lọc</Button>
               </form>
             </FilterPanel>}

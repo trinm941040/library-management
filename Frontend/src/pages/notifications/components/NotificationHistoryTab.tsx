@@ -69,15 +69,15 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
   // Filters
   const [channel, setChannel] = useState<string>(() => readUrlFilter('channel', 'all'))
   const [status, setStatus] = useState<string>(() => readUrlFilter('status', 'all'))
-  const [fromDate, setFromDate] = useState<string>(() => readUrlFilter('from'))
-  const [toDate, setToDate] = useState<string>(() => readUrlFilter('to'))
+  const [fromDate, setFromDate] = useState<string>(() => readUrlFilter('fromDate'))
+  const [toDate, setToDate] = useState<string>(() => readUrlFilter('toDate'))
   const [pageNumber, setPageNumber] = useState(() => readUrlPage('pageNumber', 1))
 
   // Detail Modal
   const [viewingItem, setViewingItem] = useState<NotificationItem | null>(null)
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [retrySuccess, setRetrySuccess] = useState<string | null>(null)
-  useFilterUrlSync({ channel, status, from: fromDate, to: toDate, pageNumber })
+  useFilterUrlSync({ channel, status, fromDate, toDate, pageNumber })
 
   const loadData = useCallback(async (page = 1) => {
     setLoading(true)
@@ -105,8 +105,11 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
 
   const handleApplyFilter = (e: React.FormEvent) => {
     e.preventDefault()
+    const form = e.currentTarget as HTMLFormElement
+    const values = new FormData(form)
+    setFromDate(values.get('fromDate')?.toString() ?? '')
+    setToDate(values.get('toDate')?.toString() ?? '')
     setPageNumber(1)
-    void loadData(1)
   }
 
   const handleResetFilter = () => {
@@ -230,8 +233,10 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
               <Label htmlFor="fromDate">Từ ngày</Label>
               <Input
                 id="fromDate"
+                name="fromDate"
                 type="date"
                 value={fromDate}
+                onInput={(e) => setFromDate(e.currentTarget.value)}
                 onChange={(e) => setFromDate(e.target.value)}
               />
             </div>
@@ -240,8 +245,10 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
               <Label htmlFor="toDate">Đến ngày</Label>
               <Input
                 id="toDate"
+                name="toDate"
                 type="date"
                 value={toDate}
+                onInput={(e) => setToDate(e.currentTarget.value)}
                 onChange={(e) => setToDate(e.target.value)}
               />
             </div>
