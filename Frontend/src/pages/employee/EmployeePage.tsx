@@ -243,7 +243,7 @@ export function EmployeePage() {
             <p className="mb-2 text-xs font-bold tracking-widest text-primary uppercase">
               nhân sự và quyền truy cập
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">Hồ sơ nhân viên (Staff)</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Hồ sơ nhân viên</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Staff là hồ sơ nhân sự, khác Access Account dùng đăng nhập và Member là độc giả.
             </p>

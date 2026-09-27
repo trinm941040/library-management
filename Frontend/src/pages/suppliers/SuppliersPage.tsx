@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, RefreshCw } from 'lucide-react'
-import { ConfirmDialog, DataTable, PageShell, ScreenState, StatusBadge, useToast } from '@/common/components'
+import { ConfirmDialog, DataTable, PageShell, StatusBadge, useToast } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
+import { Label } from '@/common/components/ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import {
   changeSupplierStatus, createSupplier, getSuppliers, updateSupplier,
@@ -30,6 +32,7 @@ export function SuppliersPage() {
   const [actionError, setActionError] = useState('')
   const [pending, setPending] = useState(false)
   const [changingStatus, setChangingStatus] = useState<Supplier | null>(null)
+  const [formErrors, setFormErrors] = useState<{ code?: string; name?: string; email?: string }>({})
   const { showToast } = useToast()
   useFilterUrlSync({ search, status, pageNumber: page, pageSize })
 
@@ -64,6 +67,13 @@ export function SuppliersPage() {
   }
 
   const save = async () => {
+    const nextErrors = {
+      code: form.code.trim() ? undefined : 'Vui lòng nhập mã nhà cung cấp.',
+      name: form.name.trim() ? undefined : 'Vui lòng nhập tên nhà cung cấp.',
+      email: form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? 'Email không hợp lệ.' : undefined,
+    }
+    setFormErrors(nextErrors)
+    if (Object.values(nextErrors).some(Boolean)) return
     setPending(true); setActionError('')
     try {
       const saved = editing
@@ -145,18 +155,21 @@ export function SuppliersPage() {
       <p className="text-sm">Địa chỉ: {selected.address ?? '—'}</p>
       <p className="text-sm">{selected.hasStockReceipts ? 'Có lịch sử phiếu nhập; dữ liệu được giữ khi ngừng hoạt động.' : 'Chưa có phiếu nhập.'}</p>
     </section> : null}
-    {formOpen ? <section className="mt-4 grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2" aria-label={editing ? 'Sửa nhà cung cấp' : 'Tạo nhà cung cấp'}>
-      <h2 className="font-semibold md:col-span-2">{editing ? 'Sửa nhà cung cấp' : 'Tạo nhà cung cấp'}</h2>
-      <Input aria-label="Mã nhà cung cấp" placeholder="Mã nhà cung cấp" maxLength={30} value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} />
-      <Input aria-label="Tên nhà cung cấp" placeholder="Tên nhà cung cấp" maxLength={200} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-      <Input aria-label="Người liên hệ" placeholder="Người liên hệ" maxLength={150} value={form.contactName ?? ''} onChange={(event) => setForm({ ...form, contactName: event.target.value })} />
-      <Input aria-label="Email" type="email" placeholder="Email" maxLength={256} value={form.email ?? ''} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-      <Input aria-label="Số điện thoại" placeholder="Số điện thoại" maxLength={32} value={form.phoneNumber ?? ''} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} />
-      <Input aria-label="Địa chỉ" placeholder="Địa chỉ" maxLength={500} value={form.address ?? ''} onChange={(event) => setForm({ ...form, address: event.target.value })} />
-      {actionError ? <div className="md:col-span-2"><ScreenState kind="error" title="Không thể lưu" description={actionError} /></div> : null}
-      <div className="flex gap-2 md:col-span-2"><Button loading={pending} disabled={!form.code.trim() || !form.name.trim()} onClick={() => void save()}>Lưu</Button>
-        <Button variant="outline" disabled={pending} onClick={() => setFormOpen(false)}>Hủy</Button></div>
-    </section> : null}
+    <Dialog open={formOpen} onOpenChange={(open) => { if (!pending) { setFormOpen(open); if (!open) { setFormErrors({}); setActionError('') } } }}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader><DialogTitle>{editing ? 'Sửa nhà cung cấp' : 'Tạo nhà cung cấp'}</DialogTitle><DialogDescription>Nhập thông tin nhà cung cấp. Các trường có dấu * là bắt buộc.</DialogDescription></DialogHeader>
+        <form className="grid gap-4 sm:grid-cols-2" noValidate onSubmit={(event) => { event.preventDefault(); void save() }}>
+          <div className="grid gap-2"><Label htmlFor="supplier-code">Mã nhà cung cấp <span className="text-destructive">*</span></Label><Input id="supplier-code" required aria-invalid={Boolean(formErrors.code)} aria-describedby={formErrors.code ? 'supplier-code-error' : undefined} maxLength={30} value={form.code} onChange={(event) => { setForm({ ...form, code: event.target.value }); setFormErrors((value) => ({ ...value, code: undefined })) }} />{formErrors.code ? <p id="supplier-code-error" role="alert" className="text-sm text-destructive">{formErrors.code}</p> : null}</div>
+          <div className="grid gap-2"><Label htmlFor="supplier-name">Tên nhà cung cấp <span className="text-destructive">*</span></Label><Input id="supplier-name" required aria-invalid={Boolean(formErrors.name)} aria-describedby={formErrors.name ? 'supplier-name-error' : undefined} maxLength={200} value={form.name} onChange={(event) => { setForm({ ...form, name: event.target.value }); setFormErrors((value) => ({ ...value, name: undefined })) }} />{formErrors.name ? <p id="supplier-name-error" role="alert" className="text-sm text-destructive">{formErrors.name}</p> : null}</div>
+          <div className="grid gap-2"><Label htmlFor="supplier-contact">Người liên hệ</Label><Input id="supplier-contact" maxLength={150} value={form.contactName ?? ''} onChange={(event) => setForm({ ...form, contactName: event.target.value })} /></div>
+          <div className="grid gap-2"><Label htmlFor="supplier-email">Email</Label><Input id="supplier-email" type="email" aria-invalid={Boolean(formErrors.email)} aria-describedby={formErrors.email ? 'supplier-email-error' : undefined} maxLength={256} value={form.email ?? ''} onChange={(event) => { setForm({ ...form, email: event.target.value }); setFormErrors((value) => ({ ...value, email: undefined })) }} />{formErrors.email ? <p id="supplier-email-error" role="alert" className="text-sm text-destructive">{formErrors.email}</p> : null}</div>
+          <div className="grid gap-2"><Label htmlFor="supplier-phone">Số điện thoại</Label><Input id="supplier-phone" maxLength={32} value={form.phoneNumber ?? ''} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} /></div>
+          <div className="grid gap-2"><Label htmlFor="supplier-address">Địa chỉ</Label><Input id="supplier-address" maxLength={500} value={form.address ?? ''} onChange={(event) => setForm({ ...form, address: event.target.value })} /></div>
+          {actionError ? <p className="text-sm text-destructive sm:col-span-2" role="alert">{actionError}</p> : null}
+          <DialogFooter className="sm:col-span-2"><Button type="button" variant="outline" disabled={pending} onClick={() => setFormOpen(false)}>Hủy</Button><Button type="submit" loading={pending}>Lưu</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
     <ConfirmDialog open={changingStatus !== null} title="Đổi trạng thái nhà cung cấp"
       description={changingStatus?.status === 'Active' ? 'Nhà cung cấp sẽ không xuất hiện trong danh sách chọn cho phiếu nhập mới. Phiếu nhập cũ vẫn được giữ.' : 'Nhà cung cấp sẽ được chọn lại cho phiếu nhập mới.'}
       confirmLabel={changingStatus?.status === 'Active' ? 'Ngừng hoạt động' : 'Kích hoạt'}

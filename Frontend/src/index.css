@@ -1,6 +1,25 @@
 @import 'tailwindcss';
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* Trạng thái validation thống nhất cho mọi form native và form validate bằng schema. */
+:where(input, select, textarea):where(:user-invalid, [aria-invalid='true']) {
+  border-color: var(--destructive) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
+}
+
+:where(input, select, textarea):where(:user-invalid, [aria-invalid='true']):focus {
+  outline: none;
+  border-color: var(--destructive) !important;
+}
+
+:where(div, fieldset):has(> :where(input, select, textarea)[required])
+  > label:not(:has(.text-destructive))::after,
+:where(div, fieldset):has(> div > :where(input, select, textarea)[required])
+  > label:not(:has(.text-destructive))::after {
+  content: ' *';
+  color: var(--destructive);
+}
+
 @theme inline {
   --font-sans: var(--app-font-sans);
   --color-background: var(--background);

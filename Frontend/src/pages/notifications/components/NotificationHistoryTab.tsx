@@ -191,7 +191,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-hidden">
       {/* Search & Filter Bar */}
       <Card>
         <CardHeader className="pb-4">
@@ -199,7 +199,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
           <CardDescription>Lọc theo kênh gửi, trạng thái giao nhận và mốc thời gian</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleApplyFilter} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end">
+          <form onSubmit={handleApplyFilter} className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="channelFilter">Kênh thông báo</Label>
               <Select value={channel} onValueChange={setChannel}>
@@ -253,7 +253,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2 sm:col-span-2 xl:col-span-4 xl:justify-end">
               <Button type="submit" size="default" className="flex-1 gap-1.5">
                 <Filter className="size-4" /> Lọc
               </Button>
@@ -293,7 +293,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
       )}
 
       {/* History Table Card */}
-      <Card>
+      <Card className="min-w-0 max-w-full overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
@@ -304,18 +304,17 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+        <CardContent className="min-w-0 p-0">
+            <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px]">Thời gian</TableHead>
-                  <TableHead className="w-[110px]">Kênh</TableHead>
-                  <TableHead>Người nhận</TableHead>
-                  <TableHead>Mẫu / Tiêu đề</TableHead>
-                  <TableHead className="w-[130px]">Trạng thái gửi</TableHead>
-                  <TableHead className="w-[110px]">Đọc nội bộ</TableHead>
-                  <TableHead className="text-right w-[150px]">Thao tác</TableHead>
+                  <TableHead className="w-[15%]">Thời gian</TableHead>
+                  <TableHead className="w-[9%]">Kênh</TableHead>
+                  <TableHead className="w-[17%]">Người nhận</TableHead>
+                  <TableHead className="w-[27%]">Mẫu / Tiêu đề</TableHead>
+                  <TableHead className="w-[14%]">Trạng thái</TableHead>
+                  <TableHead className="w-[8%]">Đã đọc</TableHead>
+                  <TableHead className="w-[10%] text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -335,7 +334,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                 ) : (
                   data.items.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="whitespace-nowrap font-medium">
+                      <TableCell className="min-w-0 whitespace-normal font-medium">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="size-3.5 text-muted-foreground" />
                           <span className="text-xs">
@@ -348,22 +347,22 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                         </div>
                         <span className="text-xs text-muted-foreground font-mono">#{item.id.slice(0, 8)}</span>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="min-w-0 whitespace-normal">
                         <div className="flex items-center gap-1.5 text-xs font-medium">
                           {renderChannelIcon(item.channel)}
                           <span>{getChannelLabel(item.channel)}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <p className="font-medium text-sm">{item.recipientName}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                      <TableCell className="min-w-0 whitespace-normal">
+                        <p className="truncate text-sm font-medium" title={item.recipientName}>{item.recipientName}</p>
+                        <p className="truncate text-xs text-muted-foreground" title={item.destination}>
                           {item.destination}
                         </p>
                         <Badge variant="outline" className="mt-1 text-[10px] font-normal">
                           {item.recipientType === 'Staff' ? 'Nhân viên' : 'Độc giả'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-xs">
+                      <TableCell className="min-w-0 max-w-none whitespace-normal">
                         <p className="font-semibold text-sm truncate">
                           {item.subject || item.templateName}
                         </p>
@@ -371,7 +370,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                           {item.body.replace(/<[^>]*>?/gm, '')}
                         </p>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="min-w-0 whitespace-normal">
                         {renderStatusBadge(item.status)}
                         {item.failureReason && (
                           <p className="text-xs text-destructive truncate max-w-[140px] mt-1" title={item.failureReason}>
@@ -379,7 +378,7 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                           </p>
                         )}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="min-w-0 whitespace-normal">
                         {item.channel === 'InApp' ? (
                           item.isRead ? (
                             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Đã đọc</span>
@@ -390,17 +389,17 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                           <span className="text-muted-foreground text-xs">N/A</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <TableCell className="min-w-0 text-right whitespace-normal">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingItem(item)}
-                            className="gap-1"
+                            className="gap-1 px-2"
                             title="Xem chi tiết"
                           >
                             <Eye className="size-4" />
-                            <span className="hidden sm:inline">Chi tiết</span>
+                            <span className="sr-only">Chi tiết</span>
                           </Button>
                           {item.status === 'Failed' && item.channel === 'Email' && isManager && (
                             <Button
@@ -408,11 +407,11 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                               size="sm"
                               onClick={() => handleRetry(item)}
                               disabled={retryingId === item.id}
-                              className="gap-1 text-destructive hover:bg-destructive/10"
+                              className="gap-1 px-2 text-destructive hover:bg-destructive/10"
                               title="Gửi lại thông báo bị lỗi"
                             >
                               <RotateCcw className={`size-3.5 ${retryingId === item.id ? 'animate-spin' : ''}`} />
-                              <span className="hidden sm:inline">Thử lại</span>
+                              <span className="sr-only">Thử lại</span>
                             </Button>
                           )}
                         </div>
@@ -422,10 +421,9 @@ export const NotificationHistoryTab: React.FC<Props> = ({ isManager }) => {
                 )}
               </TableBody>
             </Table>
-          </div>
 
           {data.totalCount > 0 && (
-            <div className="flex items-center justify-between p-4 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4">
               <span className="text-xs text-muted-foreground">
                 Hiển thị trang {data.pageNumber} / {data.totalPages || 1} (Tổng cộng {data.totalCount} thông báo)
               </span>

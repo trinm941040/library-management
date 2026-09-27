@@ -60,18 +60,22 @@ export function EntityFormField({
   label,
   error,
   hint,
+  required = false,
   children,
 }: {
   id: string
   label: string
   error?: string
   hint?: string
+  required?: boolean
   children: ReactNode
 }) {
   const messageId = `${id}-${error ? 'error' : 'hint'}`
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {label}{required ? <span className="text-destructive" aria-hidden="true"> *</span> : null}
+      </Label>
       {children}
       {error ? (
         <p id={messageId} className="text-sm text-destructive" role="alert">

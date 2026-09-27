@@ -4,6 +4,7 @@ import { Plus, Save, Trash2 } from 'lucide-react'
 import { PageShell, ScreenState, useToast } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
 import { useAuth } from '@/auth/AuthProvider'
 import { canAll } from '@/shared/auth/permissions'
 import { getActiveSuppliers, type Supplier } from '@/pages/suppliers/supplier-api'
@@ -35,6 +36,7 @@ export function StockReceiptDetailPage() {
   const [error, setError] = useState('')
   const [dirty, setDirty] = useState(false)
   const [lookupBusy, setLookupBusy] = useState<number | null>(null)
+  const [formOpen, setFormOpen] = useState(creating)
   const editable = (creating || receipt?.status === 'Draft' || receipt?.status === 'Received') &&
     canAll(user?.permissions ?? [], [creating ? 'stock-receipts.create' : 'stock-receipts.update'])
   useEffect(() => { const controller = new AbortController()
@@ -96,7 +98,7 @@ export function StockReceiptDetailPage() {
     try { const saved = creating ? await createReceipt(input) : await updateReceipt(id!, input)
       setDirty(false); showToast(creating ? 'Đã tạo phiếu nhập.' : 'Đã cập nhật phiếu nhập.')
       navigate(`/stock-receipts/${saved.id}`, { replace: true })
-      if (!creating) { setReceipt(saved); setLines(saved.items.map(row => ({ id: row.id, bookId: row.bookId,
+      if (!creating) { setFormOpen(false); setReceipt(saved); setLines(saved.items.map(row => ({ id: row.id, bookId: row.bookId,
         title: row.bookTitle, isbn: row.isbn, expected: String(row.expectedQuantity),
         received: String(row.receivedQuantity), damaged: String(row.damagedQuantity),
         cost: row.unitCost === null ? '' : String(row.unitCost) }))) }
@@ -106,17 +108,20 @@ export function StockReceiptDetailPage() {
   if (loading) return <ScreenState kind="loading" title="Đang tải phiếu nhập" />
   return <PageShell eyebrow="Nhập kho" title={creating ? 'Tạo phiếu nhập' : receipt?.receiptNumber ?? 'Chi tiết phiếu nhập'}
     description={creating ? 'Chọn nhà cung cấp, chi nhánh và thêm sách theo ISBN.' : `Trạng thái: ${receipt?.status ?? 'Không xác định'}`}
-    actions={<Button variant="outline" asChild><Link to="/stock-receipts">Danh sách</Link></Button>}>
-    <div className="grid gap-5 rounded-xl border bg-card p-4 md:p-6">
+    actions={<div className="flex gap-2"><Button variant="outline" asChild><Link to="/stock-receipts">Danh sách</Link></Button>{!creating && editable ? <Button onClick={() => setFormOpen(true)}><Save /> Sửa phiếu nhập</Button> : null}</div>}>
+    <Dialog open={formOpen} onOpenChange={(open) => { if (saving) return; if (!open && dirty && !window.confirm('Bỏ thay đổi chưa lưu?')) return; if (!open && creating) navigate('/stock-receipts'); else setFormOpen(open) }}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-5xl">
+      <DialogHeader><DialogTitle>{creating ? 'Tạo phiếu nhập' : `Sửa ${receipt?.receiptNumber ?? 'phiếu nhập'}`}</DialogTitle><DialogDescription>Các trường có dấu * là bắt buộc.</DialogDescription></DialogHeader>
+    <form className="grid gap-5" noValidate onSubmit={(event) => { event.preventDefault(); void save() }}>
       <div className="grid gap-3 md:grid-cols-3">
-        <label className="grid gap-1 text-sm">Nhà cung cấp <select className="h-10 rounded-md border bg-background px-3" value={supplierId} disabled={!editable} onChange={e => { setSupplierId(e.target.value); setDirty(true) }}><option value="">Chọn nhà cung cấp</option>{receipt && !suppliers.some(x => x.id === receipt.supplierId) ? <option value={receipt.supplierId}>{receipt.supplierName} (ngừng hoạt động)</option> : null}{suppliers.map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label>
-        <label className="grid gap-1 text-sm">Chi nhánh <select className="h-10 rounded-md border bg-background px-3" value={branchId} disabled={!editable} onChange={e => { setBranchId(e.target.value); setDirty(true) }}><option value="">Chọn chi nhánh</option>{receipt && !branches.some(x => x.id === receipt.branchId) ? <option value={receipt.branchId}>{receipt.branchCode} (ngừng hoạt động)</option> : null}{branches.map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label>
-        <label className="grid gap-1 text-sm" htmlFor="receipt-date">Ngày nhập <Input id="receipt-date" type="datetime-local" value={receivedAt} disabled={!editable} onChange={e => { setReceivedAt(e.target.value); setDirty(true) }} /></label>
+        <label className="grid gap-1 text-sm">Nhà cung cấp <span className="text-destructive">*</span><select required aria-invalid={Boolean(error && !supplierId)} className="h-10 rounded-md border bg-background px-3" value={supplierId} disabled={!editable} onChange={e => { setSupplierId(e.target.value); setDirty(true); setError('') }}><option value="">Chọn nhà cung cấp</option>{receipt && !suppliers.some(x => x.id === receipt.supplierId) ? <option value={receipt.supplierId}>{receipt.supplierName} (ngừng hoạt động)</option> : null}{suppliers.map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select>{error && !supplierId ? <span className="text-sm text-destructive">Vui lòng chọn nhà cung cấp.</span> : null}</label>
+        <label className="grid gap-1 text-sm">Chi nhánh <span className="text-destructive">*</span><select required aria-invalid={Boolean(error && !branchId)} className="h-10 rounded-md border bg-background px-3" value={branchId} disabled={!editable} onChange={e => { setBranchId(e.target.value); setDirty(true); setError('') }}><option value="">Chọn chi nhánh</option>{receipt && !branches.some(x => x.id === receipt.branchId) ? <option value={receipt.branchId}>{receipt.branchCode} (ngừng hoạt động)</option> : null}{branches.map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select>{error && !branchId ? <span className="text-sm text-destructive">Vui lòng chọn chi nhánh.</span> : null}</label>
+        <label className="grid gap-1 text-sm" htmlFor="receipt-date">Ngày nhập <span className="text-destructive">*</span><Input id="receipt-date" required aria-invalid={Boolean(error && !receivedAt)} type="datetime-local" value={receivedAt} disabled={!editable} onChange={e => { setReceivedAt(e.target.value); setDirty(true); setError('') }} /></label>
       </div>
       <label className="grid gap-1 text-sm">Ghi chú <textarea className="min-h-20 rounded-md border bg-background p-2" maxLength={2000} value={notes} disabled={!editable} onChange={e => { setNotes(e.target.value); setDirty(true) }} /></label>
       <h2 className="text-lg font-semibold">Sách trong phiếu</h2>
       {lines.map((row, index) => <div className="grid gap-2 rounded-lg border p-3" key={row.id ?? index}>
-        <div className="flex flex-wrap gap-2"><Input className="max-w-sm" aria-label={`ISBN dòng ${index + 1}`} placeholder="ISBN" value={row.isbn} disabled={!editable} onChange={e => changeLine(index, { isbn: e.target.value, bookId: '', title: '' })} />
+        <div className="flex flex-wrap gap-2"><label htmlFor={`receipt-isbn-${index}`} className="grid flex-1 gap-1 text-sm">ISBN <span className="text-destructive">*</span><Input id={`receipt-isbn-${index}`} required aria-invalid={Boolean(error && !row.bookId)} className="max-w-sm" aria-label={`ISBN dòng ${index + 1}`} placeholder="ISBN" value={row.isbn} disabled={!editable} onChange={e => changeLine(index, { isbn: e.target.value, bookId: '', title: '' })} /></label>
           {editable ? <Button type="button" variant="outline" disabled={lookupBusy === index} onClick={() => void lookup(index)}>{lookupBusy === index ? 'Đang tìm...' : 'Tra ISBN'}</Button> : null}
           <span className="self-center text-sm">{row.title || (row.bookId ? row.bookId : 'Chưa chọn sách')}</span></div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
@@ -125,9 +130,12 @@ export function StockReceiptDetailPage() {
         </div></div>)}
       {editable ? <Button type="button" variant="outline" className="w-fit" onClick={() => { setLines(all => [...all, blank()]); setDirty(true) }}><Plus /> Thêm dòng</Button> : null}
       <div className="flex flex-wrap justify-between gap-3 border-t pt-4"><p>Tổng thực nhận: <strong>{totals.quantity}</strong> · Tổng giá trị: <strong>{totals.value.toLocaleString('vi-VN')}</strong></p>
-        {editable ? <Button disabled={saving} onClick={() => void save()}><Save /> {saving ? 'Đang lưu...' : 'Lưu phiếu nhập'}</Button> : null}</div>
+        </div>
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
-    </div>
+      <DialogFooter>{editable ? <Button type="submit" loading={saving}><Save /> Lưu phiếu nhập</Button> : null}</DialogFooter>
+    </form>
+      </DialogContent>
+    </Dialog>
     {receipt ? <div className="mt-5"><ConfirmReceiptPanel key={receipt.concurrencyToken} receipt={receipt} onConfirmed={setReceipt} /></div> : null}
   </PageShell>
 }

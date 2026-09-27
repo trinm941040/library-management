@@ -73,7 +73,7 @@ export function NotificationsPage({ initialTab = 'send' }: NotificationsPageProp
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'send' | 'history' | 'templates')} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'send' | 'history' | 'templates')} className="min-w-0 w-full max-w-full overflow-hidden">
         <TabsList className="mb-6 h-10">
           <TabsTrigger value="send" className="gap-2 px-4">
             <Send className="size-4" />
@@ -98,7 +98,7 @@ export function NotificationsPage({ initialTab = 'send' }: NotificationsPageProp
           />
         </TabsContent>
 
-        <TabsContent value="history" className="mt-0 outline-none">
+        <TabsContent value="history" className="mt-0 min-w-0 max-w-full overflow-hidden outline-none">
           <NotificationHistoryTab isManager={isManager} />
         </TabsContent>
 
