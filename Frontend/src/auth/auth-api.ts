@@ -121,8 +121,11 @@ export async function readResponse<T>(response: Response, schema?: z.ZodType<T>)
     detail?: string
     errors?: Record<string, string[]>
   } | null
+  const firstFieldError = problem?.errors
+    ? Object.values(problem.errors).flat().find((message) => message.trim().length > 0)
+    : undefined
   throw new ApiError(
-    problem?.detail ?? problem?.title ?? 'Không thể kết nối đến máy chủ.',
+    problem?.detail ?? firstFieldError ?? problem?.title ?? 'Không thể kết nối đến máy chủ.',
     response.status,
     problem?.errors,
   )

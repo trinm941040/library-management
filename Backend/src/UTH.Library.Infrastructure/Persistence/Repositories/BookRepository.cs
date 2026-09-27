@@ -71,7 +71,13 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         await dbContext.BookCategories.AddRangeAsync(
             categoryIds.Distinct().Select(categoryId => BookCategory.Create(bookId, categoryId)),
             cancellationToken);
-        book.SetPublicationMetadata(publisherId, book.EditionStatement, book.Description, book.PublicationYear);
+        book.SetPublicationMetadata(
+            publisherId,
+            book.EditionStatement,
+            book.Description,
+            book.PublicationYear,
+            book.Language,
+            book.PageCount);
     }
 
     public async Task NormalizeImportedBookAsync(

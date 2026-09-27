@@ -11,7 +11,7 @@ import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { canAny } from '@/shared/auth/permissions'
 import { getBooks, type LibraryBook } from '@/pages/books/book-api'
 import {
-  confirmCopyImport, createCopy, exportCopies, getActiveShelves, getCopies, getCopyByBarcode,
+  confirmCopyImport, createCopy, exportCopies, getActiveShelves, getCopies, getCopy, getCopyByBarcode,
   previewCopyImport, relocateCopy, runCopyBulk, updateCopyStatus,
   type ActiveShelf, type BookCopy, type CopyBulkOperation, type CopyBulkResult,
   type CopyCondition, type CopyImportPreview, type CopyImportRow, type CopyStatus,
@@ -106,16 +106,22 @@ export function CopiesPage() {
     return () => controller.abort()
   }, [bookSearch])
 
-  const openDetails = (copy: BookCopy) => {
-    setSelected(copy)
-    setTargetStatus(copy.status)
-    setTargetShelfId(copy.shelfId ?? '')
+  const openDetails = async (copy: BookCopy) => {
+    setError('')
+    try {
+      const freshCopy = await getCopy(copy.id)
+      setSelected(freshCopy)
+      setTargetStatus(freshCopy.status)
+      setTargetShelfId(freshCopy.shelfId ?? '')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể tải thông tin bản sao.')
+    }
   }
 
   const lookup = async (value: string) => {
     if (!value.trim()) return
     setError(''); setLoading(true)
-    try { const copy = await getCopyByBarcode(value.trim()); openDetails(copy); setCopies([copy]); setTotal(1); setPages(1) }
+    try { const copy = await getCopyByBarcode(value.trim()); setSelected(copy); setTargetStatus(copy.status); setTargetShelfId(copy.shelfId ?? ''); setCopies([copy]); setTotal(1); setPages(1) }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không tìm thấy mã vạch.') }
     finally { setLoading(false) }
   }
@@ -139,9 +145,11 @@ export function CopiesPage() {
     if (!action) return
     setPending(true); setActionError('')
     try {
+      const freshCopy = await getCopy(action.copy.id)
+      setSelected(freshCopy)
       const updated = action.status
-        ? await updateCopyStatus(action.copy, action.status)
-        : await relocateCopy(action.copy, action.shelfId!)
+        ? await updateCopyStatus(freshCopy, action.status)
+        : await relocateCopy(freshCopy, action.shelfId!)
       setSelected(updated); setAction(null); await load(); showToast('Đã cập nhật bản sao.')
     } catch (reason) { setActionError(reason instanceof Error ? reason.message : 'Không thể cập nhật bản sao.') }
     finally { setPending(false) }
@@ -230,7 +238,7 @@ export function CopiesPage() {
         page={page} pageSize={pageSize} totalPages={pages} totalCount={total}
         onPageChange={setPage} onPageSizeChange={(value) => { setPage(1); setPageSize(value) }}
         columns={[
-          { id: 'barcode', header: 'Mã vạch', cell: (copy) => <button type="button" className="font-mono text-primary underline" onClick={() => openDetails(copy)}>{copy.barcode}</button> },
+          { id: 'barcode', header: 'Mã vạch', cell: (copy) => <button type="button" className="font-mono text-primary underline" onClick={() => void openDetails(copy)}>{copy.barcode}</button> },
           { id: 'book', header: 'Sách', cell: (copy) => copy.bookTitle },
           { id: 'location', header: 'Vị trí', cell: (copy) => `${copy.branchCode ?? '—'} / ${copy.shelfCode ?? '—'}` },
           { id: 'condition', header: 'Tình trạng', cell: (copy) => conditionLabels[copy.condition] },

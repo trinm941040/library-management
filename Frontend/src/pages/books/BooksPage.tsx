@@ -36,6 +36,7 @@ import {
   createBook,
   deleteBook,
   exportBooks,
+  getBook,
   getBooks,
   previewBookImport,
   updateBook,
@@ -314,8 +315,14 @@ export function BooksPage() {
                 size="icon"
                 aria-label={`Sửa ${book.title}`}
                 onClick={() => {
-                  setEditingBook(book)
-                  setFormOpen(true)
+                  void getBook(book.id)
+                    .then((freshBook) => {
+                      setEditingBook(freshBook)
+                      setFormOpen(true)
+                    })
+                    .catch((reason: unknown) =>
+                      setPageError(reason instanceof Error ? reason.message : 'Không thể tải thông tin sách.'),
+                    )
                 }}
               >
                 <Pencil />

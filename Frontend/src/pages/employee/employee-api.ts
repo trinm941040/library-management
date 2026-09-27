@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { authenticatedFetch, guidSchema, readResponse } from '@/auth/auth-api'
+import { ApiError, authenticatedFetch, guidSchema, readResponse } from '@/auth/auth-api'
 
 const EMPLOYEES_URL = '/api/v1/employees'
 
@@ -85,6 +85,7 @@ export type SaveEmployeeInput = {
 export async function getEmployees(
   filters: EmployeeFilters,
   signal?: AbortSignal,
+  retryTransient = true,
 ): Promise<EmployeePageResponse> {
   const query = new URLSearchParams()
   if (filters.search) query.set('search', filters.search)
@@ -95,8 +96,14 @@ export async function getEmployees(
   query.set('pageNumber', String(filters.pageNumber ?? 1))
   query.set('pageSize', String(filters.pageSize ?? 20))
 
-  const response = await authenticatedFetch(`${EMPLOYEES_URL}?${query}`, { signal })
-  return readResponse(response, employeePageSchema)
+  try {
+    const response = await authenticatedFetch(`${EMPLOYEES_URL}?${query}`, { signal })
+    return await readResponse(response, employeePageSchema)
+  } catch (error) {
+    if (retryTransient && error instanceof ApiError && (error.status === 408 || error.status >= 500))
+      return getEmployees(filters, signal, false)
+    throw error
+  }
 }
 
 export async function getEmployeeById(id: string, signal?: AbortSignal): Promise<Employee> {

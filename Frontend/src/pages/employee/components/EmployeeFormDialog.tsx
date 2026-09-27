@@ -70,13 +70,30 @@ const emptyForm = (): EmployeeFormData => ({
   deactivateLinkedAccount: false,
 })
 
+const formFromEmployee = (employee: Employee | null): EmployeeFormData => employee
+  ? {
+      employeeCode: employee.employeeCode,
+      fullName: employee.fullName,
+      email: employee.email,
+      phoneNumber: employee.phoneNumber ?? '',
+      dateOfBirth: employee.dateOfBirth ?? '',
+      address: employee.address ?? '',
+      position: employee.position,
+      department: employee.department,
+      hireDate: employee.hireDate,
+      status: employee.status,
+      branchId: employee.branchId,
+      deactivateLinkedAccount: false,
+    }
+  : emptyForm()
+
 export function EmployeeFormDialog({
   open,
   employee,
   onOpenChange,
   onSave,
 }: EmployeeFormDialogProps) {
-  const [form, setForm] = useState<EmployeeFormData>(emptyForm)
+  const [form, setForm] = useState<EmployeeFormData>(() => formFromEmployee(employee))
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [branches, setBranches] = useState<EmployeeBranch[]>([])
@@ -101,24 +118,7 @@ export function EmployeeFormDialog({
   }, [open])
 
   useEffect(() => {
-    setForm(
-      employee
-        ? {
-            employeeCode: employee.employeeCode,
-            fullName: employee.fullName,
-            email: employee.email,
-            phoneNumber: employee.phoneNumber ?? '',
-            dateOfBirth: employee.dateOfBirth ?? '',
-            address: employee.address ?? '',
-            position: employee.position,
-            department: employee.department,
-            hireDate: employee.hireDate,
-            status: employee.status,
-            branchId: employee.branchId,
-            deactivateLinkedAccount: false,
-          }
-        : emptyForm(),
-    )
+    setForm(formFromEmployee(employee))
     setError('')
   }, [employee, open])
 

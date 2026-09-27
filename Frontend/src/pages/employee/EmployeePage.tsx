@@ -43,6 +43,7 @@ import {
   employmentStatusLabels,
   employmentStatuses,
   getEmployees,
+  getEmployeeById,
   getEmployeeBranches,
   getEmployeeSummary,
   updateEmployee,
@@ -186,10 +187,16 @@ export function EmployeePage() {
     setEditingEmployee(null)
     setFormOpen(true)
   }
-  const openEditForm = (employee: Employee) => {
+  const openEditForm = async (employee: Employee) => {
     setDetailsOpen(false)
-    setEditingEmployee(employee)
-    setFormOpen(true)
+    setPageError('')
+    try {
+      const freshEmployee = await getEmployeeById(employee.id)
+      setEditingEmployee(freshEmployee)
+      setFormOpen(true)
+    } catch (reason) {
+      setPageError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ nhân viên.')
+    }
   }
   const openDetails = (employee: Employee) => {
     setSelectedEmployee(employee)
@@ -206,8 +213,21 @@ export function EmployeePage() {
         setSelectedEmployee((current) => (current?.id === updated.id ? updated : current))
         refresh('Đã cập nhật hồ sơ và thông tin việc làm.')
       } else {
-        await createEmployee(data)
+        const created = await createEmployee(data)
         updateUrlFilters({ page: undefined })
+        setPage((current) => current ? {
+          ...current,
+          items: [created, ...current.items.filter((item) => item.id !== created.id)].slice(0, current.pageSize),
+          totalCount: current.totalCount + 1,
+          totalPages: Math.ceil((current.totalCount + 1) / current.pageSize),
+        } : current)
+        setSummary((current) => current ? {
+          ...current,
+          total: current.total + 1,
+          active: current.active + (created.status === 'Active' ? 1 : 0),
+          onLeave: current.onLeave + (created.status === 'OnLeave' ? 1 : 0),
+          stopped: current.stopped + (created.status === 'Inactive' || created.status === 'Terminated' ? 1 : 0),
+        } : current)
         refresh('Đã tạo hồ sơ nhân viên.')
       }
       return null
@@ -496,6 +516,7 @@ export function EmployeePage() {
         requiredPermissions={[editingEmployee ? 'employees.update' : 'employees.create']}
       >
         <EmployeeFormDialog
+          key={editingEmployee?.id ?? 'create-employee'}
           open={formOpen}
           employee={editingEmployee}
           onOpenChange={setFormOpen}

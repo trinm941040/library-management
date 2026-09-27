@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Barcode, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
-import { useToast } from '@/common/components'
+import { ConfirmDialog, useToast } from '@/common/components'
 import { useAuth } from '@/auth/AuthProvider'
 import { canAll } from '@/shared/auth/permissions'
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
@@ -32,6 +32,7 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
   const [confirmation, setConfirmation] = useState<ReceiptConfirmation | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const mayConfirm = canAll(user?.permissions ?? [], ['stock-receipts.confirm'])
   useEffect(() => { const controller = new AbortController()
     void getReceiptConfirmation(receipt.id, controller.signal).then(setConfirmation).catch(() => {})
@@ -69,11 +70,11 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
     setCopies(current => Object.fromEntries(Object.entries(current).map(([key, rows]) =>
       [key, rows.map(row => ({ ...row, barcode: `${prefix}-${String(++counter).padStart(4, '0')}` }))]))) }
   const submit = async () => {
-    if (!valid || !window.confirm(`Xác nhận phiếu và tạo ${allCopies.length} bản sao? Thao tác này không thể sửa lại.`)) return
+    if (!valid) return
     setBusy(true); setError('')
     try { const result = await confirmReceipt(receipt.id, { concurrencyToken: receipt.concurrencyToken,
       items: receipt.items.map(item => ({ stockReceiptItemId: item.id, copies: copies[item.id] })) })
-      setConfirmation(result); onConfirmed(result.receipt)
+      setConfirmation(result); setConfirmOpen(false); onConfirmed(result.receipt)
       showToast(`Đã xác nhận phiếu và tạo ${result.copies.length} bản sao.`)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể xác nhận. Vui lòng tải lại phiếu nếu có xung đột.') }
     finally { setBusy(false) }
@@ -105,6 +106,10 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
     <div className="grid gap-2 rounded-md border p-3"><h3 className="font-semibold">Xem trước sai lệch</h3>{discrepancyPreview.length ? discrepancyPreview.map((row, index) => <p className="text-sm" key={index}>{row.type}: {row.expected} → {row.actual} · {row.description}</p>) : <p className="text-sm">Không có sai lệch.</p>}</div>
     {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     {!valid ? <p className="text-sm text-muted-foreground">Điền mã vạch duy nhất, kệ hợp lệ và đúng số bản sao hỏng trước khi xác nhận. Một phiếu tối đa 1000 bản sao.</p> : null}
-    <Button className="w-fit" disabled={!valid || busy} onClick={() => void submit()}>{busy ? 'Đang xác nhận...' : 'Xác nhận nhập kho'}</Button>
+    <Button className="w-fit" disabled={!valid || busy} onClick={() => setConfirmOpen(true)}>{busy ? 'Đang xác nhận...' : 'Xác nhận nhập kho'}</Button>
+    <ConfirmDialog open={confirmOpen} title="Xác nhận nhập kho"
+      description={`Xác nhận phiếu và tạo ${allCopies.length} bản sao? Thao tác này không thể sửa lại.`}
+      confirmLabel="Xác nhận nhập kho" isPending={busy} error={error}
+      onOpenChange={setConfirmOpen} onConfirm={() => void submit()} />
   </section>
 }

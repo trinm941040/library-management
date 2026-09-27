@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, RefreshCw } from 'lucide-react'
-import { DataTable, PageShell } from '@/common/components'
+import { DataTable, PageShell, useToast } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
@@ -15,6 +15,7 @@ const auditStatusLabels: Record<AuditStatus, string> = {
 
 export function InventoryAuditsPage() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [items, setItems] = useState<InventoryAudit[]>([])
   const [branches, setBranches] = useState<LocationNode[]>([])
   const [branchId, setBranchId] = useState(() => readUrlFilter('branchId'))
@@ -49,14 +50,15 @@ export function InventoryAuditsPage() {
   const create = async () => { if (!branchId) { setError('Chọn chi nhánh trước khi bắt đầu.'); return }
     setSaving(true); setError('')
     try { const audit = await createAudit({ branchId, areaId: areaId || null,
-      shelfId: shelfId || null, notes: notes.trim() || null }); navigate(`/inventory-audits/${audit.id}`) }
+      shelfId: shelfId || null, notes: notes.trim() || null }); showToast('Đã bắt đầu đợt kiểm kê.'); navigate(`/inventory-audits/${audit.id}`) }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể tạo đợt kiểm kê.') }
     finally { setSaving(false) }
   }
   return <PageShell eyebrow="Kho vật lý" title="Kiểm kê" description="Tạo snapshot, quét mã vạch và đối soát bản sao."
     actions={<Button variant="outline" onClick={() => void load()}><RefreshCw /> Làm mới</Button>}>
     <PermissionBoundary requiredPermissions={['inventory-audits.create']}>
-      <section className="mb-6 grid gap-3 rounded-xl border bg-card p-4" aria-label="Tạo đợt kiểm kê">
+      <form className="mb-6 grid gap-3 rounded-xl border bg-card p-4" aria-label="Tạo đợt kiểm kê"
+        onSubmit={event => { event.preventDefault(); void create() }}>
         <h2 className="text-lg font-semibold">Tạo đợt mới</h2>
         <div className="grid gap-2 md:grid-cols-3">
           <label className="grid gap-1 text-sm">Chi nhánh<select className="h-10 rounded-md border bg-background px-3" value={branchId} onChange={event => { setBranchId(event.target.value); setAreaId(''); setShelfId(''); setPage(1) }}><option value="">Chọn chi nhánh</option>{branches.map(node => <option key={node.id} value={node.id}>{node.code} · {node.name}</option>)}</select></label>
@@ -64,8 +66,9 @@ export function InventoryAuditsPage() {
           <label className="grid gap-1 text-sm">Kệ<select className="h-10 rounded-md border bg-background px-3" value={shelfId} onChange={event => setShelfId(event.target.value)}><option value="">Toàn khu vực</option>{shelves.map(node => <option key={node.id} value={node.id}>{node.code} · {node.name}</option>)}</select></label>
         </div>
         <label className="grid gap-1 text-sm" htmlFor="audit-notes">Ghi chú <Input id="audit-notes" maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
-        <Button className="w-fit" disabled={!branchId || saving} onClick={() => void create()}><Plus /> {saving ? 'Đang tạo...' : 'Bắt đầu kiểm kê'}</Button>
-      </section>
+        {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+        <Button type="submit" className="w-fit" disabled={!branchId || saving} loading={saving}><Plus /> Bắt đầu kiểm kê</Button>
+      </form>
     </PermissionBoundary>
     <DataTable caption="Danh sách đợt kiểm kê" rows={items} getRowId={item => item.id}
       isLoading={loading} error={error} onRetry={() => void load()}
