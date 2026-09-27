@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Net.Mail;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace UTH.Library.Domain.Entities;
 
 [JsonConverter(typeof(JsonStringEnumConverter<MemberStatus>))]
@@ -29,7 +30,17 @@ public sealed class Member
     public Guid ConcurrencyToken { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
-    public MembershipCard? MembershipCard { get; private set; }
+    public ICollection<MembershipCard> MembershipCards { get; private set; } = new List<MembershipCard>();
+    [NotMapped]
+    public MembershipCard? MembershipCard => MembershipCards
+        .Where(card => card.Status != MembershipCardStatus.Revoked)
+        .OrderByDescending(card => card.IssuedOn)
+        .ThenByDescending(card => card.UpdatedAtUtc)
+        .FirstOrDefault()
+        ?? MembershipCards
+            .OrderByDescending(card => card.IssuedOn)
+            .ThenByDescending(card => card.UpdatedAtUtc)
+            .FirstOrDefault();
     public ICollection<MemberRestriction> Restrictions { get; private set; } = new List<MemberRestriction>();
 
     public static Member Create(string memberCode, string fullName, string email, string? phoneNumber,

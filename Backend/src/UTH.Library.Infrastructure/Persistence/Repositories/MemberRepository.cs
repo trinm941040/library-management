@@ -6,22 +6,23 @@ namespace UTH.Library.Infrastructure.Persistence.Repositories;
 public sealed class MemberRepository(LibraryDbContext db) : IMemberRepository
 {
     public async Task<(IReadOnlyList<Member>, int)> GetAsync(MemberQuery q, CancellationToken ct) {
-        var query=db.Members.AsNoTracking().Include(x=>x.MembershipCard).AsQueryable();
-        if(!string.IsNullOrWhiteSpace(q.Search)){var s=q.Search.Trim();query=query.Where(x=>EF.Functions.ILike(x.MemberCode,$"%{s}%")||EF.Functions.ILike(x.FullName,$"%{s}%")||EF.Functions.ILike(x.Email,$"%{s}%")||(x.PhoneNumber!=null&&EF.Functions.ILike(x.PhoneNumber,$"%{s}%"))||(x.MembershipCard!=null&&EF.Functions.ILike(x.MembershipCard.CardNumber,$"%{s}%")));}
+        var query=db.Members.AsNoTracking().Include(x=>x.MembershipCards).AsQueryable();
+        if(!string.IsNullOrWhiteSpace(q.Search)){var s=q.Search.Trim();query=query.Where(x=>EF.Functions.ILike(x.MemberCode,$"%{s}%")||EF.Functions.ILike(x.FullName,$"%{s}%")||EF.Functions.ILike(x.Email,$"%{s}%")||(x.PhoneNumber!=null&&EF.Functions.ILike(x.PhoneNumber,$"%{s}%"))||x.MembershipCards.Any(card=>EF.Functions.ILike(card.CardNumber,$"%{s}%")));}
         if(q.Status is not null)query=query.Where(x=>x.Status==q.Status); if(!string.IsNullOrWhiteSpace(q.MemberGroup))query=query.Where(x=>x.MemberGroup==q.MemberGroup.Trim());
         var count=await query.CountAsync(ct);var items=await query.OrderBy(x=>x.MemberCode).ThenBy(x=>x.Id).Skip((q.PageNumber-1)*q.PageSize).Take(q.PageSize).ToArrayAsync(ct);return(items,count);
     }
-    public Task<Member?> GetByIdAsync(Guid id,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCard).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Id==id,ct);
-    public Task<Member?> GetByEmailAsync(string email,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCard).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Email==email.Trim(),ct);
+    public Task<Member?> GetByIdAsync(Guid id,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCards).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Id==id,ct);
+    public Task<Member?> GetByEmailAsync(string email,CancellationToken ct)=>db.Members.Include(x=>x.MembershipCards).Include(x=>x.Restrictions).SingleOrDefaultAsync(x=>x.Email==email.Trim(),ct);
     public Task<Member?> GetByCardOrCodeAsync(string cardOrCode, CancellationToken ct)
     {
         var normalized = cardOrCode.Trim().ToUpperInvariant();
         return db.Members
-            .Include(x => x.MembershipCard)
+            .Include(x => x.MembershipCards)
             .Include(x => x.Restrictions)
             .SingleOrDefaultAsync(
                 x => x.MemberCode == normalized ||
-                     (x.MembershipCard != null && x.MembershipCard.CardNumber == normalized),
+                     x.MembershipCards.Any(card => card.CardNumber == normalized &&
+                         card.Status != MembershipCardStatus.Revoked),
                 ct);
     }
     public Task<bool> CodeExistsAsync(string code,Guid? id,CancellationToken ct)=>db.Members.AnyAsync(x=>x.MemberCode==code&&(id==null||x.Id!=id),ct);

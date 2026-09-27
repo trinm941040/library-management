@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using System.Security.Claims; using UTH.Library.Api.Contracts.Members; using UTH.Library.Application.Abstractions.Identity; using UTH.Library.Application.Features.Members;
+using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using System.Security.Claims; using System.Text.Json; using UTH.Library.Api.Contracts.Members; using UTH.Library.Application.Abstractions.Identity; using UTH.Library.Application.Features.Members;
 namespace UTH.Library.Api.Controllers;
 [ApiController,Authorize,Route("api/v1/members")] public sealed class MembersController(MemberService service):ControllerBase {
  [HttpGet,Authorize(Policy=Permissions.MembersRead)] public async Task<ActionResult<MemberPageResponse>> Get([FromQuery]MemberFilterRequest r,CancellationToken ct){var p=await service.GetAsync(new(r.Search,r.Status,r.MemberGroup,r.PageNumber,r.PageSize),ct);return Ok(new MemberPageResponse(p.Items.Select(x=>Map(x,CanReadPii())).ToArray(),p.PageNumber,p.PageSize,p.TotalCount,p.TotalCount==0?0:(int)Math.Ceiling(p.TotalCount/(double)p.PageSize)));}
@@ -6,7 +6,25 @@ namespace UTH.Library.Api.Controllers;
  [HttpGet("{id:guid}/history"),Authorize(Policy=Permissions.MembersRead)] public async Task<ActionResult<MemberHistoryPageResponse>> History(Guid id,[FromQuery]MemberHistoryFilterRequest r,CancellationToken ct){var p=await service.GetHistoryAsync(id,r.Category,r.PageNumber,r.PageSize,ct);return p is null?NotFound():Ok(new MemberHistoryPageResponse(p.Items.Select(x=>new MemberHistoryItemResponse(x.Id,x.Type,x.OccurredAtUtc,x.Title,x.Description,x.Amount)).ToArray(),p.PageNumber,p.PageSize,p.TotalCount,p.TotalCount==0?0:(int)Math.Ceiling(p.TotalCount/(double)p.PageSize)));}
  [HttpPost,Authorize(Policy=Permissions.MembersCreate)] public async Task<ActionResult<MemberResponse>> Create(SaveMemberRequest r,CancellationToken ct){var result=await service.CreateAsync(Command(r),Actor(),ct);return result.Succeeded?CreatedAtAction(nameof(GetById),new{id=result.Member!.Id},Map(result.Member,CanReadPii())):Failure(result);}
  [HttpPut("{id:guid}"),Authorize(Policy=Permissions.MembersUpdate)] public async Task<ActionResult<MemberResponse>> Update(Guid id,SaveMemberRequest r,CancellationToken ct){var result=await service.UpdateAsync(id,Command(r),Actor(),ct);return result.Succeeded?Ok(Map(result.Member!,CanReadPii())):Failure(result);}
- [HttpPost("{id:guid}/card"),Authorize(Policy=Permissions.MembersManageCards)] public async Task<ActionResult<MemberResponse>> IssueCard(Guid id,[FromBody] IssueCardRequest request,CancellationToken ct)=>Result(await service.IssueCardAsync(id,request.CardNumber,request.IssuedOn,request.ExpiresOn,request.ConcurrencyToken,Actor(),ct));
+ [HttpPost("{id:guid}/card"),Authorize(Policy=Permissions.MembersManageCards)] public async Task<ActionResult<MemberResponse>> IssueCard(Guid id,[FromBody] JsonElement payload,CancellationToken ct) {
+  var body = payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty("request", out var wrapped)
+   ? wrapped : payload;
+  var cardNumber = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("cardNumber", out var cardValue)
+   ? cardValue.GetString() : null;
+  var issuedOn = default(DateOnly);
+  var expiresOn = default(DateOnly);
+  var concurrencyToken = Guid.Empty;
+  var issuedOnValid = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("issuedOn", out var issuedValue) &&
+   DateOnly.TryParse(issuedValue.GetString(), out issuedOn);
+  var expiresOnValid = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("expiresOn", out var expiresValue) &&
+   DateOnly.TryParse(expiresValue.GetString(), out expiresOn);
+  var tokenValid = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("concurrencyToken", out var tokenValue) &&
+   Guid.TryParse(tokenValue.GetString(), out concurrencyToken) && concurrencyToken != Guid.Empty;
+  if (string.IsNullOrWhiteSpace(cardNumber) || !issuedOnValid || !expiresOnValid || !tokenValid)
+   return BadRequest(new ValidationProblemDetails(new Dictionary<string,string[]> {
+    ["card"] = ["Số thẻ, ngày cấp, ngày hết hạn và phiên bản độc giả là bắt buộc."] }));
+  return Result(await service.IssueCardAsync(id,cardNumber,issuedOn,expiresOn,concurrencyToken,Actor(),ct));
+ }
  [HttpPost("{id:guid}/card/renew"),Authorize(Policy=Permissions.MembersManageCards)] public async Task<ActionResult<MemberResponse>> RenewCard(Guid id,RenewCardRequest r,CancellationToken ct)=>Result(await service.RenewCardAsync(id,r.ExpiresOn,r.ConcurrencyToken,Actor(),ct));
  [HttpPatch("{id:guid}/card/status"),Authorize(Policy=Permissions.MembersManageCards)] public async Task<ActionResult<MemberResponse>> CardStatus(Guid id,CardStatusRequest r,CancellationToken ct)=>Result(await service.ChangeCardStatusAsync(id,r.Status,r.ConcurrencyToken,Actor(),ct));
  [HttpPost("{id:guid}/restrictions"),Authorize(Policy=Permissions.MembersManageRestrictions)] public async Task<ActionResult<MemberResponse>> Restrict(Guid id,RestrictionRequest r,CancellationToken ct)=>Result(await service.AddRestrictionAsync(id,r.Type,r.Reason,r.StartsAtUtc,r.EndsAtUtc,r.ConcurrencyToken,Actor(),ct));

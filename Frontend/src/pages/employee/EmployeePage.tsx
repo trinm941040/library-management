@@ -43,7 +43,6 @@ import {
   employmentStatusLabels,
   employmentStatuses,
   getEmployees,
-  getEmployeeById,
   getEmployeeBranches,
   getEmployeeSummary,
   updateEmployee,
@@ -187,16 +186,11 @@ export function EmployeePage() {
     setEditingEmployee(null)
     setFormOpen(true)
   }
-  const openEditForm = async (employee: Employee) => {
+  const openEditForm = (employee: Employee) => {
     setDetailsOpen(false)
     setPageError('')
-    try {
-      const freshEmployee = await getEmployeeById(employee.id)
-      setEditingEmployee(freshEmployee)
-      setFormOpen(true)
-    } catch (reason) {
-      setPageError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ nhân viên.')
-    }
+    setEditingEmployee({ ...employee })
+    setFormOpen(true)
   }
   const openDetails = (employee: Employee) => {
     setSelectedEmployee(employee)
@@ -516,7 +510,9 @@ export function EmployeePage() {
         requiredPermissions={[editingEmployee ? 'employees.update' : 'employees.create']}
       >
         <EmployeeFormDialog
-          key={editingEmployee?.id ?? 'create-employee'}
+          key={editingEmployee
+            ? `${editingEmployee.id}:${editingEmployee.email}:${editingEmployee.phoneNumber ?? ''}`
+            : 'create-employee'}
           open={formOpen}
           employee={editingEmployee}
           onOpenChange={setFormOpen}

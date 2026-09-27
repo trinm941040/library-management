@@ -41,7 +41,8 @@ public sealed class MemberService(IMemberRepository repository, TimeProvider tim
     public async Task<MemberResult> IssueCardAsync(Guid id, string number, DateOnly issuedOn, DateOnly expiresOn, Guid concurrencyToken, Guid? actor, CancellationToken ct) {
         var member = await repository.GetByIdAsync(id, ct); if (member is null) return MemberResult.Fail(MemberFailure.NotFound, "Member was not found.");
         if (member.ConcurrencyToken != concurrencyToken) return ConcurrencyConflict();
-        if (member.MembershipCard is not null) return MemberResult.Fail(MemberFailure.Conflict, "Member already has a membership card.");
+        if (member.MembershipCard is { Status: not MembershipCardStatus.Revoked })
+            return MemberResult.Fail(MemberFailure.Conflict, "Độc giả đang có thẻ thư viện chưa bị thu hồi.");
         if (await repository.CardNumberExistsAsync(number.Trim().ToUpperInvariant(), ct)) return MemberResult.Fail(MemberFailure.Conflict, "Card number already exists.");
         try { var now = timeProvider.GetUtcNow().UtcDateTime; var card = MembershipCard.Issue(id, number, issuedOn, expiresOn, now); await repository.AddCardAsync(card, ct); member.Touch(now); await Audit("membership-card.issued", nameof(MembershipCard), card.Id, null, card, actor, now, ct); await repository.SaveChangesAsync(ct); return MemberResult.Success((await GetByIdAsync(id, ct))!); }
         catch (ArgumentException ex) { return MemberResult.Fail(MemberFailure.Validation, ex.Message); }

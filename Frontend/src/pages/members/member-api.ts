@@ -87,9 +87,21 @@ export async function getMemberHistory(id: string, category: HistoryCategory, pa
 }
 export const createMember = (body: SaveMemberInput) => send('', 'POST', body)
 export const updateMember = (id: string, body: SaveMemberInput) => send(`/${id}`, 'PUT', body)
-export const issueCard = (id: string, body: {
+export async function issueCard(id: string, body: {
   cardNumber: string; issuedOn: string; expiresOn: string; concurrencyToken: string
-}) => send(`/${id}/card`, 'POST', body)
+}) {
+  const response = await authenticatedFetch(`${URL}/${id}/card`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      cardNumber: body.cardNumber.trim(),
+      issuedOn: body.issuedOn,
+      expiresOn: body.expiresOn,
+      concurrencyToken: body.concurrencyToken,
+    }),
+  })
+  return readResponse(response, memberSchema)
+}
 export const renewCard = (id: string, expiresOn: string, concurrencyToken: string) =>
   send(`/${id}/card/renew`, 'POST', { expiresOn, concurrencyToken })
 export const changeCardStatus = (id: string, status: CardStatus, concurrencyToken: string) =>

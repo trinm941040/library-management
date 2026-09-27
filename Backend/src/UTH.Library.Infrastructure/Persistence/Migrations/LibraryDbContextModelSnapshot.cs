@@ -1289,8 +1289,7 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.HasIndex("CardNumber")
                         .IsUnique();
 
-                    b.HasIndex("MemberId")
-                        .IsUnique();
+                    b.HasIndex("MemberId");
 
                     b.ToTable("membership_cards", (string)null);
                 });
@@ -3190,8 +3189,8 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("UTH.Library.Domain.Entities.MembershipCard", b =>
                 {
                     b.HasOne("UTH.Library.Domain.Entities.Member", null)
-                        .WithOne("MembershipCard")
-                        .HasForeignKey("UTH.Library.Domain.Entities.MembershipCard", "MemberId")
+                        .WithMany("MembershipCards")
+                        .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -3345,7 +3344,7 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UTH.Library.Domain.Entities.Member", b =>
                 {
-                    b.Navigation("MembershipCard");
+                    b.Navigation("MembershipCards");
 
                     b.Navigation("Restrictions");
                 });

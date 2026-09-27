@@ -937,7 +937,7 @@ function ActionDialog({
     try {
       let result: Member
       if (action === 'card') {
-        result = member.card
+        result = member.card && member.card.status !== 'Revoked'
           ? await renewCard(member.id, a, member.concurrencyToken)
           : await issueCard(member.id, {
               cardNumber: a,
@@ -976,7 +976,7 @@ function ActionDialog({
         <DialogHeader>
           <DialogTitle>
             {action === 'card'
-              ? member.card
+              ? member.card && member.card.status !== 'Revoked'
                 ? 'Gia hạn / khóa thẻ'
                 : 'Cấp thẻ'
               : action === 'restriction'
@@ -988,15 +988,9 @@ function ActionDialog({
         </DialogHeader>
         <form className="grid gap-4" onSubmit={submit}>
           {action === 'card' ? (
-            member.card ? (
+            member.card && member.card.status !== 'Revoked' ? (
               <>
-                {member.card.status === 'Revoked' ? (
-                  <p className="text-sm text-muted-foreground">
-                    Thẻ đã bị thu hồi vĩnh viễn và không thể gia hạn hoặc kích hoạt lại.
-                  </p>
-                ) : (
-                  <>
-                    <Field id="card-new-expiry" label="Ngày hết hạn mới">
+                <Field id="card-new-expiry" label="Ngày hết hạn mới">
                       <Input
                         required
                         type="date"
@@ -1035,12 +1029,15 @@ function ActionDialog({
                       >
                         Thu hồi thẻ
                       </Button>
-                    </div>
-                  </>
-                )}
-              </>
+                </div>
+                </>
             ) : (
               <>
+                {member.card?.status === 'Revoked' ? (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-muted-foreground">
+                    Thẻ {member.card.cardNumber} đã bị thu hồi vĩnh viễn. Thẻ mới sẽ được cấp và lịch sử thẻ cũ vẫn được giữ lại.
+                  </p>
+                ) : null}
                 <Field id="card-number" label="Số thẻ">
                   <Input required value={a} onChange={(e) => setA(e.target.value)} />
                 </Field>
@@ -1127,7 +1124,7 @@ function ActionDialog({
             <Button type="button" variant="outline" onClick={close}>
               Hủy
             </Button>
-            <Button disabled={action === 'card' && member.card?.status === 'Revoked'}>
+            <Button type="submit">
               Xác nhận
             </Button>
           </DialogFooter>

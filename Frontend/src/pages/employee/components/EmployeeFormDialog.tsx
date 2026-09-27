@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@/common/components/ui/button'
 import {
   Dialog,
@@ -97,6 +97,8 @@ export function EmployeeFormDialog({
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [branches, setBranches] = useState<EmployeeBranch[]>([])
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  const phoneInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -117,8 +119,11 @@ export function EmployeeFormDialog({
     return () => controller.abort()
   }, [open])
 
-  useEffect(() => {
-    setForm(formFromEmployee(employee))
+  useLayoutEffect(() => {
+    const nextForm = formFromEmployee(employee)
+    setForm(nextForm)
+    if (emailInputRef.current) emailInputRef.current.value = nextForm.email
+    if (phoneInputRef.current) phoneInputRef.current.value = nextForm.phoneNumber
     setError('')
   }, [employee, open])
 
@@ -206,26 +211,30 @@ export function EmployeeFormDialog({
             </FormField>
             <FormField label="Email" htmlFor="employee-email">
               <Input
+                ref={emailInputRef}
                 id="employee-email"
+                name="employeeEmail"
                 type="email"
                 value={form.email}
                 onChange={(event) => updateField('email', event.target.value)}
                 placeholder="nhanvien@library.vn"
                 maxLength={256}
-                autoComplete="email"
+                autoComplete="off"
                 disabled={isSubmitting}
                 required
               />
             </FormField>
             <FormField label="Số điện thoại" htmlFor="employee-phone">
               <Input
+                ref={phoneInputRef}
                 id="employee-phone"
+                name="employeePhoneNumber"
                 type="tel"
                 value={form.phoneNumber}
                 onChange={(event) => updateField('phoneNumber', event.target.value)}
                 placeholder="0901 234 567"
                 maxLength={30}
-                autoComplete="tel"
+                autoComplete="off"
                 disabled={isSubmitting}
               />
             </FormField>

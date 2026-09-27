@@ -245,7 +245,28 @@ export function CopiesPage() {
           { id: 'status', header: 'Trạng thái', cell: (copy) => <StatusBadge label={statusLabels[copy.status]} tone={copy.status === 'Available' ? 'success' : copy.status === 'Damaged' || copy.status === 'Lost' ? 'danger' : 'neutral'} /> },
         ]} />
     </div>
-    {bulkResults.length ? <section className="mt-4 rounded-xl border bg-card p-4" role="status" aria-label="Kết quả thao tác hàng loạt"><h2 className="font-semibold">Kết quả: {bulkResults.filter(row => row.succeeded).length} thành công, {bulkResults.filter(row => !row.succeeded).length} thất bại</h2><ul className="mt-2 max-h-48 overflow-y-auto text-sm">{bulkResults.map(row => <li key={row.copyId} className={row.succeeded ? 'text-success' : 'text-destructive'}>{row.copy?.barcode ?? row.copyId}: {row.succeeded ? 'Thành công' : row.error}</li>)}</ul><Button size="sm" variant="outline" className="mt-2" onClick={() => setBulkResults([])}>Đóng kết quả</Button></section> : null}
+    <Dialog open={bulkResults.length > 0} onOpenChange={(open) => { if (!open) setBulkResults([]) }}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Kết quả thao tác</DialogTitle>
+          <DialogDescription>
+            {bulkResults.filter(row => row.succeeded).length} thành công,{' '}
+            {bulkResults.filter(row => !row.succeeded).length} thất bại.
+          </DialogDescription>
+        </DialogHeader>
+        <ul className="grid max-h-[50vh] gap-2 overflow-y-auto" role="status" aria-label="Kết quả thao tác hàng loạt">
+          {bulkResults.map(row => (
+            <li key={row.copyId} className={`break-words rounded-md border p-3 text-sm ${row.succeeded ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
+              <strong>{row.copy?.barcode ?? row.copyId}</strong>
+              <span>: {row.succeeded ? 'Thành công' : row.error}</span>
+            </li>
+          ))}
+        </ul>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setBulkResults([])}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <Dialog open={bulkOperation !== null} onOpenChange={(open) => { if (!open && !pending) { setBulkOperation(null); setActionError('') } }}>
       <DialogContent className="overflow-x-hidden sm:max-w-lg">
         <DialogHeader>
