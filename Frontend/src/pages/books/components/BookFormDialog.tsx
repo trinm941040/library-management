@@ -147,7 +147,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
           onCancel={() => onOpenChange(false)}
         >
           <div className="grid gap-5 pt-2">
-            <EntityFormField id="book-title" label="Tên sách *" error={fieldErrors.title}>
+            <EntityFormField id="book-title" label="Tên sách" error={fieldErrors.title}>
               <Input
                 id="book-title"
                 required
@@ -160,7 +160,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 }}
               />
             </EntityFormField>
-            <EntityFormField id="book-author" label="Tác giả *" error={fieldErrors.author}>
+            <EntityFormField id="book-author" label="Tác giả" error={fieldErrors.author}>
               <Input
                 id="book-author"
                 required
@@ -181,7 +181,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
             </EntityFormField>
             <EntityFormField
               id="book-isbn"
-              label="ISBN *"
+              label="ISBN (International Standard Book Number)"
               hint="Có thể quét mã hoặc nhập tay, nhấn Enter để xác nhận."
               error={fieldErrors.isbn}
             >
@@ -198,7 +198,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 aria-describedby={fieldErrors.isbn ? 'book-isbn-error' : 'book-isbn-hint'}
               />
             </EntityFormField>
-            <EntityFormField id="book-category" label="Thể loại *" error={fieldErrors.category}>
+            <EntityFormField id="book-category" label="Thể loại" error={fieldErrors.category}>
               <Input
                 id="book-category"
                 required
@@ -219,7 +219,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
             </EntityFormField>
             <EntityFormField
               id="book-quantity"
-              label="Bản sao khả dụng (tự tính) *"
+              label="Bản sao khả dụng (tự tính)"
               error={fieldErrors.quantity}
             >
               <Input

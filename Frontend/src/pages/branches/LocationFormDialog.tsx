@@ -90,10 +90,10 @@ export function LocationFormDialog({
           onSubmit={submit}
           onCancel={() => onOpenChange(false)}
         >
-          <EntityFormField id="location-code" label="Mã *">
+          <EntityFormField id="location-code" label="Mã">
             <Input id="location-code" maxLength={30} required value={code} onChange={(event) => setCode(event.target.value)} />
           </EntityFormField>
-          <EntityFormField id="location-name" label={type === 'Shelf' ? 'Nhãn kệ *' : 'Tên *'}>
+          <EntityFormField id="location-name" label={type === 'Shelf' ? 'Nhãn kệ' : 'Tên'}>
             <Input id="location-name" maxLength={150} required value={name} onChange={(event) => setName(event.target.value)} />
           </EntityFormField>
           {type === 'Branch' ? (

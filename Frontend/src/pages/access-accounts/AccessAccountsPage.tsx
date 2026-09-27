@@ -419,7 +419,7 @@ function CreateAccountDialog({
           <div className="grid gap-4 py-5">
             <div className="grid gap-2">
               <Label htmlFor="access-employee">
-                Nhân viên *
+                Nhân viên <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={employeeId}
@@ -446,7 +446,7 @@ function CreateAccountDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="access-email">
-                Email đăng nhập *
+                Email đăng nhập
               </Label>
               <Input
                 id="access-email"
@@ -457,7 +457,7 @@ function CreateAccountDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="access-name">Tên hiển thị *</Label>
+              <Label htmlFor="access-name">Tên hiển thị</Label>
               <Input
                 id="access-name"
                 value={displayName}
@@ -467,7 +467,7 @@ function CreateAccountDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="access-password">Mật khẩu tạm thời *</Label>
+              <Label htmlFor="access-password">Mật khẩu tạm thời</Label>
               <Input
                 id="access-password"
                 type="password"
