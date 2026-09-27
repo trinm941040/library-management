@@ -109,7 +109,7 @@ export function LoginPage() {
               ) : null}
               <form className="grid gap-5 sm:gap-6" onSubmit={handleSubmit}>
                 <div className="grid gap-2.5">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -133,7 +133,7 @@ export function LoginPage() {
                 </div>
 
                 <div className="grid gap-2.5">
-                  <Label htmlFor="password">Mật khẩu</Label>
+                  <Label htmlFor="password">Mật khẩu *</Label>
                   <div className="relative">
                     <LockKeyhole className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input

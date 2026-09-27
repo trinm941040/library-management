@@ -318,7 +318,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="templateCode">Mã mẫu thông báo</Label>
+                <Label htmlFor="templateCode">Mã mẫu thông báo *</Label>
                 {isCreating ? (
                   <Input
                     id="templateCode"
@@ -353,7 +353,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="templateName">Tên mẫu thông báo</Label>
+              <Label htmlFor="templateName">Tên mẫu thông báo *</Label>
               <Input
                 id="templateName"
                 placeholder="VD: Thông báo sách đặt trước đã sẵn sàng"
@@ -374,7 +374,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="templateBody">Nội dung mẫu</Label>
+              <Label htmlFor="templateBody">Nội dung mẫu *</Label>
               <Textarea
                 id="templateBody"
                 rows={4}

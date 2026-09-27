@@ -491,7 +491,7 @@ function MemberForm({
           <DialogTitle>{member ? 'Cập nhật độc giả' : 'Tạo hồ sơ độc giả'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-          <Field id="member-code" label="Mã độc giả">
+          <Field id="member-code" label="Mã độc giả *">
             <Input
               id="member-code" name="memberCode"
               required
@@ -499,7 +499,7 @@ function MemberForm({
               onChange={(e) => set('memberCode', e.target.value)}
             />
           </Field>
-          <Field id="member-full-name" label="Họ tên">
+          <Field id="member-full-name" label="Họ tên *">
             <Input
               id="member-full-name" name="fullName"
               required
@@ -507,7 +507,7 @@ function MemberForm({
               onChange={(e) => set('fullName', e.target.value)}
             />
           </Field>
-          <Field id="member-email" label="Email">
+          <Field id="member-email" label="Email *">
             <Input
               id="member-email" name="email"
               required
@@ -531,7 +531,7 @@ function MemberForm({
               onChange={(e) => set('dateOfBirth', e.target.value || null)}
             />
           </Field>
-          <Field id="member-group" label="Nhóm độc giả">
+          <Field id="member-group" label="Nhóm độc giả *">
             <Input
               id="member-group" name="memberGroup"
               required

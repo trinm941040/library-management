@@ -147,7 +147,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
           onCancel={() => onOpenChange(false)}
         >
           <div className="grid gap-5 pt-2">
-            <EntityFormField id="book-title" label="Tên sách" error={fieldErrors.title}>
+            <EntityFormField id="book-title" label="Tên sách *" error={fieldErrors.title}>
               <Input
                 id="book-title"
                 required
@@ -160,7 +160,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 }}
               />
             </EntityFormField>
-            <EntityFormField id="book-author" label="Tác giả" error={fieldErrors.author}>
+            <EntityFormField id="book-author" label="Tác giả *" error={fieldErrors.author}>
               <Input
                 id="book-author"
                 required
@@ -173,11 +173,15 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                   setFieldErrors((values) => ({ ...values, author: undefined }))
                 }}
               />
-              <datalist id="catalog-authors">{lookups.authors.map((name) => <option key={name} value={name} />)}</datalist>
+              <datalist id="catalog-authors">
+                {lookups.authors.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </EntityFormField>
             <EntityFormField
               id="book-isbn"
-              label="ISBN"
+              label="ISBN *"
               hint="Có thể quét mã hoặc nhập tay, nhấn Enter để xác nhận."
               error={fieldErrors.isbn}
             >
@@ -194,7 +198,7 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                 aria-describedby={fieldErrors.isbn ? 'book-isbn-error' : 'book-isbn-hint'}
               />
             </EntityFormField>
-            <EntityFormField id="book-category" label="Thể loại" error={fieldErrors.category}>
+            <EntityFormField id="book-category" label="Thể loại *" error={fieldErrors.category}>
               <Input
                 id="book-category"
                 required
@@ -207,9 +211,17 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                   setFieldErrors((values) => ({ ...values, category: undefined }))
                 }}
               />
-              <datalist id="catalog-categories">{lookups.categories.map((name) => <option key={name} value={name} />)}</datalist>
+              <datalist id="catalog-categories">
+                {lookups.categories.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </EntityFormField>
-            <EntityFormField id="book-quantity" label="Bản sao khả dụng (tự tính)" error={fieldErrors.quantity}>
+            <EntityFormField
+              id="book-quantity"
+              label="Bản sao khả dụng (tự tính) *"
+              error={fieldErrors.quantity}
+            >
               <Input
                 id="book-quantity"
                 type="number"
@@ -226,23 +238,62 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
               />
             </EntityFormField>
             <EntityFormField id="book-publisherName" label="Nhà xuất bản">
-              <Input id="book-publisherName" list="catalog-publishers" value={form.publisherName} onChange={(event) => setForm({ ...form, publisherName: event.target.value })} />
-              <datalist id="catalog-publishers">{lookups.publishers.map((name) => <option key={name} value={name} />)}</datalist>
+              <Input
+                id="book-publisherName"
+                list="catalog-publishers"
+                value={form.publisherName}
+                onChange={(event) => setForm({ ...form, publisherName: event.target.value })}
+              />
+              <datalist id="catalog-publishers">
+                {lookups.publishers.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </EntityFormField>
             <EntityFormField id="book-editionStatement" label="Mô tả ấn bản">
-              <Input id="book-editionStatement" value={form.editionStatement} onChange={(event) => setForm({ ...form, editionStatement: event.target.value })} />
+              <Input
+                id="book-editionStatement"
+                value={form.editionStatement}
+                onChange={(event) => setForm({ ...form, editionStatement: event.target.value })}
+              />
             </EntityFormField>
             <EntityFormField id="book-language" label="Ngôn ngữ">
-              <Input id="book-language" value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value })} />
+              <Input
+                id="book-language"
+                value={form.language}
+                onChange={(event) => setForm({ ...form, language: event.target.value })}
+              />
             </EntityFormField>
-            <EntityFormField id="book-publicationYear" label="Năm xuất bản" error={fieldErrors.publicationYear}>
-              <Input id="book-publicationYear" type="number" min={0} max={9999} value={form.publicationYear} onChange={(event) => setForm({ ...form, publicationYear: event.target.value })} />
+            <EntityFormField
+              id="book-publicationYear"
+              label="Năm xuất bản"
+              error={fieldErrors.publicationYear}
+            >
+              <Input
+                id="book-publicationYear"
+                type="number"
+                min={0}
+                max={9999}
+                value={form.publicationYear}
+                onChange={(event) => setForm({ ...form, publicationYear: event.target.value })}
+              />
             </EntityFormField>
             <EntityFormField id="book-pageCount" label="Số trang" error={fieldErrors.pageCount}>
-              <Input id="book-pageCount" type="number" min={1} value={form.pageCount} onChange={(event) => setForm({ ...form, pageCount: event.target.value })} />
+              <Input
+                id="book-pageCount"
+                type="number"
+                min={1}
+                value={form.pageCount}
+                onChange={(event) => setForm({ ...form, pageCount: event.target.value })}
+              />
             </EntityFormField>
             <EntityFormField id="book-description" label="Mô tả">
-              <textarea id="book-description" className="min-h-24 rounded-md border bg-background px-3 py-2 text-sm" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+              <textarea
+                id="book-description"
+                className="min-h-24 rounded-md border bg-background px-3 py-2 text-sm"
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+              />
             </EntityFormField>
           </div>
         </EntityForm>

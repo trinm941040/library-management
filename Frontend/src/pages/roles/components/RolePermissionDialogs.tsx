@@ -69,7 +69,7 @@ export function RoleFormDialog({ open, role, onOpenChange, onSave }: RoleFormDia
           </DialogHeader>
           <div className="grid gap-5 py-6">
             <div className="grid gap-2">
-              <Label htmlFor="role-name">Tên vai trò</Label>
+              <Label htmlFor="role-name">Tên vai trò *</Label>
               <Input
                 id="role-name"
                 value={name}
@@ -187,7 +187,7 @@ export function PermissionFormDialog({
           </DialogHeader>
           <div className="grid gap-5 py-6">
             <div className="grid gap-2">
-              <Label htmlFor="permission-name">Tên quyền</Label>
+              <Label htmlFor="permission-name">Tên quyền *</Label>
               <Input
                 id="permission-name"
                 value={name}
@@ -201,7 +201,7 @@ export function PermissionFormDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="permission-module">Phân hệ</Label>
+              <Label htmlFor="permission-module">Phân hệ *</Label>
               <Input
                 id="permission-module"
                 value={module}

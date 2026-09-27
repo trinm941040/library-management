@@ -180,7 +180,7 @@ export function EmployeeFormDialog({
           </DialogHeader>
 
           <div className="grid gap-5 py-6 sm:grid-cols-2">
-            <FormField label="Mã nhân viên" htmlFor="employee-code">
+            <FormField label="Mã nhân viên *" htmlFor="employee-code">
               <Input
                 id="employee-code"
                 value={form.employeeCode}
@@ -191,7 +191,7 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-            <FormField label="Họ và tên" htmlFor="employee-name">
+            <FormField label="Họ và tên *" htmlFor="employee-name">
               <Input
                 id="employee-name"
                 value={form.fullName}
@@ -204,7 +204,7 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-            <FormField label="Email" htmlFor="employee-email">
+            <FormField label="Email *" htmlFor="employee-email">
               <Input
                 id="employee-email"
                 type="email"
@@ -247,7 +247,7 @@ export function EmployeeFormDialog({
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField label="Đơn vị công tác" htmlFor="employee-department">
+            <FormField label="Đơn vị công tác *" htmlFor="employee-department">
               <Input
                 id="employee-department"
                 value={form.department}
@@ -258,7 +258,7 @@ export function EmployeeFormDialog({
                 required
               />
             </FormField>
-            <FormField label="Chức vụ" htmlFor="employee-position">
+            <FormField label="Chức vụ *" htmlFor="employee-position">
               <Input
                 id="employee-position"
                 value={form.position}
@@ -279,7 +279,7 @@ export function EmployeeFormDialog({
                 disabled={isSubmitting}
               />
             </FormField>
-            <FormField label="Ngày bắt đầu công tác" htmlFor="employee-hire-date">
+            <FormField label="Ngày bắt đầu công tác *" htmlFor="employee-hire-date">
               <Input
                 id="employee-hire-date"
                 type="date"
