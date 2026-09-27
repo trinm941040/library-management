@@ -30,24 +30,63 @@ public readonly record struct IsbnValue
 
     private static bool IsValidIsbn10(string value)
     {
-        if (value[..9].Any(character => !char.IsDigit(character)) ||
-            (value[9] != 'X' && !char.IsDigit(value[9])))
-            return false;
+        // 1. Loại bỏ các dấu gạch nối và khoảng trắng, chuyển thành chữ hoa
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string cleanIsbn = value.Replace("-", "").Replace(" ", "").ToUpper();
 
-        var sum = value[..9].Select((character, index) => (10 - index) * (character - '0')).Sum();
-        sum += value[9] == 'X' ? 10 : value[9] - '0';
-        return sum % 11 == 0;
+        // 2. Kiểm tra độ dài phải đúng 10 ký tự
+        if (cleanIsbn.Length != 10) return false;
+
+        // 3. Kiểm tra định dạng: 9 ký tự đầu phải là số, ký tự cuối là số hoặc 'X'
+        if (!cleanIsbn.Substring(0, 9).All(char.IsDigit)) return false;
+        
+        char lastChar = cleanIsbn[9];
+        if (!char.IsDigit(lastChar) && lastChar != 'X') return false;
+
+        // 4. Tính tổng checksum theo quy tắc nhân trọng số giảm dần từ 10 đến 2
+        int total = 0;
+        for (int i = 0; i < 9; i++)
+        {
+            int digit = cleanIsbn[i] - '0';
+            total += digit * (10 - i);
+        }
+
+        // 5. Tính số kiểm tra (check digit) hợp lệ
+        int remainder = total % 11;
+        int checkDigitValue = (11 - remainder) % 11;
+
+        // 6. Lấy giá trị thực tế của ký tự cuối cùng để so sánh
+        int actualCheckDigitValue = (lastChar == 'X') ? 10 : (lastChar - '0');
+
+        return checkDigitValue == actualCheckDigitValue;
     }
 
     private static bool IsValidIsbn13(string value)
     {
-        if (value.Any(character => !char.IsDigit(character)))
-            return false;
+        // 1. Loại bỏ các dấu gạch nối và khoảng trắng
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string cleanIsbn = value.Replace("-", "").Replace(" ", "");
 
-        var sum = value[..12]
-            .Select((character, index) => (character - '0') * (index % 2 == 0 ? 1 : 3))
-            .Sum();
-        var checkDigit = (10 - (sum % 10)) % 10;
-        return checkDigit == value[12] - '0';
+        // 2. Kiểm tra độ dài phải đúng 13 ký tự và chỉ chứa số
+        if (cleanIsbn.Length != 13 || !cleanIsbn.All(char.IsDigit))
+        {
+            return false;
+        }
+
+        // 3. Tính tổng checksum theo quy tắc nhân trọng số xen kẽ 1 và 3
+        int total = 0;
+        for (int i = 0; i < 12; i++)
+        {
+            int digit = cleanIsbn[i] - '0'; // Chuyển ký tự số sang int
+            int weight = (i % 2 == 0) ? 1 : 3;
+            total += digit * weight;
+        }
+
+        // 4. Tìm số kiểm tra (check digit) hợp lệ
+        int remainder = total % 10;
+        int checkDigit = (10 - remainder) % 10;
+
+        // 5. So sánh với chữ số cuối cùng của mã nhập vào
+        return checkDigit == (cleanIsbn[12] - '0');
     }
 }
