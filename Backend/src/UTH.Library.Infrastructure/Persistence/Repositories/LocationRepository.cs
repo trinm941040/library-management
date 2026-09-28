@@ -111,6 +111,27 @@ internal sealed class LocationRepository(LibraryDbContext db) : ILocationReposit
     public Task<LocationImpactSnapshot> GetShelfImpactAsync(Guid shelfId, CancellationToken cancellationToken) =>
         GetShelfSetImpactAsync(db.Shelves.AsNoTracking().Where(x => x.Id == shelfId).Select(x => x.Id), cancellationToken);
 
+    public Task<bool> BranchHasAreasAsync(Guid branchId, CancellationToken cancellationToken) =>
+        db.Areas.AsNoTracking().AnyAsync(x => x.BranchId == branchId, cancellationToken);
+
+    public async Task<bool> BranchHasReferencesAsync(Guid branchId, CancellationToken cancellationToken) =>
+        await db.Employees.AsNoTracking().AnyAsync(x => x.BranchId == branchId, cancellationToken) ||
+        await db.InventoryAudits.AsNoTracking().AnyAsync(x => x.BranchId == branchId, cancellationToken) ||
+        await db.StockReceipts.AsNoTracking().AnyAsync(x => x.BranchId == branchId, cancellationToken) ||
+        await db.CirculationPolicies.AsNoTracking().AnyAsync(x => x.BranchId == branchId, cancellationToken);
+
+    public Task<bool> AreaHasShelvesAsync(Guid areaId, CancellationToken cancellationToken) =>
+        db.Shelves.AsNoTracking().AnyAsync(x => x.AreaId == areaId, cancellationToken);
+
+    public Task<bool> AreaHasReferencesAsync(Guid areaId, CancellationToken cancellationToken) =>
+        db.InventoryAudits.AsNoTracking().AnyAsync(x => x.AreaId == areaId, cancellationToken);
+
+    public Task<bool> ShelfHasBookCopiesAsync(Guid shelfId, CancellationToken cancellationToken) =>
+        db.BookCopies.AsNoTracking().AnyAsync(x => x.ShelfId == shelfId, cancellationToken);
+
+    public Task<bool> ShelfHasReferencesAsync(Guid shelfId, CancellationToken cancellationToken) =>
+        db.InventoryAudits.AsNoTracking().AnyAsync(x => x.ShelfId == shelfId, cancellationToken);
+
     public Task AddBranchAsync(Branch branch, CancellationToken cancellationToken) =>
         db.Branches.AddAsync(branch, cancellationToken).AsTask();
 
@@ -119,6 +140,10 @@ internal sealed class LocationRepository(LibraryDbContext db) : ILocationReposit
 
     public Task AddShelfAsync(Shelf shelf, CancellationToken cancellationToken) =>
         db.Shelves.AddAsync(shelf, cancellationToken).AsTask();
+
+    public void RemoveBranch(Branch branch) => db.Branches.Remove(branch);
+    public void RemoveArea(Area area) => db.Areas.Remove(area);
+    public void RemoveShelf(Shelf shelf) => db.Shelves.Remove(shelf);
 
     private IQueryable<Guid> ShelfIdsForBranch(Guid branchId) =>
         from shelf in db.Shelves.AsNoTracking()

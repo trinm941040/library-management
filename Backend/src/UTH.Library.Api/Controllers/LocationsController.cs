@@ -92,6 +92,14 @@ public sealed class LocationsController(LocationService service) : ControllerBas
     public async Task<ActionResult<LocationResponse>> DeactivateBranch(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken) =>
         Ok(Map(await service.ChangeBranchStatusAsync(id, new ChangeLocationStatusCommand(false, request.ConcurrencyToken), cancellationToken)));
 
+    [HttpDelete("branches/{id:guid}/permanent")]
+    [Authorize(Policy = Permissions.LocationsDeactivate)]
+    public async Task<IActionResult> DeleteBranch(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken)
+    {
+        await service.DeleteBranchAsync(id, request.ConcurrencyToken, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("areas/{id:guid}/activate")]
     [Authorize(Policy = Permissions.LocationsUpdate)]
     public async Task<ActionResult<LocationResponse>> ActivateArea(Guid id, ChangeLocationStatusRequest request, CancellationToken cancellationToken) =>
@@ -102,6 +110,14 @@ public sealed class LocationsController(LocationService service) : ControllerBas
     public async Task<ActionResult<LocationResponse>> DeactivateArea(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken) =>
         Ok(Map(await service.ChangeAreaStatusAsync(id, new ChangeLocationStatusCommand(false, request.ConcurrencyToken), cancellationToken)));
 
+    [HttpDelete("areas/{id:guid}/permanent")]
+    [Authorize(Policy = Permissions.LocationsDeactivate)]
+    public async Task<IActionResult> DeleteArea(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken)
+    {
+        await service.DeleteAreaAsync(id, request.ConcurrencyToken, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("shelves/{id:guid}/activate")]
     [Authorize(Policy = Permissions.LocationsUpdate)]
     public async Task<ActionResult<LocationResponse>> ActivateShelf(Guid id, ChangeLocationStatusRequest request, CancellationToken cancellationToken) =>
@@ -111,6 +127,14 @@ public sealed class LocationsController(LocationService service) : ControllerBas
     [Authorize(Policy = Permissions.LocationsDeactivate)]
     public async Task<ActionResult<LocationResponse>> DeactivateShelf(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken) =>
         Ok(Map(await service.ChangeShelfStatusAsync(id, new ChangeLocationStatusCommand(false, request.ConcurrencyToken), cancellationToken)));
+
+    [HttpDelete("shelves/{id:guid}/permanent")]
+    [Authorize(Policy = Permissions.LocationsDeactivate)]
+    public async Task<IActionResult> DeleteShelf(Guid id, [FromBody] ChangeLocationStatusRequest request, CancellationToken cancellationToken)
+    {
+        await service.DeleteShelfAsync(id, request.ConcurrencyToken, cancellationToken);
+        return NoContent();
+    }
 
     private static LocationResponse Map(LocationTreeModel model) =>
         new(model.Id, model.Type, model.Code, model.Name, model.Address, model.IsActive, model.ParentId,

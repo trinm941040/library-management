@@ -47,7 +47,12 @@ public static class DependencyInjection
         {
             options.InvalidModelStateResponseFactory = context =>
             {
-                var details = new ValidationProblemDetails(context.ModelState)
+                var errors = context.ModelState.ToDictionary(
+                    entry => entry.Key,
+                    entry => entry.Value?.Errors
+                        .Select(error => TranslateValidationMessage(entry.Key, error.ErrorMessage))
+                        .ToArray() ?? []);
+                var details = new ValidationProblemDetails(errors)
                 {
                     Status = context.HttpContext.Request.Path.StartsWithSegments("/api/v1/me")
                         ? StatusCodes.Status422UnprocessableEntity
@@ -170,5 +175,16 @@ public static class DependencyInjection
                 ["correlationId"] = httpContext.TraceIdentifier
             }
         });
+    }
+
+    private static string TranslateValidationMessage(string field, string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return $"Giá trị trường '{field}' không hợp lệ.";
+        if (!message.Any(character => character > 127) && message.Contains("required", StringComparison.OrdinalIgnoreCase))
+            return $"Trường '{field}' là bắt buộc.";
+        if (!message.Any(character => character > 127))
+            return $"Giá trị trường '{field}' không hợp lệ.";
+        return message;
     }
 }

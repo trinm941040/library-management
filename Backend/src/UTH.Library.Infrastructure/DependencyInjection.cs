@@ -23,13 +23,13 @@ public static class DependencyInjection
         services.AddDataProtection();
         services.AddOptions<AuditRetentionOptions>()
             .Bind(configuration.GetSection(AuditRetentionOptions.SectionName))
-            .Validate(options => options.RetentionDays is >= 30 and <= 3650, "Audit:RetentionDays must be between 30 and 3650.")
+            .Validate(options => options.RetentionDays is >= 30 and <= 3650, "Audit:RetentionDays phải nằm trong khoảng từ 30 đến 3650.")
             .ValidateOnStart();
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddDbContext<LibraryDbContext>((provider, options) =>
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
-                ?? throw new InvalidOperationException("ConnectionStrings:LibraryDatabase is required.");
+                ?? throw new InvalidOperationException("Cấu hình ConnectionStrings:LibraryDatabase là bắt buộc.");
             options.UseNpgsql(connectionString);
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());

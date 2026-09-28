@@ -142,3 +142,13 @@ export async function deactivateLocation(location: LocationNode) {
     locationSchema,
   )
 }
+
+export async function deleteLocation(location: LocationNode) {
+  await readResponse(
+    await authenticatedFetch(`${URL}/${segment[location.type]}/${location.id}/permanent`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concurrencyToken: location.concurrencyToken }),
+    }),
+  )
+}

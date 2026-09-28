@@ -87,7 +87,7 @@ public sealed class MemberRepository(LibraryDbContext db) : IMemberRepository
                 select new MemberHistoryRecord(
                     payment.Id, "payment", payment.PaidAtUtc, violation.BookTitle,
                     payment.Reference ?? "Thanh toán tiền phạt", payment.Amount),
-            _ => throw new ArgumentOutOfRangeException(nameof(category), "History category is invalid.")
+            _ => throw new ArgumentOutOfRangeException(nameof(category), "Loại lịch sử không hợp lệ.")
         };
 
         var count = await query.CountAsync(ct);

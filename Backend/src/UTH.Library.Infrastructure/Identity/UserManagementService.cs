@@ -66,10 +66,10 @@ public sealed class UserManagementService(
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
-            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
+            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email và tên hiển thị không được chỉ chứa khoảng trắng.");
         var email = command.Email.Trim();
         if (await userManager.FindByEmailAsync(email) is not null)
-            return UserManagementResult.Failed(UserManagementFailure.Conflict, "A user with this email already exists.");
+            return UserManagementResult.Failed(UserManagementFailure.Conflict, "Đã tồn tại tài khoản sử dụng email này.");
 
         Employee? employee = null;
         if (command.EmployeeId is not null)
@@ -78,11 +78,11 @@ public sealed class UserManagementService(
                 value => value.Id == command.EmployeeId,
                 cancellationToken);
             if (employee is null)
-                return UserManagementResult.Failed(UserManagementFailure.NotFound, "Employee was not found.");
+                return UserManagementResult.Failed(UserManagementFailure.NotFound, "Không tìm thấy hồ sơ nhân viên.");
             if (employee.UserId is not null)
                 return UserManagementResult.Failed(
                     UserManagementFailure.Conflict,
-                    "Employee is already linked to a user account.");
+                    "Nhân viên đã được liên kết với một tài khoản.");
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -132,17 +132,17 @@ public sealed class UserManagementService(
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.DisplayName))
-            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email and display name cannot contain only whitespace.");
+            return UserManagementResult.Failed(UserManagementFailure.Validation, "Email và tên hiển thị không được chỉ chứa khoảng trắng.");
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
-            return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
+            return UserManagementResult.Failed(UserManagementFailure.NotFound, "Không tìm thấy tài khoản.");
         if (id != currentUserId && await userManager.IsInRoleAsync(user, RoleNames.Administrator))
             return AdministratorIsProtected();
 
         var email = command.Email.Trim();
         var existingUser = await userManager.FindByEmailAsync(email);
         if (existingUser is not null && existingUser.Id != id)
-            return UserManagementResult.Failed(UserManagementFailure.Conflict, "A user with this email already exists.");
+            return UserManagementResult.Failed(UserManagementFailure.Conflict, "Đã tồn tại tài khoản sử dụng email này.");
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
@@ -178,11 +178,11 @@ public sealed class UserManagementService(
         if (id == currentUserId)
             return UserManagementResult.Failed(
                 UserManagementFailure.SelfDeactivation,
-                "You cannot deactivate your own account.");
+                "Bạn không thể ngừng hoạt động tài khoản của chính mình.");
 
         var user = await userManager.FindByIdAsync(id.ToString());
         if (user is null)
-            return UserManagementResult.Failed(UserManagementFailure.NotFound, "User was not found.");
+            return UserManagementResult.Failed(UserManagementFailure.NotFound, "Không tìm thấy tài khoản.");
         if (await userManager.IsInRoleAsync(user, RoleNames.Administrator))
             return AdministratorIsProtected();
 
@@ -251,7 +251,7 @@ public sealed class UserManagementService(
     private static UserManagementResult AdministratorIsProtected() =>
         UserManagementResult.Failed(
             UserManagementFailure.ProtectedResource,
-            "Administrator accounts cannot be modified by other users.");
+            "Tài khoản quản trị viên không thể bị chỉnh sửa bởi người dùng khác.");
 
     private static ManagedUser Map(ApplicationUser user, IReadOnlyCollection<string> roles) =>
         new(

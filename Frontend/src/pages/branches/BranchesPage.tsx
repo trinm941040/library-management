@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, MapPinned, Pencil, Plus, Power, PowerOff, RefreshCw, Rows3 } from 'lucide-react'
+import { Building2, MapPinned, Pencil, Plus, Power, PowerOff, RefreshCw, Rows3, Trash2 } from 'lucide-react'
 import { ConfirmDialog, PageShell, ScreenState, StatusBadge, useToast } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -8,6 +8,7 @@ import {
   activateLocation,
   createLocation,
   deactivateLocation,
+  deleteLocation,
   getLocationImpact,
   getLocations,
   updateLocation,
@@ -46,6 +47,8 @@ export function BranchesPage() {
   const [actionError, setActionError] = useState('')
   const [form, setForm] = useState<FormState | null>(null)
   const [deactivating, setDeactivating] = useState<DeactivateState | null>(null)
+  const [deleting, setDeleting] = useState<LocationNode | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const [actionPending, setActionPending] = useState(false)
   const { showToast } = useToast()
 
@@ -143,6 +146,23 @@ export function BranchesPage() {
     }
   }
 
+  const confirmDelete = async () => {
+    if (!deleting) return
+    setActionPending(true)
+    setDeleteError('')
+    try {
+      await deleteLocation(deleting)
+      const code = deleting.code
+      setDeleting(null)
+      await load()
+      showToast(`Đã xóa vĩnh viễn ${code}.`)
+    } catch (reason) {
+      setDeleteError(reason instanceof Error ? reason.message : 'Không thể xóa vị trí.')
+    } finally {
+      setActionPending(false)
+    }
+  }
+
   const impact = deactivating?.impact ?? emptyImpact
   const impactDescription = deactivating?.loading
     ? 'Đang kiểm tra các đối tượng đang sử dụng vị trí này...'
@@ -187,6 +207,7 @@ export function BranchesPage() {
                 onEdit={(node) => setForm({ type: node.type, editing: node, parentId: node.parentId })}
                 onActivate={(node) => void activate(node)}
                 onDeactivate={(node) => void inspectDeactivate(node)}
+                onDelete={(node) => { setDeleteError(''); setDeleting(node) }}
               />
             ))}
           </div>
@@ -217,6 +238,23 @@ export function BranchesPage() {
         onConfirm={() => void confirmDeactivate()}
         onOpenChange={(open) => !open && setDeactivating(null)}
       />
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title={`Xóa vĩnh viễn ${deleting?.code ?? ''}?`}
+        description={deleting?.type === 'Shelf'
+          ? 'Chỉ có thể xóa kệ khi không còn bản sao sách và dữ liệu kiểm kê tham chiếu.'
+          : deleting?.type === 'Area'
+            ? 'Chỉ có thể xóa khu vực khi không còn kệ.'
+            : 'Chỉ có thể xóa chi nhánh khi không còn khu vực và dữ liệu nghiệp vụ tham chiếu.'}
+        confirmLabel="Xóa vĩnh viễn"
+        destructive
+        confirmDisabled={Boolean(deleting?.children.length)}
+        isPending={actionPending}
+        error={deleteError}
+        onConfirm={() => void confirmDelete()}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      />
     </>
   )
 }
@@ -228,6 +266,7 @@ function LocationCard({
   onEdit,
   onActivate,
   onDeactivate,
+  onDelete,
 }: {
   node: LocationNode
   pending: boolean
@@ -235,6 +274,7 @@ function LocationCard({
   onEdit: (node: LocationNode) => void
   onActivate: (node: LocationNode) => void
   onDeactivate: (node: LocationNode) => void
+  onDelete: (node: LocationNode) => void
 }) {
   const Icon = node.type === 'Branch' ? Building2 : node.type === 'Area' ? MapPinned : Rows3
   const readiness = node.type === 'Branch' ? node.readiness : null
@@ -264,6 +304,14 @@ function LocationCard({
           </PermissionBoundary>
           <PermissionBoundary requiredPermissions={['locations.deactivate']}>
             {node.isActive ? <Button variant="ghost" size="icon" disabled={pending} aria-label={`Ngừng hoạt động ${node.code}`} onClick={() => onDeactivate(node)}><PowerOff /></Button> : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={pending || node.children.length > 0}
+              aria-label={`Xóa vĩnh viễn ${node.code}`}
+              title={node.children.length > 0 ? (node.type === 'Branch' ? 'Phải xóa hết khu vực trước' : 'Phải xóa hết kệ trước') : `Xóa vĩnh viễn ${node.code}`}
+              onClick={() => onDelete(node)}
+            ><Trash2 /></Button>
           </PermissionBoundary>
           <PermissionBoundary requiredPermissions={['locations.create']}>
             {node.type === 'Branch' ? <Button variant="outline" size="sm" onClick={() => onCreate('Area', node.id)}><Plus /> Khu vực</Button> : null}
@@ -274,7 +322,7 @@ function LocationCard({
       {node.children.length > 0 ? (
         <CardContent className="grid gap-3 border-t pt-4">
           {node.children.map((child) => (
-            <LocationCard key={child.id} node={child} pending={pending} onCreate={onCreate} onEdit={onEdit} onActivate={onActivate} onDeactivate={onDeactivate} />
+            <LocationCard key={child.id} node={child} pending={pending} onCreate={onCreate} onEdit={onEdit} onActivate={onActivate} onDeactivate={onDeactivate} onDelete={onDelete} />
           ))}
         </CardContent>
       ) : null}

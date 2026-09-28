@@ -38,7 +38,7 @@ public sealed class RsaJwtKeyProvider : IDisposable
     {
         var pem = ReadPem(path, "private");
         if (!pem.Contains("PRIVATE KEY", StringComparison.Ordinal))
-            throw new InvalidOperationException($"JWT private key file '{path}' does not contain a private key.");
+            throw new InvalidOperationException($"Tệp khóa riêng JWT '{path}' không chứa khóa riêng.");
 
         return ImportKey(pem, path, isPrivate: true);
     }
@@ -47,7 +47,7 @@ public sealed class RsaJwtKeyProvider : IDisposable
     {
         var pem = ReadPem(path, "public");
         if (pem.Contains("PRIVATE KEY", StringComparison.Ordinal))
-            throw new InvalidOperationException($"JWT public key file '{path}' must not contain private key material.");
+            throw new InvalidOperationException($"Tệp khóa công khai JWT '{path}' không được chứa dữ liệu khóa riêng.");
 
         return ImportKey(pem, path, isPrivate: false);
     }
@@ -64,14 +64,14 @@ public sealed class RsaJwtKeyProvider : IDisposable
         }
         catch (Exception exception) when (exception is ArgumentException or CryptographicException)
         {
-            throw new InvalidOperationException($"JWT key file '{path}' is not a valid RSA PEM key.", exception);
+            throw new InvalidOperationException($"Tệp khóa JWT '{path}' không phải khóa RSA PEM hợp lệ.", exception);
         }
     }
 
     private static string ReadPem(string path, string keyType)
     {
         if (!File.Exists(path))
-            throw new InvalidOperationException($"JWT {keyType} key file was not found at '{path}'.");
+            throw new InvalidOperationException($"Không tìm thấy tệp khóa JWT {keyType} tại '{path}'.");
 
         return File.ReadAllText(path);
     }
@@ -85,7 +85,7 @@ public sealed class RsaJwtKeyProvider : IDisposable
     {
         if (key.KeySize < MinimumKeySizeBits)
             throw new InvalidOperationException(
-                $"JWT {keyType} RSA key must be at least {MinimumKeySizeBits} bits; actual size is {key.KeySize} bits.");
+                $"Khóa RSA JWT {keyType} phải có ít nhất {MinimumKeySizeBits} bit; kích thước thực tế là {key.KeySize} bit.");
     }
 
     private static void EnsureMatchingPair(RSA privateRsa, RSA publicRsa)
@@ -100,7 +100,7 @@ public sealed class RsaJwtKeyProvider : IDisposable
             !CryptographicOperations.FixedTimeEquals(privatePublic.Modulus, publicParameters.Modulus) ||
             !CryptographicOperations.FixedTimeEquals(privatePublic.Exponent, publicParameters.Exponent))
         {
-            throw new InvalidOperationException("JWT private and public PEM files do not form a matching RSA key pair.");
+            throw new InvalidOperationException("Tệp PEM khóa riêng và khóa công khai JWT không tạo thành một cặp RSA tương ứng.");
         }
     }
 }

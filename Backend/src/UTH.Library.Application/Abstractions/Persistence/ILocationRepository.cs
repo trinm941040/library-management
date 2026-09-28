@@ -17,9 +17,18 @@ public interface ILocationRepository
     Task<LocationImpactSnapshot> GetBranchImpactAsync(Guid branchId, CancellationToken cancellationToken);
     Task<LocationImpactSnapshot> GetAreaImpactAsync(Guid areaId, CancellationToken cancellationToken);
     Task<LocationImpactSnapshot> GetShelfImpactAsync(Guid shelfId, CancellationToken cancellationToken);
+    Task<bool> BranchHasAreasAsync(Guid branchId, CancellationToken cancellationToken);
+    Task<bool> BranchHasReferencesAsync(Guid branchId, CancellationToken cancellationToken);
+    Task<bool> AreaHasShelvesAsync(Guid areaId, CancellationToken cancellationToken);
+    Task<bool> AreaHasReferencesAsync(Guid areaId, CancellationToken cancellationToken);
+    Task<bool> ShelfHasBookCopiesAsync(Guid shelfId, CancellationToken cancellationToken);
+    Task<bool> ShelfHasReferencesAsync(Guid shelfId, CancellationToken cancellationToken);
     Task AddBranchAsync(Branch branch, CancellationToken cancellationToken);
     Task AddAreaAsync(Area area, CancellationToken cancellationToken);
     Task AddShelfAsync(Shelf shelf, CancellationToken cancellationToken);
+    void RemoveBranch(Branch branch);
+    void RemoveArea(Area area);
+    void RemoveShelf(Shelf shelf);
 }
 
 public sealed record BranchLocationSnapshot(

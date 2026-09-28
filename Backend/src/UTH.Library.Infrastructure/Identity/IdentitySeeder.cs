@@ -49,7 +49,7 @@ public sealed class IdentitySeeder(IServiceProvider services, IConfiguration con
             role = new ApplicationRole { Id = Guid.NewGuid(), Name = name, NormalizedName = name.ToUpperInvariant(), IsSystemRole = systemRole, IsActive = true, CreatedAtUtc = DateTime.UtcNow };
             var result = await roleManager.CreateAsync(role);
             if (!result.Succeeded)
-                throw new InvalidOperationException($"Unable to seed role '{name}'.");
+                throw new InvalidOperationException($"Không thể khởi tạo vai trò '{name}'.");
         }
         else return; // Preserve administrator changes to existing role grants on restart.
         var permissionIds = await db.Permissions.Where(value => permissionNames.Contains(value.Name)).Select(value => value.Id).ToListAsync(cancellationToken);

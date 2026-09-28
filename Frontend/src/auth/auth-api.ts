@@ -110,7 +110,15 @@ async function withSessionLock<T>(operation: () => Promise<T>): Promise<T> {
 
 export async function readResponse<T>(response: Response, schema?: z.ZodType<T>): Promise<T> {
   if (response.ok) {
-    const data = (await response.json()) as unknown
+    if (response.status === 204 || response.status === 205) return undefined as T
+    const content = await response.text()
+    if (!content.trim()) return undefined as T
+    let data: unknown
+    try {
+      data = JSON.parse(content) as unknown
+    } catch {
+      throw new ApiError('Phản hồi máy chủ không phải JSON hợp lệ.', 502)
+    }
     if (!schema) return data as T
     const parsed = schema.safeParse(data)
     if (!parsed.success) throw new ApiError('Phản hồi máy chủ không hợp lệ.', 502)

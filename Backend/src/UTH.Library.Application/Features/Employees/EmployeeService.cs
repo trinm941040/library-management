@@ -187,7 +187,7 @@ public sealed class EmployeeService(
         {
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
-                "The employee was modified by another request. Reload the employee and try again.");
+                "Hồ sơ nhân viên đã được cập nhật bởi yêu cầu khác. Vui lòng tải lại và thử lại.");
         }
     }
 

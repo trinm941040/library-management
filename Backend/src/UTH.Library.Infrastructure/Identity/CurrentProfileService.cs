@@ -39,7 +39,7 @@ public sealed class CurrentProfileService(
         var employee = await db.Employees.Include(value => value.Branch)
             .SingleOrDefaultAsync(value => value.UserId == userId, cancellationToken);
         if (user is null || employee is null)
-            return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Employee profile was not found.");
+            return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Không tìm thấy hồ sơ nhân viên.");
         if (employee.ConcurrencyToken != command.RowVersion)
             return CurrentProfileResult.Failed(CurrentProfileFailure.Conflict, "The profile was updated elsewhere. Reload it and try again.");
 
@@ -72,7 +72,7 @@ public sealed class CurrentProfileService(
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
-            return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Account was not found.");
+            return CurrentProfileResult.Failed(CurrentProfileFailure.NotFound, "Không tìm thấy tài khoản.");
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await SessionLock.AcquireAsync(db, userId, cancellationToken);

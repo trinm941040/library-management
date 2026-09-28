@@ -218,6 +218,51 @@ public sealed class LocationService(
     public async Task<LocationTreeModel> ChangeShelfStatusAsync(Guid id, ChangeLocationStatusCommand command, CancellationToken cancellationToken)
         => await unitOfWork.ExecuteAsync(ct => ChangeShelfStatusInTransactionAsync(id, command, ct), cancellationToken);
 
+    public Task DeleteBranchAsync(Guid id, Guid concurrencyToken, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteAsync(async ct =>
+        {
+            var branch = await RequireBranchAsync(id, ct);
+            EnsureConcurrency(concurrencyToken, branch.ConcurrencyToken);
+            if (await repository.BranchHasAreasAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa chi nhánh khi vẫn còn khu vực.");
+            if (await repository.BranchHasReferencesAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa chi nhánh vì vẫn còn dữ liệu nghiệp vụ tham chiếu.");
+            var before = JsonSerializer.Serialize(branch);
+            repository.RemoveBranch(branch);
+            AddDeleteAudit("location.branch.deleted", id, before);
+            return true;
+        }, cancellationToken);
+
+    public Task DeleteAreaAsync(Guid id, Guid concurrencyToken, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteAsync(async ct =>
+        {
+            var area = await RequireAreaAsync(id, ct);
+            EnsureConcurrency(concurrencyToken, area.ConcurrencyToken);
+            if (await repository.AreaHasShelvesAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa khu vực khi vẫn còn kệ.");
+            if (await repository.AreaHasReferencesAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa khu vực vì vẫn còn dữ liệu kiểm kê tham chiếu.");
+            var before = JsonSerializer.Serialize(area);
+            repository.RemoveArea(area);
+            AddDeleteAudit("location.area.deleted", id, before);
+            return true;
+        }, cancellationToken);
+
+    public Task DeleteShelfAsync(Guid id, Guid concurrencyToken, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteAsync(async ct =>
+        {
+            var shelf = await RequireShelfAsync(id, ct);
+            EnsureConcurrency(concurrencyToken, shelf.ConcurrencyToken);
+            if (await repository.ShelfHasBookCopiesAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa kệ khi vẫn còn bản sao sách.");
+            if (await repository.ShelfHasReferencesAsync(id, ct))
+                throw new ResourceConflictException("Không thể xóa kệ vì vẫn còn dữ liệu kiểm kê tham chiếu.");
+            var before = JsonSerializer.Serialize(shelf);
+            repository.RemoveShelf(shelf);
+            AddDeleteAudit("location.shelf.deleted", id, before);
+            return true;
+        }, cancellationToken);
+
     private async Task<LocationTreeModel> ChangeShelfStatusInTransactionAsync(
         Guid id,
         ChangeLocationStatusCommand command,
@@ -267,8 +312,8 @@ public sealed class LocationService(
     {
         if (!impact.HasBlockingReferences) return;
         throw new ResourceConflictException(
-            $"Location is still referenced: {impact.EmployeeCount} employee(s), {impact.BookCopyCount} book copy/copies, " +
-            $"{impact.ActiveInventoryAuditCount} active inventory audit(s), {impact.EditableStockReceiptCount} editable stock receipt(s).");
+            $"Vị trí vẫn đang được tham chiếu: {impact.EmployeeCount} nhân viên, {impact.BookCopyCount} bản sao sách, " +
+            $"{impact.ActiveInventoryAuditCount} đợt kiểm kê đang hoạt động, {impact.EditableStockReceiptCount} phiếu nhập có thể chỉnh sửa.");
     }
 
     private void AddAudit(string action, Guid entityId, string? before, object after) =>
@@ -279,6 +324,18 @@ public sealed class LocationService(
             entityId,
             before,
             JsonSerializer.Serialize(after),
+            UtcNow(),
+            requestContext.CorrelationId,
+            requestContext.IpAddress));
+
+    private void AddDeleteAudit(string action, Guid entityId, string before) =>
+        unitOfWork.AddAuditLog(AuditLog.Create(
+            requestContext.UserId,
+            action,
+            "Location",
+            entityId,
+            before,
+            null,
             UtcNow(),
             requestContext.CorrelationId,
             requestContext.IpAddress));

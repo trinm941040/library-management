@@ -5,7 +5,7 @@ public sealed class Utils
     public string ReadPEMFile(string path)
     {
         if (!File.Exists(path))
-            throw new FileNotFoundException($"PEM file not found: {path}");
+            throw new FileNotFoundException($"Không tìm thấy tệp PEM: {path}");
         return File.ReadAllText(path);
     }
 
