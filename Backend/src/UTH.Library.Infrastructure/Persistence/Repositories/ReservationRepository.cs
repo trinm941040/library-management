@@ -36,12 +36,14 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                !dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                !dbContext.BookCopies.Any(copy => copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved))),
             "ready" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
                 reservation.ExpiresAtUtc >= utcNow &&
-                dbContext.Books.Any(book => book.Id == reservation.BookId && book.Quantity > 0)),
+                dbContext.BookCopies.Any(copy => copy.BookId == reservation.BookId &&
+                    (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved))),
             "expired" => query.Where(reservation =>
                 reservation.FulfilledAtUtc == null &&
                 reservation.CancelledAtUtc == null &&
@@ -110,6 +112,12 @@ public sealed class ReservationRepository(LibraryDbContext dbContext) : IReserva
         dbContext.BookCopies.FirstOrDefaultAsync(
             c => c.BookId == bookId &&
                  (c.Status == Domain.Enums.CopyStatus.Available || c.Status == Domain.Enums.CopyStatus.Reserved),
+            cancellationToken);
+
+    public Task<int> CountAvailableBookCopiesAsync(Guid bookId, CancellationToken cancellationToken) =>
+        dbContext.BookCopies.CountAsync(
+            copy => copy.BookId == bookId &&
+                (copy.Status == Domain.Enums.CopyStatus.Available || copy.Status == Domain.Enums.CopyStatus.Reserved),
             cancellationToken);
 
     public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken) =>

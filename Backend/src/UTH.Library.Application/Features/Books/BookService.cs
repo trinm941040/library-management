@@ -75,7 +75,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Author,
                 command.Isbn,
                 command.Category,
-                0,
                 timeProvider.GetUtcNow().UtcDateTime);
             book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
                 command.PublicationYear, command.Language, command.PageCount);
@@ -131,7 +130,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Author,
                 command.Isbn,
                 command.Category,
-                book.Quantity,
                 timeProvider.GetUtcNow().UtcDateTime);
             book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
                 command.PublicationYear, command.Language, command.PageCount);

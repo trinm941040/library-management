@@ -328,9 +328,6 @@ namespace UTH.Library.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PublisherId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

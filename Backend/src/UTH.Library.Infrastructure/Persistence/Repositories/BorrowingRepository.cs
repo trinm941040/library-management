@@ -80,6 +80,12 @@ public sealed class BorrowingRepository(LibraryDbContext dbContext) : IBorrowing
             copy => copy.Id == copyId,
             cancellationToken);
 
+    public Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken) =>
+        dbContext.BookCopies
+            .Where(copy => copy.BookId == bookId && copy.Status == Domain.Enums.CopyStatus.Available)
+            .OrderBy(copy => copy.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Renewal>> GetRenewalsByBorrowingIdAsync(Guid borrowingId, CancellationToken cancellationToken) =>
         await dbContext.Renewals
             .Where(r => r.BorrowingId == borrowingId)

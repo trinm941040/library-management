@@ -11,7 +11,6 @@ public sealed class Book
         string author,
         string isbn,
         string category,
-        int quantity,
         DateTime createdAtUtc)
     {
         Id = id;
@@ -19,7 +18,6 @@ public sealed class Book
         Author = author;
         Isbn = isbn;
         Category = category;
-        Quantity = quantity;
         CreatedAtUtc = createdAtUtc;
         ConcurrencyToken = Guid.NewGuid();
     }
@@ -42,8 +40,6 @@ public sealed class Book
 
     public string Category { get; private set; }
 
-    public int Quantity { get; private set; }
-
     public DateTime CreatedAtUtc { get; private set; }
 
     public DateTime? UpdatedAtUtc { get; private set; }
@@ -61,17 +57,15 @@ public sealed class Book
         string author,
         string isbn,
         string category,
-        int quantity,
         DateTime createdAtUtc)
     {
-        Validate(title, author, isbn, category, quantity);
+        Validate(title, author, isbn, category);
         return new Book(
             Guid.NewGuid(),
             title.Trim(),
             author.Trim(),
             NormalizeIsbn(isbn),
             category.Trim(),
-            quantity,
             createdAtUtc);
     }
 
@@ -110,37 +104,18 @@ public sealed class Book
         string author,
         string isbn,
         string category,
-        int quantity,
         DateTime updatedAtUtc)
     {
-        Validate(title, author, isbn, category, quantity);
+        Validate(title, author, isbn, category);
         Title = title.Trim();
         Author = author.Trim();
         Isbn = NormalizeIsbn(isbn);
         Category = category.Trim();
-        Quantity = quantity;
         UpdatedAtUtc = updatedAtUtc;
         ConcurrencyToken = Guid.NewGuid();
     }
 
-    public void Checkout(DateTime updatedAtUtc)
-    {
-        if (Quantity <= 0)
-            throw new InvalidOperationException("Sách đã hết bản sao khả dụng.");
-
-        Quantity--;
-        UpdatedAtUtc = updatedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
-    }
-
-    public void CheckIn(DateTime updatedAtUtc)
-    {
-        Quantity++;
-        UpdatedAtUtc = updatedAtUtc;
-        ConcurrencyToken = Guid.NewGuid();
-    }
-
-    private static void Validate(string title, string author, string isbn, string category, int quantity)
+    private static void Validate(string title, string author, string isbn, string category)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Tên sách là bắt buộc.", nameof(title));
@@ -150,8 +125,6 @@ public sealed class Book
             throw new ArgumentException("ISBN là bắt buộc.", nameof(isbn));
         if (string.IsNullOrWhiteSpace(category))
             throw new ArgumentException("Thể loại là bắt buộc.", nameof(category));
-        if (quantity < 0)
-            throw new ArgumentOutOfRangeException(nameof(quantity), "Số lượng sách không được là số âm.");
     }
 
     private static string NormalizeIsbn(string isbn) => IsbnValue.Create(isbn).Value;

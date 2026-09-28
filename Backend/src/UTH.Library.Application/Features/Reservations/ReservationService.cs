@@ -43,11 +43,12 @@ public sealed class ReservationService(
         var member = await members.GetByIdAsync(reservation.ReserverId, cancellationToken);
         var activeReservations = await reservations.GetActiveReservationsForBookAsync(reservation.BookId, now, cancellationToken);
         var queuePos = await reservations.GetQueuePositionAsync(reservation.BookId, reservation.Id, now, cancellationToken);
+        var availableCopyCount = await reservations.CountAvailableBookCopiesAsync(reservation.BookId, cancellationToken);
 
         var resModel = ToModel(
             reservation,
             book?.Title ?? "Unknown book",
-            book?.Quantity ?? 0,
+            availableCopyCount,
             now,
             queuePos,
             book?.Author,
@@ -63,7 +64,7 @@ public sealed class ReservationService(
             bookQueueModels.Add(ToModel(
                 item,
                 book?.Title ?? "Unknown book",
-                book?.Quantity ?? 0,
+                availableCopyCount,
                 now,
                 i + 1,
                 book?.Author,
@@ -80,7 +81,7 @@ public sealed class ReservationService(
             resModel,
             book?.Isbn,
             member?.MemberGroup,
-            book?.Quantity ?? 0,
+            availableCopyCount,
             activeReservations.Count,
             "Chính sách lưu thông tiêu chuẩn",
             holdDays,
@@ -148,10 +149,11 @@ public sealed class ReservationService(
             await reservations.SaveChangesAsync(cancellationToken);
 
             var queuePos = await reservations.GetQueuePositionAsync(book.Id, reservation.Id, now, cancellationToken);
+            var availableCopyCount = await reservations.CountAvailableBookCopiesAsync(book.Id, cancellationToken);
             return ReservationResult.Success(ToModel(
                 reservation,
                 book.Title,
-                book.Quantity,
+                availableCopyCount,
                 now,
                 queuePos,
                 book.Author,
@@ -215,10 +217,11 @@ public sealed class ReservationService(
             await reservations.AddAuditLogAsync(auditLog, cancellationToken);
 
             await reservations.SaveChangesAsync(cancellationToken);
+            var availableCopyCount = await reservations.CountAvailableBookCopiesAsync(reservation.BookId, cancellationToken);
             return ReservationResult.Success(ToModel(
                 reservation,
                 book?.Title ?? "Unknown book",
-                book?.Quantity ?? 0,
+                availableCopyCount,
                 now,
                 0,
                 book?.Author,
@@ -280,7 +283,7 @@ public sealed class ReservationService(
             copy = await reservations.GetFirstAvailableBookCopyAsync(book.Id, cancellationToken);
         }
 
-        if (copy is null && book.Quantity <= 0)
+        if (copy is null)
             return ReservationResult.Fail(ReservationFailure.Conflict, "Không còn bản sao khả dụng nào trong kho để hoàn tất nhận sách.");
 
         try
@@ -290,18 +293,10 @@ public sealed class ReservationService(
                 reservation.Id,
                 reservation.FulfilledAtUtc,
                 reservation.ConcurrencyToken,
-                BookQuantity = book.Quantity
+                AvailableCopyCount = await reservations.CountAvailableBookCopiesAsync(book.Id, cancellationToken)
             });
 
-            if (copy is not null)
-            {
-                copy.Checkout(now);
-                book.Checkout(now);
-            }
-            else
-            {
-                book.Checkout(now);
-            }
+            copy.Checkout(now);
 
             reservation.MarkFulfilled(now);
 
@@ -310,7 +305,7 @@ public sealed class ReservationService(
 
             var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
-                copy?.Id,
+                copy.Id,
                 reservation.ReserverId,
                 reservation.ReserverName,
                 reservation.ReserverEmail,
@@ -335,7 +330,7 @@ public sealed class ReservationService(
                     Status = "fulfilled",
                     reservation.FulfilledAtUtc,
                     BorrowingId = borrowing.Id,
-                    CopyBarcode = copy?.Barcode,
+                    CopyBarcode = copy.Barcode,
                     reservation.ConcurrencyToken
                 }),
                 now);
@@ -361,11 +356,12 @@ public sealed class ReservationService(
             await reservations.AddAuditLogAsync(borrowAudit, cancellationToken);
 
             await reservations.SaveChangesAsync(cancellationToken);
+            var availableCopyCount = await reservations.CountAvailableBookCopiesAsync(book.Id, cancellationToken);
 
             return ReservationResult.Success(ToModel(
                 reservation,
                 book.Title,
-                book.Quantity,
+                availableCopyCount,
                 now,
                 0,
                 book.Author,
@@ -386,11 +382,12 @@ public sealed class ReservationService(
         var book = await books.GetByIdAsync(reservation.BookId, cancellationToken);
         var member = await members.GetByIdAsync(reservation.ReserverId, cancellationToken);
         var queuePos = await reservations.GetQueuePositionAsync(reservation.BookId, reservation.Id, now, cancellationToken);
+        var availableCopyCount = await reservations.CountAvailableBookCopiesAsync(reservation.BookId, cancellationToken);
 
         return ToModel(
             reservation,
             book?.Title ?? "Unknown book",
-            book?.Quantity ?? 0,
+            availableCopyCount,
             now,
             queuePos,
             book?.Author,

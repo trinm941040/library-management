@@ -16,7 +16,7 @@ public sealed class BookServiceTests
         var service = new BookService(repository, TimeProvider.System);
 
         var result = await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming"),
             CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -30,49 +30,16 @@ public sealed class BookServiceTests
         var repository = new FakeBookRepository();
         var service = new BookService(repository, TimeProvider.System);
         await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
+            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming"),
             CancellationToken.None);
 
         var result = await service.CreateAsync(
-            new CreateBookCommand("Another Title", "Another Author", "978-0132350884", "Programming", 0),
+            new CreateBookCommand("Another Title", "Another Author", "978-0132350884", "Programming"),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(BookFailure.Conflict, result.Failure);
         Assert.Single(repository.Books);
-    }
-
-    [Fact]
-    public async Task CreateAsync_PositiveQuantity_DoesNotCreateUnlocatedCopies()
-    {
-        var repository = new FakeBookRepository();
-        var service = new BookService(repository, TimeProvider.System);
-
-        var result = await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 2),
-            CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(BookFailure.Validation, result.Failure);
-        Assert.Empty(repository.Books);
-    }
-
-    [Fact]
-    public async Task UpdateAsync_QuantityChange_DoesNotModifyBook()
-    {
-        var repository = new FakeBookRepository();
-        var service = new BookService(repository, TimeProvider.System);
-        var created = await service.CreateAsync(
-            new CreateBookCommand("Clean Code", "Robert C. Martin", "9780132350884", "Programming", 0),
-            CancellationToken.None);
-
-        var result = await service.UpdateAsync(created.Book!.Id,
-            new UpdateBookCommand("Updated title", "Robert C. Martin", "9780132350884", "Programming", 1),
-            CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(BookFailure.Validation, result.Failure);
-        Assert.Equal("Clean Code", repository.Books.Single().Title);
     }
 
     [Fact]

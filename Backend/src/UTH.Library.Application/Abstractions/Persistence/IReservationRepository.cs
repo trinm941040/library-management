@@ -19,6 +19,7 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> GetActiveReservationsForBookAsync(Guid bookId, DateTime utcNow, CancellationToken cancellationToken);
     Task<BookCopy?> GetAvailableBookCopyByBarcodeAsync(Guid bookId, string barcode, CancellationToken cancellationToken);
     Task<BookCopy?> GetFirstAvailableBookCopyAsync(Guid bookId, CancellationToken cancellationToken);
+    Task<int> CountAvailableBookCopiesAsync(Guid bookId, CancellationToken cancellationToken);
     Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

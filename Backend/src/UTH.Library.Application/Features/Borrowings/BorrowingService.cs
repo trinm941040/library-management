@@ -223,7 +223,6 @@ public sealed class BorrowingService(
             var loanDays = command.LoanDaysOverride is > 0 ? Math.Min(command.LoanDaysOverride.Value, maximumLoanDays) : maximumLoanDays;
 
             copy.Checkout(now);
-            book.Checkout(now);
 
             var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
@@ -288,20 +287,25 @@ public sealed class BorrowingService(
             var loanDays = command.LoanDays <= 0 ? maximumLoanDays : command.LoanDays;
             if (loanDays > maximumLoanDays)
                 return BorrowingResult.Fail(BorrowingFailure.Validation, $"Thời gian mượn ({loanDays} ngày) vượt quá quy định tối đa của chính sách ({maximumLoanDays} ngày).");
-            book.Checkout(now);
-            var borrowing = Borrowing.Create(
+            var copy = await borrowings.GetFirstAvailableBookCopyAsync(book.Id, cancellationToken);
+            if (copy is null)
+                return BorrowingResult.Fail(BorrowingFailure.Conflict, "Không còn bản sao khả dụng nào để lập phiếu mượn.");
+            copy.Checkout(now);
+            var borrowing = Borrowing.CreateWithCopy(
                 book.Id,
+                copy.Id,
                 borrower.Id,
                 borrower.FullName,
                 borrower.Email,
                 now,
                 loanDays,
+                null,
                 policy.PolicyId,
                 policy.Version,
                 JsonSerializer.Serialize(policy));
             await borrowings.AddAsync(borrowing, cancellationToken);
             await borrowings.SaveChangesAsync(cancellationToken);
-            return BorrowingResult.Success(ToModel(borrowing, book.Title, now));
+            return BorrowingResult.Success(ToModel(borrowing, book.Title, now, copy.Barcode));
         }
         catch (OptimisticConcurrencyException)
         {
@@ -510,7 +514,6 @@ public sealed class BorrowingService(
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
             borrowing.MarkReturned(now);
-            book.CheckIn(now);
 
             if (borrowing.BookCopyId.HasValue)
             {
@@ -654,7 +657,6 @@ public sealed class BorrowingService(
             }
             else
             {
-                book?.CheckIn(now);
                 var targetStatus = hasWaitingReservation ? CopyStatus.Reserved : CopyStatus.Available;
                 copy.ReturnWithCondition(parsedCondition, targetStatus, now);
             }

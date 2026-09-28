@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  BookOpen,
   Download,
   Layers,
   Pencil,
@@ -267,7 +266,6 @@ export function BooksPage() {
     }
   }
 
-  const inStockCount = page?.items.filter((book) => (book.availableCopyCount ?? 0) > 0).length ?? 0
   const columns = useMemo<DataTableColumn<LibraryBook>[]>(
     () => [
       {
@@ -288,7 +286,6 @@ export function BooksPage() {
         cell: (book) => <span className="font-mono">{book.isbn}</span>,
       },
       { id: 'category', header: 'Thể loại', sortable: true, cell: (book) => book.category },
-      { id: 'availableCopyCount', header: 'Bản sao khả dụng', cell: (book) => book.availableCopyCount ?? 0 },
       {
         id: 'status',
         header: 'Trạng thái',
@@ -394,7 +391,7 @@ export function BooksPage() {
           </>
         }
       >
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="mb-6 grid gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -404,17 +401,6 @@ export function BooksPage() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{page?.totalCount ?? '—'}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Còn trong kho (trang này)
-              </CardTitle>
-              <BookOpen className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{page ? inStockCount : '—'}</p>
             </CardContent>
           </Card>
         </div>

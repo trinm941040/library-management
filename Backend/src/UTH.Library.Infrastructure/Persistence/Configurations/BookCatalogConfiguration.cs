@@ -15,7 +15,6 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
         builder.Property(book => book.Author).HasMaxLength(200).IsRequired();
         builder.Property(book => book.Isbn).HasMaxLength(32).IsRequired();
         builder.Property(book => book.Category).HasMaxLength(100).IsRequired();
-        builder.Property(book => book.Quantity).IsRequired();
         builder.Property(book => book.CreatedAtUtc).IsRequired();
         builder.Property(book => book.ConcurrencyToken)
             .IsConcurrencyToken()

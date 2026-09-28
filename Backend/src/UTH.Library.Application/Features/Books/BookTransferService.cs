@@ -194,7 +194,7 @@ public sealed class BookTransferService(
         {
             foreach (var row in command.Rows)
             {
-                var book = Book.Create(row.Title, row.Author, row.Isbn, row.Category, 0, now);
+                var book = Book.Create(row.Title, row.Author, row.Isbn, row.Category, now);
                 book.SetPublicationMetadata(null, row.EditionStatement, row.Description,
                     row.PublicationYear, row.Language, row.PageCount);
                 await repository.AddAsync(book, ct);

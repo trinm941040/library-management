@@ -327,8 +327,6 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
             ("isbn", true) => query.OrderByDescending(book => book.Isbn).ThenByDescending(book => book.Id),
             ("category", false) => query.OrderBy(book => book.Category).ThenBy(book => book.Title).ThenBy(book => book.Id),
             ("category", true) => query.OrderByDescending(book => book.Category).ThenByDescending(book => book.Title).ThenByDescending(book => book.Id),
-            ("quantity", false) => query.OrderBy(book => book.Quantity).ThenBy(book => book.Title).ThenBy(book => book.Id),
-            ("quantity", true) => query.OrderByDescending(book => book.Quantity).ThenByDescending(book => book.Title).ThenByDescending(book => book.Id),
             ("createdAtUtc", false) => query.OrderBy(book => book.CreatedAtUtc).ThenBy(book => book.Id),
             ("createdAtUtc", true) => query.OrderByDescending(book => book.CreatedAtUtc).ThenByDescending(book => book.Id),
             (_, true) => query.OrderByDescending(book => book.Title).ThenByDescending(book => book.Id),
@@ -336,11 +334,7 @@ public sealed class BookRepository(LibraryDbContext dbContext) : IBookRepository
         };
 
     private IOrderedQueryable<Book> SortCatalog(IQueryable<Book> query, string sortBy, bool descending) =>
-        sortBy == "quantity"
-            ? descending
-                ? query.OrderByDescending(book => dbContext.BookCopies.Count(copy => copy.BookId == book.Id && copy.Status == CopyStatus.Available)).ThenByDescending(book => book.Id)
-                : query.OrderBy(book => dbContext.BookCopies.Count(copy => copy.BookId == book.Id && copy.Status == CopyStatus.Available)).ThenBy(book => book.Id)
-            : Sort(query, sortBy, descending);
+        Sort(query, sortBy, descending);
 
     public void Remove(Book book) => dbContext.Books.Remove(book);
 

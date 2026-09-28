@@ -52,7 +52,6 @@ export function CatalogDetailPage() {
           <Detail label="Tác giả" value={book.authors?.map((item) => item.name).join(', ') || book.author} />
           <Detail label="Thể loại" value={book.categories?.map((item) => item.name).join(', ') || book.category} />
           <Detail label="Nhà xuất bản" value={book.publisher?.name || 'Chưa cập nhật'} />
-          <Detail label="Bản sao khả dụng" value={String(book.availableCopyCount ?? 0)} />
           <Detail label="Ngôn ngữ" value={book.language || 'Chưa cập nhật'} />
           <Detail label="Năm xuất bản" value={book.publicationYear ? String(book.publicationYear) : 'Chưa cập nhật'} />
           <Detail label="Số trang" value={book.pageCount ? String(book.pageCount) : 'Chưa cập nhật'} />
