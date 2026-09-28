@@ -104,6 +104,8 @@ public sealed record NotificationUnreadCountResult(
 
 public sealed record SendBulkNotificationCommand(
     string TemplateCode,
+    IReadOnlyList<Guid> RecipientIds,
+    bool AllStaff,
     string? RoleName,
     string? PermissionName,
     Guid? BranchId,

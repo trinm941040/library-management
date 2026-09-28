@@ -5,6 +5,7 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { SettingsProvider } from '@/settings/SettingsProvider'
 import { AppErrorBoundary } from './AppErrorBoundary'
 import { ToastProvider } from '@/common/components'
+import { NotificationRealtimeProvider } from '@/pages/notifications/NotificationRealtimeProvider'
 export function AppProviders({ children }: { children: ReactNode }) {
   const [client] = useState(
     () =>
@@ -21,7 +22,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <BrowserRouter>
           <SettingsProvider>
             <ToastProvider position="top-right">
-              <AuthProvider>{children}</AuthProvider>
+              <AuthProvider>
+                <NotificationRealtimeProvider>{children}</NotificationRealtimeProvider>
+              </AuthProvider>
             </ToastProvider>
           </SettingsProvider>
         </BrowserRouter>

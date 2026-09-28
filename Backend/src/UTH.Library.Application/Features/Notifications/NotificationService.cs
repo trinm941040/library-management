@@ -12,6 +12,7 @@ namespace UTH.Library.Application.Features.Notifications;
 public sealed class NotificationService(
     INotificationRepository repository,
     IEnumerable<INotificationSenderAdapter> adapters,
+    INotificationRealtimePublisher realtimePublisher,
     TimeProvider timeProvider) : INotificationService
 {
     private static readonly Regex VariableRegex = new(@"\{\{([a-zA-Z0-9_\-]+)\}\}", RegexOptions.Compiled);
@@ -194,10 +195,14 @@ public sealed class NotificationService(
         var allowedVars = ParseAllowedVariables(template.AllowedVariables);
 
         var renderedSubject = !string.IsNullOrWhiteSpace(template.SubjectTemplate)
-            ? RenderTemplate(template.SubjectTemplate, query.Variables, allowedVars)
+            ? RenderTemplate(template.SubjectTemplate, query.Variables, allowedVars, htmlEncodeValues: false)
             : null;
 
-        var renderedBody = RenderTemplate(template.BodyTemplate, query.Variables, allowedVars);
+        var renderedBody = RenderTemplate(
+            template.BodyTemplate,
+            query.Variables,
+            allowedVars,
+            htmlEncodeValues: template.Channel == NotificationChannel.Email);
 
         return new NotificationPreviewResult(
             template.Code,
@@ -262,10 +267,14 @@ public sealed class NotificationService(
         }
 
         var renderedSubject = !string.IsNullOrWhiteSpace(template.SubjectTemplate)
-            ? RenderTemplate(template.SubjectTemplate, vars, allowedVars)
+            ? RenderTemplate(template.SubjectTemplate, vars, allowedVars, htmlEncodeValues: false)
             : null;
 
-        var renderedBody = RenderTemplate(template.BodyTemplate, vars, allowedVars);
+        var renderedBody = RenderTemplate(
+            template.BodyTemplate,
+            vars,
+            allowedVars,
+            htmlEncodeValues: template.Channel == NotificationChannel.Email);
 
         // Create notification
         var notification = Notification.Create(
@@ -321,7 +330,7 @@ public sealed class NotificationService(
 
         await repository.AddAuditLogAsync(auditLog, cancellationToken);
 
-        return new NotificationDto(
+        var result = new NotificationDto(
             created.Id,
             created.TemplateId,
             template.Code,
@@ -344,6 +353,11 @@ public sealed class NotificationService(
             created.CreatedAtUtc,
             created.ReadAtUtc,
             created.IsRead);
+
+        if (template.Channel == NotificationChannel.InApp)
+            await realtimePublisher.PublishAsync(result, cancellationToken);
+
+        return result;
     }
 
     public async Task<NotificationDto> RetryAsync(
@@ -427,14 +441,20 @@ public sealed class NotificationService(
         string? ipAddress,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(command.RoleName) &&
+        if (!command.AllStaff && command.RecipientIds.Count == 0 &&
+            string.IsNullOrWhiteSpace(command.RoleName) &&
             string.IsNullOrWhiteSpace(command.PermissionName) &&
             command.BranchId is null)
-            throw new ArgumentException("Phải chọn ít nhất một phạm vi role, permission hoặc chi nhánh.");
+            throw new ArgumentException("Phải chọn người nhận hoặc phạm vi gửi thông báo.");
+        if (command.AllStaff && (command.RecipientIds.Count > 0 ||
+            !string.IsNullOrWhiteSpace(command.RoleName) ||
+            !string.IsNullOrWhiteSpace(command.PermissionName)))
+            throw new ArgumentException("Không thể kết hợp toàn bộ nhân viên với danh sách hoặc phạm vi khác.");
         if (string.IsNullOrWhiteSpace(command.EventCode) || string.IsNullOrWhiteSpace(command.IdempotencyKey))
             throw new ArgumentException("Mã sự kiện và khóa chống gửi trùng là bắt buộc khi gửi hàng loạt.");
 
-        var recipients = await repository.ResolveStaffRecipientsAsync(
+        var recipients = await repository.ResolveStaffRecipientsByIdsAsync(
+            command.RecipientIds.Distinct().ToArray(),
             command.RoleName,
             command.PermissionName,
             command.BranchId,
@@ -477,6 +497,8 @@ public sealed class NotificationService(
             JsonSerializer.Serialize(new
             {
                 command.TemplateCode,
+                command.RecipientIds,
+                command.AllStaff,
                 command.RoleName,
                 command.PermissionName,
                 command.BranchId,
@@ -623,7 +645,8 @@ public sealed class NotificationService(
     private static string RenderTemplate(
         string template,
         Dictionary<string, string> variables,
-        HashSet<string>? allowedVariables)
+        HashSet<string>? allowedVariables,
+        bool htmlEncodeValues)
     {
         if (string.IsNullOrEmpty(template)) return string.Empty;
 
@@ -646,8 +669,8 @@ public sealed class NotificationService(
                 throw new InvalidOperationException($"Biến '{{{{{varName}}}}}' là bắt buộc nhưng chưa được cung cấp giá trị.");
             }
 
-            // HTML encode to prevent injection
-            return WebUtility.HtmlEncode(value.Trim());
+            var trimmedValue = value.Trim();
+            return htmlEncodeValues ? WebUtility.HtmlEncode(trimmedValue) : trimmedValue;
         });
     }
 

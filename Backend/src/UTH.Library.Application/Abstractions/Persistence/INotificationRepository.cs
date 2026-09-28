@@ -54,6 +54,19 @@ public interface INotificationRepository
         string? permissionName,
         Guid? branchId,
         CancellationToken cancellationToken);
+    async Task<IReadOnlyList<NotificationRecipientDto>> ResolveStaffRecipientsByIdsAsync(
+        IReadOnlyCollection<Guid> recipientIds,
+        string? roleName,
+        string? permissionName,
+        Guid? branchId,
+        CancellationToken cancellationToken)
+    {
+        var recipients = await ResolveStaffRecipientsAsync(
+            roleName, permissionName, branchId, cancellationToken);
+        return recipientIds.Count == 0
+            ? recipients
+            : recipients.Where(recipient => recipientIds.Contains(recipient.Id)).ToArray();
+    }
     Task<(string Name, string? Email, string? Phone)> GetRecipientDetailsAsync(
         RecipientType recipientType,
         Guid recipientId,

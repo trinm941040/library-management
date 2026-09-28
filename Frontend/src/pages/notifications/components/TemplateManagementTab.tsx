@@ -33,6 +33,7 @@ import {
   DialogFooter,
 } from '@/common/components/ui/dialog'
 import { Plus, Edit2, Trash2, Mail, Bell, CheckCircle2, XCircle, Info } from 'lucide-react'
+import { EmailTemplateEditor } from './EmailTemplateEditor'
 
 type Props = {
   templates: NotificationTemplate[]
@@ -63,6 +64,12 @@ function formatTemplateDisplay(text?: string | null): string {
     const label = VARIABLE_LABELS[key] || varName
     return `[${label}]`
   })
+}
+
+function formatTemplateExcerpt(text?: string | null): string {
+  if (!text) return ''
+  const plainText = new DOMParser().parseFromString(text, 'text/html').body.textContent ?? ''
+  return formatTemplateDisplay(plainText).replace(/\s+/g, ' ').trim()
 }
 
 function getChannelLabel(ch: NotificationChannel) {
@@ -257,8 +264,9 @@ export const TemplateManagementTab: React.FC<Props> = ({
               </CardHeader>
 
               <CardContent className="pb-3 space-y-2.5">
-                <div className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-md border whitespace-pre-wrap leading-relaxed">
-                  {formatTemplateDisplay(t.bodyTemplate)}
+                <div className="line-clamp-4 max-h-20 overflow-hidden text-xs leading-relaxed text-muted-foreground bg-muted/40 p-2.5 rounded-md border"
+                  title={formatTemplateExcerpt(t.bodyTemplate)}>
+                  {formatTemplateExcerpt(t.bodyTemplate)}
                 </div>
 
                 {t.allowedVariables && (
@@ -299,7 +307,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
           }
         }}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {isCreating ? 'Thêm mẫu thông báo mới' : `Chỉnh sửa mẫu: ${editingTemplate?.code}`}
@@ -318,7 +326,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="templateCode">Mã mẫu thông báo *</Label>
+                <Label htmlFor="templateCode">Mã mẫu thông báo</Label>
                 {isCreating ? (
                   <Input
                     id="templateCode"
@@ -353,7 +361,7 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="templateName">Tên mẫu thông báo *</Label>
+              <Label htmlFor="templateName">Tên mẫu thông báo</Label>
               <Input
                 id="templateName"
                 placeholder="VD: Thông báo sách đặt trước đã sẵn sàng"
@@ -374,15 +382,15 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="templateBody">Nội dung mẫu *</Label>
-              <Textarea
-                id="templateBody"
-                rows={4}
-                placeholder="VD: Chào {{borrower_name}}, sách {{book_title}} bạn đặt trước đã sẵn sàng nhận tại {{branch_name}}."
-                value={bodyTemplate}
-                onChange={(e) => setBodyTemplate(e.target.value)}
-                required
-              />
+              <Label htmlFor="templateBody">Nội dung mẫu</Label>
+              {channel === 'Email' ? <EmailTemplateEditor value={bodyTemplate} onChange={setBodyTemplate}
+                variables={allowedVariables.split(/[,;\s]+/).map(value => value.trim().replace(/^\{\{|\}\}$/g, '')).filter(Boolean)} /> :
+                <Textarea id="templateBody" rows={8}
+                  placeholder="VD: Chào {{borrower_name}}, sách {{book_title}} bạn đặt trước đã sẵn sàng nhận tại {{branch_name}}."
+                  value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)} required />}
+              <p className="text-xs text-muted-foreground">{channel === 'Email'
+                ? 'Trình soạn thảo lưu nội dung HTML an toàn và hỗ trợ chèn biến trực tiếp.'
+                : 'Thông báo nội bộ sử dụng nội dung văn bản thuần.'}</p>
             </div>
 
             <div className="space-y-1.5">

@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Authorization;
 using System.Threading.RateLimiting;
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
+using UTH.Library.Api.Notifications;
+using UTH.Library.Application.Features.Notifications;
 
 namespace UTH.Library.Api;
 
@@ -35,6 +37,8 @@ public static class DependencyInjection
         });
         services.AddControllers().AddJsonOptions(options =>
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        services.AddSignalR();
+        services.AddScoped<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
             context.ProblemDetails.Extensions.TryAdd("code", $"http.{context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode}");
@@ -88,6 +92,14 @@ public static class DependencyInjection
         {
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    var token = context.Request.Query["access_token"];
+                    if (!string.IsNullOrWhiteSpace(token) &&
+                        context.HttpContext.Request.Path.StartsWithSegments("/api/v1/notifications/hub"))
+                        context.Token = token;
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = async context =>
                 {
                     var rawUserId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;

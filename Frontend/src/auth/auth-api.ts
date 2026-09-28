@@ -5,7 +5,7 @@ const environmentSchema = z.object({
   VITE_API_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
 })
 const environment = environmentSchema.parse(import.meta.env)
-const apiUrl = (path: string) => `${environment.VITE_API_BASE_URL}${path}`
+export const apiUrl = (path: string) => `${environment.VITE_API_BASE_URL}${path}`
 const AUTH_URL = '/api/v1/auth'
 const guidSchema = z
   .string()
@@ -83,6 +83,7 @@ async function request(input: RequestInfo | URL, init: RequestInit = {}) {
 }
 
 let accessToken: string | null = null
+let accessTokenExpiresAtMs = 0
 let refreshPromise: Promise<User> | null = null
 let profilePromise: Promise<User> | null = null
 let sessionGeneration = 0
@@ -143,6 +144,7 @@ async function saveSession(response: Response, generation: number) {
   const session = await readResponse(response, sessionSchema)
   assertGeneration(generation)
   accessToken = session.accessToken
+  accessTokenExpiresAtMs = Date.parse(session.accessTokenExpiresAtUtc)
   publishSession(session.currentUser)
   return session.currentUser
 }
@@ -240,9 +242,15 @@ export async function login(email: string, password: string) {
 export function restoreSession() {
   return refreshAccessToken()
 }
+export async function getRealtimeAccessToken() {
+  if (!accessToken || accessTokenExpiresAtMs <= Date.now() + 30_000) await refreshAccessToken()
+  if (!accessToken) throw new ApiError('Phiên đăng nhập không khả dụng.', 401)
+  return accessToken
+}
 export function clearLocalSession() {
   sessionGeneration += 1
   accessToken = null
+  accessTokenExpiresAtMs = 0
   publishSession(null)
 }
 export async function logout() {

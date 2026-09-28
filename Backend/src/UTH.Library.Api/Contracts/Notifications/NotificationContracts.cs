@@ -36,6 +36,8 @@ public sealed record SendNotificationApiRequest(
 
 public sealed record SendBulkNotificationApiRequest(
     string TemplateCode,
+    IReadOnlyList<Guid>? RecipientIds,
+    bool AllStaff,
     string? RoleName,
     string? PermissionName,
     Guid? BranchId,

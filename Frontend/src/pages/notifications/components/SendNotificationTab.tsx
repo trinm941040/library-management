@@ -7,6 +7,7 @@ import type {
 } from '../notifications-api'
 import {
   previewNotification,
+  sendBulkNotification,
   sendNotification,
   searchRecipients,
 } from '../notifications-api'
@@ -15,6 +16,7 @@ import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
 import { Badge } from '@/common/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -123,12 +125,15 @@ export const SendNotificationTab: React.FC<Props> = ({
   const [recipients, setRecipients] = useState<NotificationRecipient[]>([])
   const [searching, setSearching] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<NotificationRecipient | null>(null)
+  const [selectedRecipients, setSelectedRecipients] = useState<NotificationRecipient[]>([])
+  const [deliveryScope, setDeliveryScope] = useState<'single' | 'multiple' | 'all'>('single')
   const [customDestination, setCustomDestination] = useState('')
 
   // Variable inputs
   const [variables, setVariables] = useState<Record<string, string>>({})
   const [preview, setPreview] = useState<NotificationPreviewResult | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   // Send state
   const [sending, setSending] = useState(false)
@@ -145,6 +150,17 @@ export const SendNotificationTab: React.FC<Props> = ({
   const currentTemplate = useMemo(() => {
     return activeTemplates.find((t) => t.code === selectedTemplateCode) || activeTemplates[0]
   }, [activeTemplates, selectedTemplateCode])
+
+  useEffect(() => {
+    if (currentTemplate?.channel !== 'InApp') {
+      setDeliveryScope('single')
+      return
+    }
+    setRecipientType('Staff')
+    setSelectedRecipient(null)
+    setSelectedRecipients([])
+    setCustomDestination('')
+  }, [currentTemplate?.channel])
 
   // Extract variables from template body & subject
   const detectedVariables = useMemo(() => {
@@ -177,6 +193,14 @@ export const SendNotificationTab: React.FC<Props> = ({
 
   // Select recipient & autofill relevant variables
   const handleSelectRecipient = (r: NotificationRecipient) => {
+    if (deliveryScope === 'multiple') {
+      setSelectedRecipients((current) =>
+        current.some((item) => item.id === r.id)
+          ? current.filter((item) => item.id !== r.id)
+          : [...current, r],
+      )
+      return
+    }
     setSelectedRecipient(r)
     setCustomDestination(
       currentTemplate?.channel === 'Email' ? r.email || '' : r.id,
@@ -209,6 +233,7 @@ export const SendNotificationTab: React.FC<Props> = ({
         variables,
       })
       setPreview(res)
+      setPreviewOpen(true)
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Không thể tạo xem trước.')
       setPreview(null)
@@ -219,8 +244,12 @@ export const SendNotificationTab: React.FC<Props> = ({
 
   const handleSend = async () => {
     if (!currentTemplate) return
-    if (!selectedRecipient) {
+    if (deliveryScope === 'single' && !selectedRecipient) {
       setErrorMessage('Vui lòng chọn đối tượng nhận thông báo.')
+      return
+    }
+    if (deliveryScope === 'multiple' && selectedRecipients.length === 0) {
+      setErrorMessage('Vui lòng chọn ít nhất một nhân viên nhận thông báo.')
       return
     }
 
@@ -229,15 +258,26 @@ export const SendNotificationTab: React.FC<Props> = ({
     setSuccessMessage(null)
 
     try {
-      await sendNotification({
-        templateCode: currentTemplate.code,
-        recipientType,
-        recipientId: selectedRecipient.id,
-        destination: customDestination.trim() || undefined,
-        variables,
-      })
-
-      setSuccessMessage(`Đã gửi thông báo thành công đến '${selectedRecipient.name}'.`)
+      if (currentTemplate.channel === 'InApp' && deliveryScope !== 'single') {
+        const result = await sendBulkNotification({
+          templateCode: currentTemplate.code,
+          recipientIds: deliveryScope === 'multiple' ? selectedRecipients.map((item) => item.id) : [],
+          allStaff: deliveryScope === 'all',
+          variables,
+          eventCode: currentTemplate.code,
+          idempotencyKey: `manual:${crypto.randomUUID()}`,
+        })
+        setSuccessMessage(`Đã gửi thông báo thành công đến ${result.recipientCount} nhân viên.`)
+      } else {
+        await sendNotification({
+          templateCode: currentTemplate.code,
+          recipientType,
+          recipientId: selectedRecipient!.id,
+          destination: customDestination.trim() || undefined,
+          variables,
+        })
+        setSuccessMessage(`Đã gửi thông báo thành công đến '${selectedRecipient!.name}'.`)
+      }
       if (onSent) {
         onSent()
       } else if (onSentSuccess) {
@@ -313,6 +353,7 @@ export const SendNotificationTab: React.FC<Props> = ({
                   onValueChange={(val) => {
                     setSelectedTemplateCode(val)
                     setPreview(null)
+                    setPreviewOpen(false)
                   }}
                 >
                   <SelectTrigger id="templateSelect" className="w-full">
@@ -361,6 +402,28 @@ export const SendNotificationTab: React.FC<Props> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {currentTemplate?.channel === 'InApp' && (
+                <div className="grid gap-2 sm:grid-cols-3" role="group" aria-label="Phạm vi người nhận">
+                  {([
+                    ['single', 'Một nhân viên'],
+                    ['multiple', 'Nhiều nhân viên'],
+                    ['all', 'Toàn bộ nhân viên'],
+                  ] as const).map(([value, label]) => (
+                    <Button key={value} type="button" size="sm"
+                      variant={deliveryScope === value ? 'default' : 'outline'}
+                      onClick={() => {
+                        setDeliveryScope(value)
+                        setSelectedRecipient(null)
+                        setSelectedRecipients([])
+                        setCustomDestination('')
+                      }}>
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {deliveryScope !== 'all' ? <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -370,6 +433,7 @@ export const SendNotificationTab: React.FC<Props> = ({
                     setRecipientType('Member')
                     setSelectedRecipient(null)
                   }}
+                  disabled={currentTemplate?.channel === 'InApp'}
                   className="gap-2"
                 >
                   <User className="size-4" />
@@ -415,7 +479,9 @@ export const SendNotificationTab: React.FC<Props> = ({
                   </div>
                 ) : (
                   recipients.map((r) => {
-                    const isSelected = selectedRecipient?.id === r.id
+                    const isSelected = deliveryScope === 'multiple'
+                      ? selectedRecipients.some((item) => item.id === r.id)
+                      : selectedRecipient?.id === r.id
                     return (
                       <button
                         type="button"
@@ -472,6 +538,14 @@ export const SendNotificationTab: React.FC<Props> = ({
                     placeholder="Nhập địa chỉ đích..."
                     className="font-mono text-sm"
                   />
+                </div>
+              )}
+              {deliveryScope === 'multiple' && selectedRecipients.length > 0 && (
+                <p className="text-sm font-medium text-primary">Đã chọn {selectedRecipients.length} nhân viên.</p>
+              )}
+              </div> : (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+                  Thông báo sẽ được tạo riêng cho mọi tài khoản nhân viên đang hoạt động trong phạm vi bạn được phép quản lý.
                 </div>
               )}
             </CardContent>
@@ -552,14 +626,10 @@ export const SendNotificationTab: React.FC<Props> = ({
                       <p className="text-sm font-semibold">{preview.renderedSubject}</p>
                     </div>
                   )}
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground block mb-1">
-                      Nội dung gửi:
-                    </span>
-                    <div className="rounded-md border bg-card p-3.5 text-sm leading-relaxed whitespace-pre-wrap">
-                      {preview.renderedBody}
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Bản xem trước đã được tạo theo đúng kênh gửi.</p>
+                  <Button type="button" variant="outline" className="w-full gap-2" onClick={() => setPreviewOpen(true)}>
+                    <Eye className="size-4" /> Mở bản xem trước lớn
+                  </Button>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground space-y-2">
@@ -568,16 +638,22 @@ export const SendNotificationTab: React.FC<Props> = ({
                 </div>
               )}
 
-              {selectedRecipient && (
+              {(selectedRecipient || deliveryScope !== 'single') && (
                 <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
                   <div>
                     <strong className="text-foreground">Người nhận:</strong>{' '}
-                    <span className="text-muted-foreground">{selectedRecipient.name} ({selectedRecipient.code})</span>
+                    <span className="text-muted-foreground">
+                      {deliveryScope === 'all'
+                        ? 'Toàn bộ nhân viên'
+                        : deliveryScope === 'multiple'
+                          ? `${selectedRecipients.length} nhân viên`
+                          : `${selectedRecipient!.name} (${selectedRecipient!.code})`}
+                    </span>
                   </div>
-                  <div>
+                  {deliveryScope === 'single' && <div>
                     <strong className="text-foreground">Gửi tới:</strong>{' '}
                     <span className="font-mono text-primary font-medium">{customDestination || 'Mặc định'}</span>
-                  </div>
+                  </div>}
                 </div>
               )}
             </CardContent>
@@ -586,7 +662,7 @@ export const SendNotificationTab: React.FC<Props> = ({
                 className="w-full gap-2"
                 size="lg"
                 onClick={handleSend}
-                disabled={sending || !selectedRecipient}
+                disabled={sending || (deliveryScope === 'single' && !selectedRecipient) || (deliveryScope === 'multiple' && selectedRecipients.length === 0)}
               >
                 <Send className="size-4" />
                 {sending ? 'Đang gửi thông báo...' : 'Xác nhận gửi thông báo'}
@@ -598,6 +674,25 @@ export const SendNotificationTab: React.FC<Props> = ({
           </Card>
         </div>
       </div>
+      <Dialog open={previewOpen && Boolean(preview)} onOpenChange={setPreviewOpen}>
+        <DialogContent className="flex h-[90dvh] max-h-[90dvh] flex-col overflow-hidden sm:max-w-6xl">
+          <DialogHeader>
+            <DialogTitle>Xem trước {currentTemplate?.channel === 'Email' ? 'email' : 'thông báo nội bộ'}</DialogTitle>
+            <DialogDescription>Nội dung sau khi binding biến, hiển thị gần giống kết quả người nhận sẽ thấy.</DialogDescription>
+          </DialogHeader>
+          {preview ? <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm">
+              <span><strong>Người nhận:</strong> {deliveryScope === 'all' ? 'Toàn bộ nhân viên' : deliveryScope === 'multiple' ? `${selectedRecipients.length} nhân viên` : selectedRecipient?.name ?? 'Chưa chọn'}</span>
+              <span><strong>Địa chỉ:</strong> {customDestination || 'Mặc định'}</span>
+              <span><strong>Tiêu đề:</strong> {preview.renderedSubject || '(Không có tiêu đề)'}</span>
+            </div>
+            {currentTemplate?.channel === 'Email' ? <iframe title="Nội dung email xem trước" sandbox=""
+              className="min-h-0 flex-1 rounded-lg border bg-white"
+              srcDoc={`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>html,body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}main{box-sizing:border-box;max-width:760px;min-height:100%;margin:0 auto;background:#fff;padding:32px;line-height:1.6;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#1d4ed8}</style></head><body><main>${preview.renderedBody}</main></body></html>`} /> :
+              <div className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-card p-6 text-sm leading-7">{preview.renderedBody}</div>}
+          </div> : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

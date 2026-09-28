@@ -67,6 +67,21 @@ export type SendNotificationPayload = {
   metadataJson?: string | null
 }
 
+export type SendBulkNotificationPayload = {
+  templateCode: string
+  recipientIds: string[]
+  allStaff: boolean
+  variables?: Record<string, string>
+  eventCode: string
+  idempotencyKey: string
+  severity?: NotificationSeverity
+}
+
+export type BulkNotificationResult = {
+  recipientCount: number
+  notificationIds: string[]
+}
+
 export type NotificationItem = {
   id: string
   templateId: string
@@ -209,6 +224,19 @@ export async function sendNotification(
     signal,
   })
   return readResponse<NotificationItem>(res)
+}
+
+export async function sendBulkNotification(
+  payload: SendBulkNotificationPayload,
+  signal?: AbortSignal,
+): Promise<BulkNotificationResult> {
+  const res = await authenticatedFetch(`${NOTIFICATIONS_URL}/send-bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  })
+  return readResponse<BulkNotificationResult>(res)
 }
 
 export async function retryNotification(id: string, signal?: AbortSignal): Promise<NotificationItem> {

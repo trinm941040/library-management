@@ -133,6 +133,8 @@ public sealed class NotificationsController(
             var result = await notificationService.SendBulkAsync(
                 new SendBulkNotificationCommand(
                     request.TemplateCode,
+                    request.RecipientIds?.Distinct().ToArray() ?? [],
+                    request.AllStaff,
                     request.RoleName,
                     request.PermissionName,
                     branchId,

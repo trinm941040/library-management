@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UTH.Library.Infrastructure.Identity;
 using UTH.Library.Api.Infrastructure;
+using UTH.Library.Api.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,7 @@ app.UseAuthorization();
 app.MapOpenApi();
 app.MapHealthChecks("/health");
 app.MapControllers();
+app.MapHub<NotificationHub>("/api/v1/notifications/hub");
 app.Map("/", () => Results.Redirect("/swagger"));
 
 // Handle swagger for development environment
