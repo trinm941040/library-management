@@ -13,7 +13,7 @@ public sealed class Area
 
     public static Area Create(Guid branchId, string code, string name)
     {
-        if (branchId == Guid.Empty) throw new ArgumentException("Branch is required.", nameof(branchId));
+        if (branchId == Guid.Empty) throw new ArgumentException("Chi nhánh là bắt buộc.", nameof(branchId));
         var area = new Area
         {
             Id = Guid.NewGuid(),
@@ -43,9 +43,9 @@ public sealed class Area
 
     private static string Required(string value, string parameterName, int maxLength)
     {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Value is required.", parameterName);
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Giá trị là bắt buộc.", parameterName);
         var normalized = value.Trim();
-        if (normalized.Length > maxLength) throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+        if (normalized.Length > maxLength) throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName);
         return normalized;
     }
 }

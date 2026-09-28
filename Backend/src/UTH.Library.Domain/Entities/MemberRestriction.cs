@@ -17,16 +17,16 @@ public sealed class MemberRestriction
     public static MemberRestriction Create(Guid memberId, MemberRestrictionType type, string reason,
         DateTime startsAtUtc, DateTime? endsAtUtc, Guid? actorUserId)
     {
-        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Restriction reason is required.");
-        if (!Enum.IsDefined(type)) throw new ArgumentException("Restriction type is invalid.");
-        if (endsAtUtc <= startsAtUtc) throw new ArgumentException("Restriction end must be after its start.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Lý do hạn chế là bắt buộc.");
+        if (!Enum.IsDefined(type)) throw new ArgumentException("Loại hạn chế không hợp lệ.");
+        if (endsAtUtc <= startsAtUtc) throw new ArgumentException("Thời điểm kết thúc hạn chế phải sau thời điểm bắt đầu.");
         return new MemberRestriction { Id = Guid.NewGuid(), MemberId = memberId, Type = type, Reason = reason.Trim(), StartsAtUtc = startsAtUtc, EndsAtUtc = endsAtUtc, CreatedByUserId = actorUserId };
     }
 
     public void Remove(string reason, DateTime now, Guid? actorUserId)
     {
-        if (RemovedAtUtc is not null) throw new InvalidOperationException("Restriction is already removed.");
-        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Removal reason is required.");
+        if (RemovedAtUtc is not null) throw new InvalidOperationException("Hạn chế đã được gỡ bỏ.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Lý do gỡ hạn chế là bắt buộc.");
         RemovedAtUtc = now; RemovalReason = reason.Trim(); RemovedByUserId = actorUserId;
     }
 }

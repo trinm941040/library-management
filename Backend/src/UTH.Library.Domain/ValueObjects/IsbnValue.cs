@@ -10,7 +10,7 @@ public readonly record struct IsbnValue
     {
         var normalized = Normalize(value);
         if (!IsValid(normalized))
-            throw new ArgumentException("ISBN must be a valid ISBN-10 or ISBN-13.", nameof(value));
+            throw new ArgumentException("ISBN phải là ISBN-10 hoặc ISBN-13 hợp lệ.", nameof(value));
 
         return new IsbnValue(normalized);
     }

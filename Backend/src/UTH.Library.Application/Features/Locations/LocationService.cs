@@ -28,7 +28,7 @@ public sealed class LocationService(
             LocationType.Branch => await GetBranchImpactAsync(id, cancellationToken),
             LocationType.Area => await GetAreaImpactAsync(id, cancellationToken),
             LocationType.Shelf => await GetShelfImpactAsync(id, cancellationToken),
-            _ => throw new RequestValidationException(new Dictionary<string, string[]> { ["type"] = ["Location type is invalid."] })
+            _ => throw new RequestValidationException(new Dictionary<string, string[]> { ["type"] = ["Loại vị trí không hợp lệ."] })
         };
         return Map(impact);
     }
@@ -55,7 +55,7 @@ public sealed class LocationService(
     {
         var code = NormalizeCode(command.Code);
         if (await repository.BranchCodeExistsAsync(code, null, cancellationToken))
-            throw new ResourceConflictException("Branch code already exists.");
+            throw new ResourceConflictException("Mã chi nhánh đã tồn tại.");
         var branch = Branch.Create(code, command.Name, command.Address, UtcNow());
         return await unitOfWork.ExecuteAsync(async ct =>
         {
@@ -71,7 +71,7 @@ public sealed class LocationService(
         EnsureConcurrency(command.ConcurrencyToken, branch.ConcurrencyToken);
         var code = NormalizeCode(command.Code);
         if (await repository.BranchCodeExistsAsync(code, id, cancellationToken))
-            throw new ResourceConflictException("Branch code already exists.");
+            throw new ResourceConflictException("Mã chi nhánh đã tồn tại.");
         var before = JsonSerializer.Serialize(branch);
         branch.Update(code, command.Name, command.Address, UtcNow());
         return await unitOfWork.ExecuteAsync(async ct =>
@@ -87,7 +87,7 @@ public sealed class LocationService(
         _ = await RequireBranchAsync(command.BranchId, cancellationToken);
         var code = NormalizeCode(command.Code);
         if (await repository.AreaCodeExistsAsync(command.BranchId, code, null, cancellationToken))
-            throw new ResourceConflictException("Area code already exists in this branch.");
+            throw new ResourceConflictException("Mã khu vực đã tồn tại trong chi nhánh này.");
         var area = Area.Create(command.BranchId, code, command.Name);
         return await unitOfWork.ExecuteAsync(async ct =>
         {
@@ -102,10 +102,10 @@ public sealed class LocationService(
         var area = await RequireAreaAsync(id, cancellationToken);
         EnsureConcurrency(command.ConcurrencyToken, area.ConcurrencyToken);
         if (command.BranchId != area.BranchId)
-            throw new ResourceConflictException("Moving an area to another branch is not supported.");
+            throw new ResourceConflictException("Không hỗ trợ chuyển khu vực sang chi nhánh khác.");
         var code = NormalizeCode(command.Code);
         if (await repository.AreaCodeExistsAsync(area.BranchId, code, id, cancellationToken))
-            throw new ResourceConflictException("Area code already exists in this branch.");
+            throw new ResourceConflictException("Mã khu vực đã tồn tại trong chi nhánh này.");
         var before = JsonSerializer.Serialize(area);
         area.Update(code, command.Name);
         return await unitOfWork.ExecuteAsync(ct =>
@@ -118,10 +118,10 @@ public sealed class LocationService(
     public async Task<LocationTreeModel> CreateShelfAsync(SaveShelfCommand command, CancellationToken cancellationToken)
     {
         var area = await RequireAreaAsync(command.AreaId, cancellationToken);
-        if (!area.IsActive) throw new ResourceConflictException("Shelf cannot be created in an inactive area.");
+        if (!area.IsActive) throw new ResourceConflictException("Không thể tạo kệ trong khu vực đã ngừng hoạt động.");
         var code = NormalizeCode(command.Code);
         if (await repository.ShelfCodeExistsAsync(command.AreaId, code, null, cancellationToken))
-            throw new ResourceConflictException("Shelf code already exists in this area.");
+            throw new ResourceConflictException("Mã kệ đã tồn tại trong khu vực này.");
         var shelf = Shelf.Create(command.AreaId, code, command.Label);
         return await unitOfWork.ExecuteAsync(async ct =>
         {
@@ -136,10 +136,10 @@ public sealed class LocationService(
         var shelf = await RequireShelfAsync(id, cancellationToken);
         EnsureConcurrency(command.ConcurrencyToken, shelf.ConcurrencyToken);
         if (command.AreaId != shelf.AreaId)
-            throw new ResourceConflictException("Moving a shelf to another area is not supported.");
+            throw new ResourceConflictException("Không hỗ trợ chuyển kệ sang khu vực khác.");
         var code = NormalizeCode(command.Code);
         if (await repository.ShelfCodeExistsAsync(shelf.AreaId, code, id, cancellationToken))
-            throw new ResourceConflictException("Shelf code already exists in this area.");
+            throw new ResourceConflictException("Mã kệ đã tồn tại trong khu vực này.");
         var before = JsonSerializer.Serialize(shelf);
         shelf.Update(code, command.Label);
         return await unitOfWork.ExecuteAsync(ct =>
@@ -162,7 +162,7 @@ public sealed class LocationService(
             if (command.IsActive)
             {
                 if (!readiness.CanActivate)
-                    throw new ResourceConflictException("Branch requires at least one active area with an active shelf before activation.");
+                    throw new ResourceConflictException("Chi nhánh cần ít nhất một khu vực và một kệ đang hoạt động trước khi kích hoạt.");
             }
             else
             {
@@ -195,7 +195,7 @@ public sealed class LocationService(
             var branch = await RequireBranchAsync(area.BranchId, cancellationToken);
             var readiness = await repository.GetBranchReadinessAsync(area.BranchId, id, null, cancellationToken);
             if (branch.IsActive && !readiness.CanActivate)
-                throw new ResourceConflictException("This is the last active area with an active shelf in an active branch.");
+                throw new ResourceConflictException("Đây là khu vực hoạt động cuối cùng có kệ hoạt động trong chi nhánh.");
         }
 
         var before = JsonSerializer.Serialize(area);
@@ -230,14 +230,14 @@ public sealed class LocationService(
 
         var area = await RequireAreaAsync(shelf.AreaId, cancellationToken);
         if (command.IsActive && !area.IsActive)
-            throw new ResourceConflictException("Shelf cannot be activated while its area is inactive.");
+            throw new ResourceConflictException("Không thể kích hoạt kệ khi khu vực đang ngừng hoạt động.");
         if (!command.IsActive)
         {
             EnsureNoImpact(await repository.GetShelfImpactAsync(id, cancellationToken));
             var branch = await RequireBranchAsync(area.BranchId, cancellationToken);
             var readiness = await repository.GetBranchReadinessAsync(area.BranchId, null, id, cancellationToken);
             if (branch.IsActive && !readiness.CanActivate)
-                throw new ResourceConflictException("This is the last active shelf in an active branch.");
+                throw new ResourceConflictException("Đây là kệ hoạt động cuối cùng trong chi nhánh.");
         }
 
         var before = JsonSerializer.Serialize(shelf);
@@ -247,20 +247,20 @@ public sealed class LocationService(
     }
 
     private async Task<Branch> RequireBranchAsync(Guid id, CancellationToken ct) =>
-        await repository.GetBranchAsync(id, ct) ?? throw new ResourceNotFoundException("Branch was not found.");
+        await repository.GetBranchAsync(id, ct) ?? throw new ResourceNotFoundException("Không tìm thấy chi nhánh.");
 
     private async Task<Area> RequireAreaAsync(Guid id, CancellationToken ct) =>
-        await repository.GetAreaAsync(id, ct) ?? throw new ResourceNotFoundException("Area was not found.");
+        await repository.GetAreaAsync(id, ct) ?? throw new ResourceNotFoundException("Không tìm thấy khu vực.");
 
     private async Task<Shelf> RequireShelfAsync(Guid id, CancellationToken ct) =>
-        await repository.GetShelfAsync(id, ct) ?? throw new ResourceNotFoundException("Shelf was not found.");
+        await repository.GetShelfAsync(id, ct) ?? throw new ResourceNotFoundException("Không tìm thấy kệ.");
 
     private static void EnsureConcurrency(Guid? expected, Guid actual)
     {
         if (expected is null || expected == Guid.Empty)
-            throw new RequestValidationException(new Dictionary<string, string[]> { ["concurrencyToken"] = ["Concurrency token is required."] });
+            throw new RequestValidationException(new Dictionary<string, string[]> { ["concurrencyToken"] = ["Thiếu phiên bản dữ liệu vị trí."] });
         if (expected != actual)
-            throw new OptimisticConcurrencyException("The location was modified by another request. Reload it and try again.");
+            throw new OptimisticConcurrencyException("Vị trí đã được cập nhật bởi yêu cầu khác. Vui lòng tải lại và thử lại.");
     }
 
     private static void EnsureNoImpact(LocationImpactSnapshot impact)
@@ -306,8 +306,8 @@ public sealed class LocationService(
     private static BranchReadinessModel Map(BranchReadinessSnapshot readiness)
     {
         var missing = new List<string>();
-        if (readiness.ActiveAreaCount == 0) missing.Add("At least one active area is required.");
-        if (readiness.ActiveShelfCount == 0) missing.Add("At least one active shelf in an active area is required.");
+        if (readiness.ActiveAreaCount == 0) missing.Add("Cần ít nhất một khu vực đang hoạt động.");
+        if (readiness.ActiveShelfCount == 0) missing.Add("Cần ít nhất một kệ đang hoạt động trong khu vực hoạt động.");
         return new BranchReadinessModel(readiness.CanActivate, readiness.ActiveAreaCount, readiness.ActiveShelfCount, missing);
     }
 

@@ -95,15 +95,15 @@ public sealed class Borrowing
         string appliedPolicySnapshot = "{}")
     {
         if (bookId == Guid.Empty)
-            throw new ArgumentException("Book is required.", nameof(bookId));
+            throw new ArgumentException("Sách là bắt buộc.", nameof(bookId));
         if (borrowerId == Guid.Empty)
-            throw new ArgumentException("Borrower is required.", nameof(borrowerId));
+            throw new ArgumentException("Độc giả là bắt buộc.", nameof(borrowerId));
         if (string.IsNullOrWhiteSpace(borrowerName))
-            throw new ArgumentException("Borrower name is required.", nameof(borrowerName));
+            throw new ArgumentException("Tên độc giả là bắt buộc.", nameof(borrowerName));
         if (string.IsNullOrWhiteSpace(borrowerEmail))
-            throw new ArgumentException("Borrower email is required.", nameof(borrowerEmail));
+            throw new ArgumentException("Email độc giả là bắt buộc.", nameof(borrowerEmail));
         if (loanDays < 1)
-            throw new ArgumentOutOfRangeException(nameof(loanDays), "Loan period must be at least 1 day.");
+            throw new ArgumentOutOfRangeException(nameof(loanDays), "Thời hạn mượn phải ít nhất 1 ngày.");
         if (appliedPolicyVersion < 1)
             throw new ArgumentOutOfRangeException(nameof(appliedPolicyVersion));
 
@@ -125,7 +125,7 @@ public sealed class Borrowing
     public void MarkReturned(DateTime returnedAtUtc)
     {
         if (IsReturned)
-            throw new InvalidOperationException("Borrowing is already returned.");
+            throw new InvalidOperationException("Khoản mượn đã được trả.");
 
         ReturnedAtUtc = returnedAtUtc;
         ConcurrencyToken = Guid.NewGuid();
@@ -136,11 +136,11 @@ public sealed class Borrowing
     public void Renew(int renewalDays, int maxRenewals)
     {
         if (IsReturned)
-            throw new InvalidOperationException("Borrowing is already returned.");
+            throw new InvalidOperationException("Khoản mượn đã được trả.");
         if (renewalDays < 1)
             throw new ArgumentOutOfRangeException(nameof(renewalDays));
         if (RenewalCount >= maxRenewals)
-            throw new InvalidOperationException("Maximum number of renewals has been reached.");
+            throw new InvalidOperationException("Khoản mượn đã đạt số lần gia hạn tối đa.");
 
         DueAtUtc = DueAtUtc.AddDays(renewalDays);
         RenewalCount++;

@@ -66,15 +66,15 @@ public sealed class Reservation
         string appliedPolicySnapshot = "{}")
     {
         if (bookId == Guid.Empty)
-            throw new ArgumentException("Book is required.", nameof(bookId));
+            throw new ArgumentException("Sách là bắt buộc.", nameof(bookId));
         if (reserverId == Guid.Empty)
-            throw new ArgumentException("Reserver is required.", nameof(reserverId));
+            throw new ArgumentException("Độc giả đặt trước là bắt buộc.", nameof(reserverId));
         if (string.IsNullOrWhiteSpace(reserverName))
-            throw new ArgumentException("Reserver name is required.", nameof(reserverName));
+            throw new ArgumentException("Tên độc giả đặt trước là bắt buộc.", nameof(reserverName));
         if (string.IsNullOrWhiteSpace(reserverEmail))
-            throw new ArgumentException("Reserver email is required.", nameof(reserverEmail));
+            throw new ArgumentException("Email độc giả đặt trước là bắt buộc.", nameof(reserverEmail));
         if (holdDays < 1)
-            throw new ArgumentOutOfRangeException(nameof(holdDays), "Hold period must be at least 1 day.");
+            throw new ArgumentOutOfRangeException(nameof(holdDays), "Thời gian giữ sách phải ít nhất 1 ngày.");
 
         return new Reservation(
             Guid.NewGuid(),
@@ -92,7 +92,7 @@ public sealed class Reservation
     public void MarkCancelled(DateTime cancelledAtUtc)
     {
         if (!IsOpen)
-            throw new InvalidOperationException("Reservation is no longer active.");
+            throw new InvalidOperationException("Yêu cầu đặt trước không còn hiệu lực.");
 
         CancelledAtUtc = cancelledAtUtc;
         ConcurrencyToken = Guid.NewGuid();
@@ -101,7 +101,7 @@ public sealed class Reservation
     public void MarkFulfilled(DateTime fulfilledAtUtc)
     {
         if (!IsOpen)
-            throw new InvalidOperationException("Reservation is no longer active.");
+            throw new InvalidOperationException("Yêu cầu đặt trước không còn hiệu lực.");
 
         FulfilledAtUtc = fulfilledAtUtc;
         ConcurrencyToken = Guid.NewGuid();

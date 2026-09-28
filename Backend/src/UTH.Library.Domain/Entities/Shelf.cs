@@ -15,7 +15,7 @@ public sealed class Shelf
 
     public static Shelf Create(Guid areaId, string code, string label)
     {
-        if (areaId == Guid.Empty) throw new ArgumentException("Area is required.", nameof(areaId));
+        if (areaId == Guid.Empty) throw new ArgumentException("Khu vực là bắt buộc.", nameof(areaId));
         var shelf = new Shelf
         {
             Id = Guid.NewGuid(),
@@ -45,9 +45,9 @@ public sealed class Shelf
 
     private static string Required(string value, string parameterName, int maxLength)
     {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Value is required.", parameterName);
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Giá trị là bắt buộc.", parameterName);
         var normalized = value.Trim();
-        if (normalized.Length > maxLength) throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+        if (normalized.Length > maxLength) throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName);
         return normalized;
     }
 }

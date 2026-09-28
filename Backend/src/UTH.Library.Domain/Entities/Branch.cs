@@ -55,10 +55,10 @@ public sealed class Branch
     private static string Required(string value, string parameterName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Value is required.", parameterName);
+            throw new ArgumentException("Giá trị là bắt buộc.", parameterName);
         var normalized = value.Trim();
         if (normalized.Length > maxLength)
-            throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+            throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName);
         return normalized;
     }
 
@@ -67,7 +67,7 @@ public sealed class Branch
         if (string.IsNullOrWhiteSpace(value)) return null;
         var normalized = value.Trim();
         if (normalized.Length > maxLength)
-            throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+            throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName);
         return normalized;
     }
 

@@ -29,7 +29,7 @@ public sealed class FineAdjustment
     public Guid? AdjustedByUserId { get; private set; }
     public static FineAdjustment Create(Guid memberId, Guid violationId, decimal amountDelta, string reason, DateTime now, Guid? actor) {
         if (amountDelta == 0) throw new ArgumentOutOfRangeException(nameof(amountDelta));
-        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Adjustment reason is required.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Lý do điều chỉnh là bắt buộc.");
         return new FineAdjustment { Id = Guid.NewGuid(), MemberId = memberId, ViolationId = violationId, AmountDelta = amountDelta, Reason = reason.Trim(), AdjustedAtUtc = now, AdjustedByUserId = actor };
     }
 }

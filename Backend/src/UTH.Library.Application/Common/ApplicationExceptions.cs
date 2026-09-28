@@ -5,7 +5,7 @@ public abstract class ApplicationExceptionBase(string message, string code) : Ex
     public string Code { get; } = code;
 }
 public sealed class RequestValidationException(IReadOnlyDictionary<string, string[]> errors)
-    : ApplicationExceptionBase("One or more validation errors occurred.", "validation.failed")
+    : ApplicationExceptionBase("Một hoặc nhiều trường dữ liệu không hợp lệ.", "validation.failed")
 {
     public IReadOnlyDictionary<string, string[]> Errors { get; } = errors;
 }

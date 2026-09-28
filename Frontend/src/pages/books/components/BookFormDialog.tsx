@@ -15,7 +15,6 @@ export type BookFormData = {
   author: string
   isbn: string
   category: string
-  quantity: string
   publisherName: string
   description: string
   editionStatement: string
@@ -36,7 +35,6 @@ const emptyForm: BookFormData = {
   author: '',
   isbn: '',
   category: '',
-  quantity: '0',
   publisherName: '',
   description: '',
   editionStatement: '',
@@ -60,7 +58,6 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
             author: book.author,
             isbn: book.isbn,
             category: book.category,
-            quantity: String(book.quantity),
             publisherName: book.publisher?.name ?? '',
             description: book.description ?? '',
             editionStatement: book.editionStatement ?? '',
@@ -91,15 +88,11 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const quantity = Number(form.quantity)
     const nextErrors: Partial<Record<keyof BookFormData, string>> = {}
     if (!form.title.trim()) nextErrors.title = 'Vui lòng nhập tên sách.'
     if (!form.author.trim()) nextErrors.author = 'Vui lòng nhập tác giả.'
     if (form.isbn.trim().length < 10) nextErrors.isbn = 'ISBN phải có ít nhất 10 ký tự.'
     if (!form.category.trim()) nextErrors.category = 'Vui lòng nhập thể loại.'
-    if (!Number.isInteger(quantity) || quantity < 0) {
-      nextErrors.quantity = 'Số lượng phải là số nguyên không âm.'
-    }
     if (form.publicationYear && (!Number.isInteger(Number(form.publicationYear)) || Number(form.publicationYear) < 0 || Number(form.publicationYear) > 9999))
       nextErrors.publicationYear = 'Năm xuất bản không hợp lệ.'
     if (form.pageCount && (!Number.isInteger(Number(form.pageCount)) || Number(form.pageCount) < 1))
@@ -216,26 +209,6 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
                   <option key={name} value={name} />
                 ))}
               </datalist>
-            </EntityFormField>
-            <EntityFormField
-              id="book-quantity"
-              label="Bản sao khả dụng (tự tính)"
-              error={fieldErrors.quantity}
-            >
-              <Input
-                id="book-quantity"
-                type="number"
-                min={0}
-                required
-                readOnly
-                aria-invalid={Boolean(fieldErrors.quantity)}
-                aria-describedby={fieldErrors.quantity ? 'book-quantity-error' : undefined}
-                value={form.quantity}
-                onChange={(event) => {
-                  setForm({ ...form, quantity: event.target.value })
-                  setFieldErrors((values) => ({ ...values, quantity: undefined }))
-                }}
-              />
             </EntityFormField>
             <EntityFormField id="book-publisherName" label="Nhà xuất bản">
               <Input

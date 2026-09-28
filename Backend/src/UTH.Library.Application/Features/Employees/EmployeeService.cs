@@ -98,14 +98,14 @@ public sealed class EmployeeService(
         if (validation is not null) return validation;
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Không tìm thấy hồ sơ nhân viên.");
 
         var duplicate = await ValidateUniquenessAsync(command, id, cancellationToken);
         if (duplicate is not null)
             return duplicate;
 
         if (command.ConcurrencyToken is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Concurrency token là bắt buộc.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Thiếu phiên bản dữ liệu nhân viên.");
         if (employee.ConcurrencyToken != command.ConcurrencyToken)
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,
@@ -166,7 +166,7 @@ public sealed class EmployeeService(
     {
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Không tìm thấy hồ sơ nhân viên.");
 
         if (employee.Status == EmploymentStatus.Terminated)
             return EmployeeManagementResult.Success(Map(employee));
@@ -200,14 +200,14 @@ public sealed class EmployeeService(
         Guid? actorUserId = null)
     {
         if (!Enum.IsDefined(status))
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Employment status is invalid.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Trạng thái làm việc không hợp lệ.");
 
         var employee = await repository.GetByIdAsync(id, cancellationToken);
         if (employee is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Employee was not found.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.NotFound, "Không tìm thấy hồ sơ nhân viên.");
 
         if (concurrencyToken is null)
-            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Concurrency token là bắt buộc.");
+            return EmployeeManagementResult.Failed(EmployeeManagementFailure.Validation, "Thiếu phiên bản dữ liệu nhân viên.");
         if (employee.ConcurrencyToken != concurrencyToken)
             return EmployeeManagementResult.Failed(
                 EmployeeManagementFailure.Conflict,

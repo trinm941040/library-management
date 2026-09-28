@@ -79,15 +79,15 @@ public sealed class Violation
         string appliedPolicySnapshot = "{}")
     {
         if (borrowerId == Guid.Empty)
-            throw new ArgumentException("Borrower is required.", nameof(borrowerId));
+            throw new ArgumentException("Độc giả là bắt buộc.", nameof(borrowerId));
         if (string.IsNullOrWhiteSpace(borrowerName))
-            throw new ArgumentException("Borrower name is required.", nameof(borrowerName));
+            throw new ArgumentException("Tên độc giả là bắt buộc.", nameof(borrowerName));
         if (string.IsNullOrWhiteSpace(borrowerEmail))
-            throw new ArgumentException("Borrower email is required.", nameof(borrowerEmail));
+            throw new ArgumentException("Email độc giả là bắt buộc.", nameof(borrowerEmail));
         if (string.IsNullOrWhiteSpace(type) || !AllowedTypes.Contains(type.Trim().ToLowerInvariant()))
-            throw new ArgumentException("Violation type is invalid.", nameof(type));
+            throw new ArgumentException("Loại vi phạm không hợp lệ.", nameof(type));
         if (fineAmount < 0)
-            throw new ArgumentOutOfRangeException(nameof(fineAmount), "Fine amount cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(fineAmount), "Tiền phạt không được là số âm.");
 
         return new Violation(
             Guid.NewGuid(),
@@ -112,7 +112,7 @@ public sealed class Violation
     private void Resolve(DateTime resolvedAtUtc, string resolution)
     {
         if (!IsOpen)
-            throw new InvalidOperationException("Violation is already resolved.");
+            throw new InvalidOperationException("Vi phạm đã được xử lý.");
 
         ResolvedAtUtc = resolvedAtUtc;
         Resolution = resolution;

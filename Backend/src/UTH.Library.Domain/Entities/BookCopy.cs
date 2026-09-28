@@ -29,14 +29,14 @@ public sealed class BookCopy
 
     private static BookCopy CreateBase(Guid bookId, string barcode, DateTime acquiredAtUtc)
     {
-        if (bookId == Guid.Empty) throw new ArgumentException("Book is required.", nameof(bookId));
+        if (bookId == Guid.Empty) throw new ArgumentException("Biểu ghi sách là bắt buộc.", nameof(bookId));
         return new BookCopy(Guid.NewGuid(), bookId, NormalizeBarcode(barcode), EnsureUtc(acquiredAtUtc));
     }
 
     public static BookCopy Create(Guid bookId, string barcode, CopyCondition condition, Guid shelfId, Guid? stockReceiptItemId, DateTime acquiredAtUtc)
     {
         if (!Enum.IsDefined(condition)) throw new ArgumentOutOfRangeException(nameof(condition));
-        if (shelfId == Guid.Empty) throw new ArgumentException("Shelf is required.", nameof(shelfId));
+        if (shelfId == Guid.Empty) throw new ArgumentException("Kệ là bắt buộc.", nameof(shelfId));
         var copy = CreateBase(bookId, barcode, acquiredAtUtc);
         copy.Condition = condition;
         copy.ShelfId = shelfId;
@@ -46,17 +46,17 @@ public sealed class BookCopy
 
     public static string NormalizeBarcode(string barcode)
     {
-        if (string.IsNullOrWhiteSpace(barcode)) throw new ArgumentException("Barcode is required.", nameof(barcode));
+        if (string.IsNullOrWhiteSpace(barcode)) throw new ArgumentException("Mã vạch là bắt buộc.", nameof(barcode));
         var normalized = barcode.Trim().ToUpperInvariant();
-        if (normalized.Length > 64) throw new ArgumentException("Barcode cannot exceed 64 characters.", nameof(barcode));
-        if (normalized.Any(char.IsControl)) throw new ArgumentException("Barcode contains invalid characters.", nameof(barcode));
+        if (normalized.Length > 64) throw new ArgumentException("Mã vạch không được vượt quá 64 ký tự.", nameof(barcode));
+        if (normalized.Any(char.IsControl)) throw new ArgumentException("Mã vạch chứa ký tự không hợp lệ.", nameof(barcode));
         return normalized;
     }
 
     public void ChangeStatus(CopyStatus nextStatus)
     {
         if (!Enum.IsDefined(nextStatus) || !CanChangeStatus(nextStatus))
-            throw new InvalidOperationException($"Book copy cannot move from {Status} to {nextStatus}.");
+            throw new InvalidOperationException($"Bản sao không thể chuyển từ trạng thái {Status} sang {nextStatus}.");
         if (Status == nextStatus) return;
         Status = nextStatus;
         ConcurrencyToken = Guid.NewGuid();
@@ -75,9 +75,9 @@ public sealed class BookCopy
 
     public void Relocate(Guid shelfId)
     {
-        if (shelfId == Guid.Empty) throw new ArgumentException("Shelf is required.", nameof(shelfId));
+        if (shelfId == Guid.Empty) throw new ArgumentException("Kệ là bắt buộc.", nameof(shelfId));
         if (Status is CopyStatus.Borrowed or CopyStatus.Lost or CopyStatus.Withdrawn)
-            throw new InvalidOperationException("This copy cannot be relocated in its current state.");
+            throw new InvalidOperationException("Không thể chuyển kệ cho bản sao ở trạng thái hiện tại.");
         if (ShelfId == shelfId) return;
         ShelfId = shelfId;
         ConcurrencyToken = Guid.NewGuid();
@@ -103,7 +103,7 @@ public sealed class BookCopy
     public void ReturnWithCondition(CopyCondition condition, CopyStatus status, DateTime now)
     {
         if (status is not (CopyStatus.Available or CopyStatus.Reserved or CopyStatus.Damaged or CopyStatus.Lost))
-            throw new InvalidOperationException("Invalid return status.");
+            throw new InvalidOperationException("Trạng thái trả sách không hợp lệ.");
         ChangeCondition(condition);
         ChangeStatus(status);
     }

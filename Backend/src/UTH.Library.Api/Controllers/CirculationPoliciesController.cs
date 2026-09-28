@@ -48,7 +48,7 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
     {
         var policy = await policyService.GetByIdAsync(id, cancellationToken);
         return policy is null
-            ? NotFound(new ProblemDetails { Title = "Not Found", Detail = "Chính sách không tồn tại." })
+            ? NotFound(new ProblemDetails { Title = "Không tìm thấy", Detail = "Chính sách không tồn tại." })
             : Ok(ToResponse(policy));
     }
 
@@ -226,17 +226,17 @@ public sealed class CirculationPoliciesController(CirculationPolicyService polic
         {
             CirculationPolicyFailure.NotFound => NotFound(new ProblemDetails
             {
-                Title = "Not Found",
+                Title = "Không tìm thấy",
                 Detail = result.Errors.FirstOrDefault() ?? "Chính sách không tìm thấy."
             }),
             CirculationPolicyFailure.Conflict => Conflict(new ProblemDetails
             {
-                Title = "Conflict",
+                Title = "Xung đột dữ liệu",
                 Detail = result.Errors.FirstOrDefault() ?? "Xung đột chính sách."
             }),
             _ => BadRequest(new ProblemDetails
             {
-                Title = "Validation Failed",
+                Title = "Dữ liệu không hợp lệ",
                 Detail = result.Errors.FirstOrDefault() ?? "Dữ liệu không hợp lệ."
             })
         };

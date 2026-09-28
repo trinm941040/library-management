@@ -273,15 +273,15 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
     private ActionResult MapFailure(BorrowingResult result) => result.Failure switch
     {
         BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy khoản mượn.")),
-        BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
+        BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại.")),
         _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Xác thực khoản mượn thất bại."))
     };
 
     private ActionResult MapReturnFailure(ReturnResult result) => result.Failure switch
     {
         BorrowingFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy bản sao sách hoặc khoản mượn.")),
-        BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Return validation failed."))
+        BorrowingFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu trả sách không hợp lệ."))
     };
 
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
@@ -353,4 +353,3 @@ public sealed class BorrowingsController(BorrowingService borrowingService) : Co
                 r.AppliedPolicyVersion)).ToArray(),
             ToRenewalPreviewResponse(detail.RenewalPreview));
 }
-

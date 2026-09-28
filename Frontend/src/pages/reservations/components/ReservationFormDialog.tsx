@@ -101,7 +101,7 @@ export function ReservationFormDialog({ open, onOpenChange, onSave }: Reservatio
                 <SelectContent>
                   {books.map((book) => (
                     <SelectItem key={book.id} value={book.id}>
-                      {book.title} · còn {book.quantity}
+                      {book.title} · còn {book.availableCopyCount ?? 0}
                     </SelectItem>
                   ))}
                 </SelectContent>

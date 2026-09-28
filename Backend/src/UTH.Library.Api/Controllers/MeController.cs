@@ -17,7 +17,7 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CurrentProfileResponse>> Get(CancellationToken cancellationToken)
     {
-        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Authenticated user identifier is invalid."));
+        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Mã tài khoản đã xác thực không hợp lệ."));
         var profile = await profileService.GetAsync(userId, cancellationToken);
         return profile is null
             ? Unauthorized(Problem("Tài khoản hiện tại không khả dụng."))
@@ -32,10 +32,10 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
         UpdateCurrentProfileRequest request,
         CancellationToken cancellationToken)
     {
-        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Authenticated user identifier is invalid."));
+        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Mã tài khoản đã xác thực không hợp lệ."));
         if (request.DateOfBirth is not null && request.DateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
         {
-            ModelState.AddModelError(nameof(request.DateOfBirth), "Date of birth cannot be in the future.");
+            ModelState.AddModelError(nameof(request.DateOfBirth), "Ngày sinh không được ở tương lai.");
             return UnprocessableEntity(new ValidationProblemDetails(ModelState) { Status = StatusCodes.Status422UnprocessableEntity });
         }
         var result = await profileService.UpdateAsync(
@@ -47,7 +47,7 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
             CurrentProfileFailure.None when result.Profile is not null => Ok(CurrentProfileResponseMapper.Map(result.Profile)),
             CurrentProfileFailure.Conflict => Conflict(Problem(result.Error!)),
             CurrentProfileFailure.NotFound => NotFound(Problem(result.Error!)),
-            _ => UnprocessableEntity(new ProblemDetails { Status = 422, Title = "Profile validation failed", Detail = result.Error })
+            _ => UnprocessableEntity(new ProblemDetails { Status = 422, Title = "Hồ sơ không hợp lệ", Detail = result.Error })
         };
     }
 
@@ -56,10 +56,10 @@ public sealed class MeController(ICurrentProfileService profileService) : Contro
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Authenticated user identifier is invalid."));
+        if (!TryGetUserId(out var userId)) return Unauthorized(Problem("Mã tài khoản đã xác thực không hợp lệ."));
         var result = await profileService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.TraceIdentifier, cancellationToken);
         if (!result.Succeeded)
-            return UnprocessableEntity(new ProblemDetails { Status = 422, Title = "Password change failed", Detail = result.Error });
+            return UnprocessableEntity(new ProblemDetails { Status = 422, Title = "Đổi mật khẩu không thành công", Detail = result.Error });
         Response.Cookies.Delete("uth_refresh", new CookieOptions { Path = "/api/v1/auth" });
         return NoContent();
     }

@@ -417,7 +417,7 @@ public sealed class BorrowingService(
     {
         var borrowing = await borrowings.GetByIdAsync(id, cancellationToken);
         if (borrowing is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrowing was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy khoản mượn.");
 
         if (borrowing.IsReturned)
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Khoản mượn đã hoàn tất, không thể gia hạn.");
@@ -427,11 +427,11 @@ public sealed class BorrowingService(
 
         var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
         if (book is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy sách.");
 
         var borrower = await members.GetByIdAsync(borrowing.BorrowerId, cancellationToken);
         if (borrower is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrower was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy độc giả.");
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
@@ -500,11 +500,11 @@ public sealed class BorrowingService(
     {
         var borrowing = await borrowings.GetByIdAsync(id, cancellationToken);
         if (borrowing is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Borrowing was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy khoản mượn.");
 
         var book = await books.GetByIdAsync(borrowing.BookId, cancellationToken);
         if (book is null)
-            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Book was not found.");
+            return BorrowingResult.Fail(BorrowingFailure.NotFound, "Không tìm thấy sách.");
 
         try
         {
@@ -783,7 +783,7 @@ public sealed class BorrowingService(
             barcode = copy?.Barcode;
         }
 
-        return ToModel(borrowing, book?.Title ?? "Unknown book", timeProvider.GetUtcNow().UtcDateTime, barcode);
+        return ToModel(borrowing, book?.Title ?? "Không rõ tên sách", timeProvider.GetUtcNow().UtcDateTime, barcode);
     }
 
     private static BorrowingModel ToModel(Borrowing borrowing, string bookTitle, DateTime utcNow, string? copyBarcode = null)

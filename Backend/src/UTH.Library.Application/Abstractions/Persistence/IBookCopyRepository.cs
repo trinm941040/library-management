@@ -20,6 +20,8 @@ public interface IBookCopyRepository
     Task<bool> BarcodeExistsAsync(string barcode, CancellationToken cancellationToken);
     Task<bool> ActiveBookExistsAsync(Guid id, CancellationToken cancellationToken);
     Task<bool> ActiveShelfExistsAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Guid>> GetActiveBookIdsByIsbnAsync(string isbn, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Guid>> GetActiveShelfIdsByCodeAsync(string code, CancellationToken cancellationToken);
     Task<bool> ReceiptItemMatchesBookAsync(Guid id, Guid bookId, CancellationToken cancellationToken);
     Task<bool> HasActiveAuditAsync(Guid id, CancellationToken cancellationToken);
     Task<bool> HasEditableReceiptAsync(Guid? stockReceiptItemId, CancellationToken cancellationToken);

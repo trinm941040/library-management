@@ -35,6 +35,7 @@ import {
   confirmBookImport,
   createBook,
   deleteBook,
+  downloadBookImportTemplate,
   exportBooks,
   getBook,
   getBooks,
@@ -51,7 +52,7 @@ import {
   type BulkResult,
 } from '@/shared/data/table-contracts'
 
-const bookSortFields = ['title', 'author', 'isbn', 'category', 'quantity', 'createdAtUtc'] as const
+const bookSortFields = ['title', 'author', 'isbn', 'category', 'createdAtUtc'] as const
 
 export function BooksPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -143,15 +144,11 @@ export function BooksPage() {
 
   const handleSave = async (data: BookFormData) => {
     try {
-      const quantity = Number(data.quantity)
-      if (!Number.isInteger(quantity) || quantity < 0) return 'Số lượng phải là số nguyên không âm.'
-
       const input = {
         title: data.title.trim(),
         author: data.author.trim(),
         isbn: data.isbn.trim(),
         category: data.category.trim(),
-        quantity,
         publisherName: data.publisherName.trim() || null,
         description: data.description.trim() || null,
         editionStatement: data.editionStatement.trim() || null,
@@ -270,7 +267,7 @@ export function BooksPage() {
     }
   }
 
-  const inStockCount = page?.items.filter((book) => book.quantity > 0).length ?? 0
+  const inStockCount = page?.items.filter((book) => (book.availableCopyCount ?? 0) > 0).length ?? 0
   const columns = useMemo<DataTableColumn<LibraryBook>[]>(
     () => [
       {
@@ -291,7 +288,7 @@ export function BooksPage() {
         cell: (book) => <span className="font-mono">{book.isbn}</span>,
       },
       { id: 'category', header: 'Thể loại', sortable: true, cell: (book) => book.category },
-      { id: 'quantity', header: 'Số lượng', sortable: true, cell: (book) => book.quantity },
+      { id: 'availableCopyCount', header: 'Bản sao khả dụng', cell: (book) => book.availableCopyCount ?? 0 },
       {
         id: 'status',
         header: 'Trạng thái',
@@ -369,6 +366,9 @@ export function BooksPage() {
               Làm mới
             </Button>
             <PermissionBoundary requiredPermissions={['books.create']}>
+              <Button variant="outline" onClick={downloadBookImportTemplate}>
+                <Download /> Tải mẫu CSV
+              </Button>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload /> Nhập CSV
               </Button>
@@ -553,7 +553,7 @@ export function BooksPage() {
         <ImportPreviewDialog
           open={importOpen}
           title="Nhập danh mục sách"
-          description="CSV gồm Title, Author, ISBN, Category, Quantity; Quantity phải là 0. Tạo bản sao có mã vạch và kệ riêng sau khi nhập biểu ghi."
+          description="Bắt buộc: Title, Author, ISBN, Category. Tuỳ chọn: Publisher, Description, EditionStatement, PublicationYear, Language, PageCount. Có thể đổi thứ tự cột; tên cột không phân biệt hoa thường, khoảng trắng hoặc dấu gạch."
           file={importFile}
           errors={importPreview?.errors ?? []}
           canConfirm={importPreview?.canConfirm ?? false}
@@ -578,7 +578,7 @@ export function BooksPage() {
                     <th className="p-2">Tác giả</th>
                     <th className="p-2">ISBN</th>
                     <th className="p-2">Thể loại</th>
-                    <th className="p-2">SL</th>
+                    <th className="p-2">Nhà xuất bản</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -589,7 +589,7 @@ export function BooksPage() {
                       <td className="p-2">{row.author}</td>
                       <td className="p-2 font-mono">{row.isbn}</td>
                       <td className="p-2">{row.category}</td>
-                      <td className="p-2">{row.quantity}</td>
+                      <td className="p-2">{row.publisher || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

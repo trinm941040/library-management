@@ -6,7 +6,7 @@ const BOOKS_URL = '/api/v1/books'
 const referenceSchema = z.object({ id: guidSchema, name: z.string() })
 const bookSchema = z.object({
   id: guidSchema, title: z.string(), author: z.string(), isbn: z.string(), category: z.string(),
-  quantity: z.number().int().nonnegative(), createdAtUtc: z.string(), updatedAtUtc: z.string().nullable(),
+  createdAtUtc: z.string(), updatedAtUtc: z.string().nullable(),
   authors: z.array(referenceSchema).nullish(), categories: z.array(referenceSchema).nullish(),
   publisher: referenceSchema.nullish(), availableCopyCount: z.number().int().nonnegative().nullish(),
   status: z.enum(['Active', 'Inactive']), concurrencyToken: guidSchema,
@@ -21,7 +21,10 @@ const bookPageSchema = z.object({
 })
 const importRowSchema = z.object({
   rowNumber: z.number().int().positive(), title: z.string(), author: z.string(),
-  isbn: z.string(), category: z.string(), quantity: z.number().int().nonnegative(),
+  isbn: z.string(), category: z.string(), publisher: z.string().nullable().optional(),
+  description: z.string().nullable().optional(), editionStatement: z.string().nullable().optional(),
+  publicationYear: z.number().int().nullable().optional(), language: z.string().nullable().optional(),
+  pageCount: z.number().int().positive().nullable().optional(),
 })
 const importPreviewSchema = z.object({
   rows: z.array(importRowSchema), errors: z.array(importFieldErrorSchema),
@@ -42,12 +45,12 @@ export type BookFilters = {
   category?: string
   pageNumber?: number
   pageSize?: number
-  sortBy?: 'title' | 'author' | 'isbn' | 'category' | 'quantity' | 'createdAtUtc'
+  sortBy?: 'title' | 'author' | 'isbn' | 'category' | 'createdAtUtc'
   sortDirection?: 'asc' | 'desc'
   status?: 'Active' | 'Inactive'
 }
 export type BookInput = {
-  title: string; author: string; isbn: string; category: string; quantity: number
+  title: string; author: string; isbn: string; category: string
   publisherName?: string | null; description?: string | null; editionStatement?: string | null
   publicationYear?: number | null; language?: string | null; pageCount?: number | null
   concurrencyToken?: string
@@ -106,4 +109,17 @@ export async function confirmBookImport(preview: BookImportPreview) {
 }
 export function exportBooks(filters: BookFilters, signal?: AbortSignal) {
   return authenticatedFetch(`${BOOKS_URL}/export?${queryString(filters)}`, { signal })
+}
+
+export function downloadBookImportTemplate() {
+  const content = [
+    'Title,Author,ISBN,Category,Publisher,Description,EditionStatement,PublicationYear,Language,PageCount',
+    'Dế Mèn phiêu lưu ký,Tô Hoài,9786044832814,Văn học,Nhà xuất bản Kim Đồng,,Tái bản,2024,Tiếng Việt,160',
+  ].join('\r\n')
+  const url = URL.createObjectURL(new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = 'mau-nhap-bieu-ghi-sach.csv'
+  anchor.click()
+  URL.revokeObjectURL(url)
 }

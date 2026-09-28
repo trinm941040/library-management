@@ -432,7 +432,7 @@ public sealed class NotificationService(
             command.BranchId is null)
             throw new ArgumentException("Phải chọn ít nhất một phạm vi role, permission hoặc chi nhánh.");
         if (string.IsNullOrWhiteSpace(command.EventCode) || string.IsNullOrWhiteSpace(command.IdempotencyKey))
-            throw new ArgumentException("Event code và idempotency key là bắt buộc khi gửi hàng loạt.");
+            throw new ArgumentException("Mã sự kiện và khóa chống gửi trùng là bắt buộc khi gửi hàng loạt.");
 
         var recipients = await repository.ResolveStaffRecipientsAsync(
             command.RoleName,
@@ -709,14 +709,14 @@ public sealed class NotificationService(
     {
         if (string.IsNullOrWhiteSpace(metadataJson)) return;
         if (metadataJson.Length > 4000)
-            throw new ArgumentException("Metadata thông báo không được vượt quá 4.000 ký tự.");
+            throw new ArgumentException("Dữ liệu bổ sung của thông báo không được vượt quá 4.000 ký tự.");
         try
         {
             using var _ = JsonDocument.Parse(metadataJson);
         }
         catch (JsonException)
         {
-            throw new ArgumentException("Metadata thông báo phải là JSON hợp lệ.");
+            throw new ArgumentException("Dữ liệu bổ sung của thông báo phải là JSON hợp lệ.");
         }
     }
 

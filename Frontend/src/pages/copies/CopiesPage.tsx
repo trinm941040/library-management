@@ -325,8 +325,8 @@ export function CopiesPage() {
     </Dialog>
     <ConfirmDialog open={action !== null} title="Xác nhận thay đổi bản sao" description={action?.status ? `Chuyển ${action.copy.barcode} sang ${statusLabels[action.status]}?` : `Chuyển ${action?.copy.barcode ?? ''} sang kệ mới?`}
       onOpenChange={(open) => { if (!open) setAction(null) }} onConfirm={() => void confirm()} isPending={pending} error={actionError} />
-    <ImportPreviewDialog open={importOpen} title="Nhập danh sách bản sao" description="CSV gồm Barcode,BookId,ShelfId,Condition. Xem trước toàn bộ trước khi xác nhận."
-      file={importFile} errors={importPreview.filter(row => !row.valid).map(row => ({ rowNumber: row.rowNumber, field: 'Barcode/BookId/ShelfId/Condition', message: row.error ?? 'Không hợp lệ' }))}
+    <ImportPreviewDialog open={importOpen} title="Nhập danh sách bản sao" description="Bắt buộc: Barcode, ISBN, ShelfCode. Condition là cột tuỳ chọn, mặc định là Good. Có thể đổi thứ tự cột; tên cột không phân biệt hoa thường, khoảng trắng hoặc dấu gạch."
+      file={importFile} errors={importPreview.filter(row => !row.valid).map(row => ({ rowNumber: row.rowNumber, field: 'Barcode/ISBN/ShelfCode/Condition', message: row.error ?? 'Không hợp lệ' }))}
       canConfirm={importRows.length > 0 && importPreview.length === importRows.length && importPreview.every(row => row.valid)} pendingAction={importPending}
       onOpenChange={setImportOpen} onFileChange={file => { setImportFile(file); setImportRows([]); setImportPreview([]); setImportError('') }}
       onPreview={() => void previewImport()} onConfirm={() => void confirmImport()}>

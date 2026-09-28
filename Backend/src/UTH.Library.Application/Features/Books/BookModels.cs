@@ -8,7 +8,6 @@ public sealed record BookModel(
     string Author,
     string Isbn,
     string Category,
-    int Quantity,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     IReadOnlyCollection<BookReferenceModel>? Authors = null,
@@ -49,7 +48,12 @@ public sealed record BookImportRow(
     string Author,
     string Isbn,
     string Category,
-    int Quantity);
+    string? Publisher = null,
+    string? Description = null,
+    string? EditionStatement = null,
+    int? PublicationYear = null,
+    string? Language = null,
+    int? PageCount = null);
 
 public sealed record ConfirmBookImportCommand(
     IReadOnlyList<BookImportRow> Rows,
@@ -65,7 +69,6 @@ public sealed record CreateBookCommand(
     string Author,
     string Isbn,
     string Category,
-    int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
     Guid? PublisherId = null,
@@ -81,7 +84,6 @@ public sealed record UpdateBookCommand(
     string Author,
     string Isbn,
     string Category,
-    int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
     Guid? PublisherId = null,

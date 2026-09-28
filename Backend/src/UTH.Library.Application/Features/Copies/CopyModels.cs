@@ -15,5 +15,5 @@ public sealed record ChangeCopyConditionCommand(CopyCondition Condition, Guid Co
 public sealed record WithdrawCopyCommand(Guid ConcurrencyToken, string Reason);
 public sealed record CopyOperationRow(Guid CopyId, Guid ConcurrencyToken, CopyStatus? Status, CopyCondition? Condition, Guid? ShelfId, string? Reason);
 public sealed record CopyOperationResult(Guid CopyId, bool Succeeded, string? Error, CopyModel? Copy);
-public sealed record ImportCopyRow(string Barcode, Guid BookId, Guid ShelfId, CopyCondition Condition);
+public sealed record ImportCopyRow(string Barcode, string Isbn, string ShelfCode, CopyCondition Condition);
 public sealed record ImportCopyPreviewRow(int RowNumber, string Barcode, bool Valid, string? Error);

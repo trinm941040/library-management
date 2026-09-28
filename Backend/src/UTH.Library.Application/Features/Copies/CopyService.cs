@@ -4,6 +4,7 @@ using UTH.Library.Application.Abstractions.Persistence;
 using UTH.Library.Application.Common;
 using UTH.Library.Domain.Entities;
 using UTH.Library.Domain.Enums;
+using UTH.Library.Domain.ValueObjects;
 
 namespace UTH.Library.Application.Features.Copies;
 
@@ -161,8 +162,11 @@ public sealed class CopyService(IBookCopyRepository repository, IUnitOfWork unit
             if (error is null && !seen.Add(barcode)) error = "Mã vạch trùng trong tệp.";
             if (error is null && await repository.BarcodeExistsAsync(barcode, cancellationToken)) error = "Mã vạch đã tồn tại.";
             if (error is null && !Enum.IsDefined(row.Condition)) error = "Tình trạng không hợp lệ.";
-            if (error is null && !await repository.ActiveBookExistsAsync(row.BookId, cancellationToken)) error = "Sách không hoạt động.";
-            if (error is null && !await repository.ActiveShelfExistsAsync(row.ShelfId, cancellationToken)) error = "Kệ không hoạt động.";
+            if (error is null)
+            {
+                var resolved = await ResolveImportReferencesAsync(row, cancellationToken);
+                error = resolved.Error;
+            }
             preview.Add(new(index + 1, barcode, error is null, error));
         }
         return preview;
@@ -176,7 +180,12 @@ public sealed class CopyService(IBookCopyRepository repository, IUnitOfWork unit
                 throw new ResourceConflictException("Tệp đã thay đổi hoặc có dòng không hợp lệ; xem trước lại trước khi xác nhận.");
             var created = new List<CopyModel>(rows.Count);
             foreach (var row in rows)
-                created.Add(await CreateAsync(new(row.BookId, row.Barcode, row.Condition, row.ShelfId, null), ct));
+            {
+                var resolved = await ResolveImportReferencesAsync(row, ct);
+                if (resolved.Error is not null || resolved.BookId is null || resolved.ShelfId is null)
+                    throw new ResourceConflictException(resolved.Error ?? "Không thể xác định sách hoặc kệ từ dữ liệu nhập.");
+                created.Add(await CreateAsync(new(resolved.BookId.Value, row.Barcode, row.Condition, resolved.ShelfId.Value, null), ct));
+            }
             return created;
         }, cancellationToken);
 
@@ -215,6 +224,24 @@ public sealed class CopyService(IBookCopyRepository repository, IUnitOfWork unit
     {
         try { return BookCopy.NormalizeBarcode(barcode); }
         catch (ArgumentException exception) { throw Validation("barcode", exception.Message); }
+    }
+    private async Task<(Guid? BookId, Guid? ShelfId, string? Error)> ResolveImportReferencesAsync(
+        ImportCopyRow row, CancellationToken cancellationToken)
+    {
+        string isbn;
+        try { isbn = IsbnValue.Create(row.Isbn).Value; }
+        catch (ArgumentException) { return (null, null, "ISBN-10 hoặc ISBN-13 không hợp lệ."); }
+        var shelfCode = row.ShelfCode?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (shelfCode.Length == 0) return (null, null, "Mã kệ là bắt buộc.");
+
+        var bookIds = await repository.GetActiveBookIdsByIsbnAsync(isbn, cancellationToken);
+        if (bookIds.Count == 0) return (null, null, "Không tìm thấy biểu ghi sách đang hoạt động theo ISBN.");
+        if (bookIds.Count > 1) return (null, null, "ISBN khớp nhiều biểu ghi sách; cần xử lý dữ liệu trùng trước khi nhập.");
+
+        var shelfIds = await repository.GetActiveShelfIdsByCodeAsync(shelfCode, cancellationToken);
+        if (shelfIds.Count == 0) return (null, null, "Không tìm thấy kệ đang hoạt động theo mã kệ.");
+        if (shelfIds.Count > 1) return (null, null, "Mã kệ khớp nhiều kệ; vui lòng dùng mã kệ duy nhất.");
+        return (bookIds[0], shelfIds[0], null);
     }
     private static CopyModel? MapOrNull(BookCopySnapshot? snapshot) => snapshot is null ? null : Map(snapshot);
     private static CopyModel Map(BookCopySnapshot snapshot)

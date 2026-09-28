@@ -57,18 +57,18 @@ public sealed class Member
         DateOnly? dateOfBirth, string? address, string memberGroup, MemberStatus status,
         int borrowingLimit, int loanPeriodDays, DateTime now)
     {
-        if (string.IsNullOrWhiteSpace(memberCode)) throw new ArgumentException("Member code is required.");
-        if (string.IsNullOrWhiteSpace(fullName)) throw new ArgumentException("Full name is required.");
-        if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email is required.");
-        if (string.IsNullOrWhiteSpace(memberGroup)) throw new ArgumentException("Member group is required.");
-        if (!Enum.IsDefined(status)) throw new ArgumentException("Member status is invalid.");
+        if (string.IsNullOrWhiteSpace(memberCode)) throw new ArgumentException("Mã độc giả là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(fullName)) throw new ArgumentException("Họ tên là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(memberGroup)) throw new ArgumentException("Nhóm độc giả là bắt buộc.");
+        if (!Enum.IsDefined(status)) throw new ArgumentException("Trạng thái độc giả không hợp lệ.");
         if (borrowingLimit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(borrowingLimit));
         if (loanPeriodDays is < 1 or > 365) throw new ArgumentOutOfRangeException(nameof(loanPeriodDays));
         if (dateOfBirth is not null && dateOfBirth >= DateOnly.FromDateTime(now))
-            throw new ArgumentException("Date of birth must be in the past.");
+            throw new ArgumentException("Ngày sinh phải là ngày trong quá khứ.");
         var normalizedEmail = email.Trim().ToLowerInvariant();
         if (!MailAddress.TryCreate(normalizedEmail, out var parsedEmail) || parsedEmail.Address != normalizedEmail)
-            throw new ArgumentException("Email address is invalid.");
+            throw new ArgumentException("Địa chỉ email không hợp lệ.");
         MemberCode = memberCode.Trim().ToUpperInvariant();
         FullName = fullName.Trim();
         Email = normalizedEmail;

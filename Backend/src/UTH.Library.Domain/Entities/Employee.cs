@@ -93,17 +93,17 @@ public sealed class Employee
         Guid? branchId = null)
     {
         if (!Enum.IsDefined(status))
-            throw new ArgumentOutOfRangeException(nameof(status), "Employment status is invalid.");
+            throw new ArgumentOutOfRangeException(nameof(status), "Trạng thái làm việc không hợp lệ.");
         if (hireDate == default)
-            throw new ArgumentException("Hire date is required.", nameof(hireDate));
+            throw new ArgumentException("Ngày tuyển dụng là bắt buộc.", nameof(hireDate));
         if (dateOfBirth is not null && dateOfBirth >= hireDate)
-            throw new ArgumentException("Date of birth must be earlier than the hire date.", nameof(dateOfBirth));
+            throw new ArgumentException("Ngày sinh phải trước ngày tuyển dụng.", nameof(dateOfBirth));
 
         EmployeeCode = Required(employeeCode, nameof(employeeCode), 30).ToUpperInvariant();
         FullName = Required(fullName, nameof(fullName), 150);
         var normalizedEmail = Required(email, nameof(email), 256).ToLowerInvariant();
         if (!MailAddress.TryCreate(normalizedEmail, out var parsedEmail) || parsedEmail.Address != normalizedEmail)
-            throw new ArgumentException("Email address is invalid.", nameof(email));
+            throw new ArgumentException("Địa chỉ email không hợp lệ.", nameof(email));
         Email = normalizedEmail;
         PhoneNumber = Optional(phoneNumber, nameof(phoneNumber), 30);
         DateOfBirth = dateOfBirth;
@@ -122,9 +122,9 @@ public sealed class Employee
     public void LinkUser(Guid userId, DateTime updatedAtUtc)
     {
         if (userId == Guid.Empty)
-            throw new ArgumentException("User identifier is required.", nameof(userId));
+            throw new ArgumentException("Tài khoản liên kết là bắt buộc.", nameof(userId));
         if (UserId is not null && UserId != userId)
-            throw new InvalidOperationException("Employee is already linked to another user account.");
+            throw new InvalidOperationException("Nhân viên đã liên kết với tài khoản khác.");
 
         UserId = userId;
         ConcurrencyToken = Guid.NewGuid();
@@ -139,7 +139,7 @@ public sealed class Employee
     public void ChangeStatus(EmploymentStatus status, DateTime updatedAtUtc)
     {
         if (!Enum.IsDefined(status))
-            throw new ArgumentOutOfRangeException(nameof(status), "Employment status is invalid.");
+            throw new ArgumentOutOfRangeException(nameof(status), "Trạng thái làm việc không hợp lệ.");
 
         Status = status;
         ConcurrencyToken = Guid.NewGuid();
@@ -154,9 +154,9 @@ public sealed class Employee
         DateTime updatedAtUtc)
     {
         if (dateOfBirth is not null && dateOfBirth > DateOnly.FromDateTime(updatedAtUtc))
-            throw new ArgumentException("Date of birth cannot be in the future.", nameof(dateOfBirth));
+            throw new ArgumentException("Ngày sinh không được ở tương lai.", nameof(dateOfBirth));
         if (dateOfBirth is not null && dateOfBirth >= HireDate)
-            throw new ArgumentException("Date of birth must be earlier than the hire date.", nameof(dateOfBirth));
+            throw new ArgumentException("Ngày sinh phải trước ngày tuyển dụng.", nameof(dateOfBirth));
 
         FullName = Required(fullName, nameof(fullName), 150);
         PhoneNumber = Optional(phoneNumber, nameof(phoneNumber), 30);
@@ -169,11 +169,11 @@ public sealed class Employee
     private static string Required(string value, string parameterName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Value is required.", parameterName);
+            throw new ArgumentException("Giá trị là bắt buộc.", parameterName);
 
         var normalized = value.Trim();
         return normalized.Length > maxLength
-            ? throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName)
+            ? throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName)
             : normalized;
     }
 
@@ -184,7 +184,7 @@ public sealed class Employee
 
         var normalized = value.Trim();
         return normalized.Length > maxLength
-            ? throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName)
+            ? throw new ArgumentException($"Giá trị không được vượt quá {maxLength} ký tự.", parameterName)
             : normalized;
     }
 }

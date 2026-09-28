@@ -4,16 +4,15 @@ namespace UTH.Library.Application.Features.Books;
 
 public sealed class BookCommandValidator : IValidator<CreateBookCommand>, IValidator<UpdateBookCommand>
 {
-    public IReadOnlyCollection<string> Validate(CreateBookCommand command) => Validate(command.Title, command.Author, command.Isbn, command.Category, command.Quantity);
-    public IReadOnlyCollection<string> Validate(UpdateBookCommand command) => Validate(command.Title, command.Author, command.Isbn, command.Category, command.Quantity);
-    private static IReadOnlyCollection<string> Validate(string title, string author, string isbn, string category, int quantity)
+    public IReadOnlyCollection<string> Validate(CreateBookCommand command) => Validate(command.Title, command.Author, command.Isbn, command.Category);
+    public IReadOnlyCollection<string> Validate(UpdateBookCommand command) => Validate(command.Title, command.Author, command.Isbn, command.Category);
+    private static IReadOnlyCollection<string> Validate(string title, string author, string isbn, string category)
     {
         var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(title)) errors.Add("Book title is required.");
-        if (string.IsNullOrWhiteSpace(author)) errors.Add("Book author is required.");
-        if (string.IsNullOrWhiteSpace(isbn)) errors.Add("Book ISBN is required.");
-        if (string.IsNullOrWhiteSpace(category)) errors.Add("Book category is required.");
-        if (quantity < 0) errors.Add("Book quantity cannot be negative.");
+        if (string.IsNullOrWhiteSpace(title)) errors.Add("Tên sách là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(author)) errors.Add("Tác giả là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(isbn)) errors.Add("ISBN là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(category)) errors.Add("Thể loại là bắt buộc.");
         return errors;
     }
 }

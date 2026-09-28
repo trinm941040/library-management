@@ -24,7 +24,7 @@ public sealed class Publisher
     public static Publisher Create(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Publisher name is required.", nameof(name));
+            throw new ArgumentException("Tên nhà xuất bản là bắt buộc.", nameof(name));
         return new Publisher(Guid.NewGuid(), name.Trim());
     }
 }

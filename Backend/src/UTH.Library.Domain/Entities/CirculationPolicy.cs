@@ -249,28 +249,28 @@ public sealed class CirculationPolicy
         decimal lostBookPenaltyRatio)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Policy name is required.", nameof(name));
+            throw new ArgumentException("Tên chính sách là bắt buộc.", nameof(name));
         if (effectiveTo.HasValue && effectiveTo.Value <= effectiveFrom)
-            throw new ArgumentException("EffectiveTo must be after EffectiveFrom.", nameof(effectiveTo));
+            throw new ArgumentException("Ngày kết thúc hiệu lực phải sau ngày bắt đầu hiệu lực.", nameof(effectiveTo));
         if (maxLoanBooks < 1)
-            throw new ArgumentOutOfRangeException(nameof(maxLoanBooks), "Max loan books must be at least 1.");
+            throw new ArgumentOutOfRangeException(nameof(maxLoanBooks), "Số sách mượn tối đa phải ít nhất là 1.");
         if (loanPeriodDays < 1)
-            throw new ArgumentOutOfRangeException(nameof(loanPeriodDays), "Loan period days must be at least 1.");
+            throw new ArgumentOutOfRangeException(nameof(loanPeriodDays), "Thời hạn mượn phải ít nhất 1 ngày.");
         if (maxRenewals < 0)
-            throw new ArgumentOutOfRangeException(nameof(maxRenewals), "Max renewals cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(maxRenewals), "Số lần gia hạn tối đa không được là số âm.");
         if (renewalPeriodDays < 1)
-            throw new ArgumentOutOfRangeException(nameof(renewalPeriodDays), "Renewal period days must be at least 1.");
+            throw new ArgumentOutOfRangeException(nameof(renewalPeriodDays), "Thời hạn gia hạn phải ít nhất 1 ngày.");
         if (holdDays < 1)
-            throw new ArgumentOutOfRangeException(nameof(holdDays), "Hold days must be at least 1.");
+            throw new ArgumentOutOfRangeException(nameof(holdDays), "Thời gian giữ sách phải ít nhất 1 ngày.");
         if (finePerDay < 0)
-            throw new ArgumentOutOfRangeException(nameof(finePerDay), "Fine per day cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(finePerDay), "Tiền phạt mỗi ngày không được là số âm.");
         if (fixedFineAmount < 0)
-            throw new ArgumentOutOfRangeException(nameof(fixedFineAmount), "Fixed fine amount cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(fixedFineAmount), "Tiền phạt cố định không được là số âm.");
         if (maxFineAmount < 0)
-            throw new ArgumentOutOfRangeException(nameof(maxFineAmount), "Max fine amount cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(maxFineAmount), "Tiền phạt tối đa không được là số âm.");
         if (maxFineAmount > 0 && maxFineAmount < fixedFineAmount)
-            throw new ArgumentException("Max fine amount cannot be less than fixed fine amount.", nameof(maxFineAmount));
+            throw new ArgumentException("Tiền phạt tối đa không được nhỏ hơn tiền phạt cố định.", nameof(maxFineAmount));
         if (lostBookPenaltyRatio < 0)
-            throw new ArgumentOutOfRangeException(nameof(lostBookPenaltyRatio), "Lost book penalty ratio cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(lostBookPenaltyRatio), "Tỷ lệ phạt mất sách không được là số âm.");
     }
 }

@@ -23,7 +23,7 @@ public sealed class Category
     public static Category Create(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Category name is required.", nameof(name));
+            throw new ArgumentException("Tên thể loại là bắt buộc.", nameof(name));
         return new Category(Guid.NewGuid(), name.Trim());
     }
 }

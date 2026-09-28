@@ -22,7 +22,7 @@ public sealed class BookFilterRequest
     [Range(1, 100)]
     public int PageSize { get; init; } = 20;
 
-    [RegularExpression("^(title|author|isbn|category|quantity|createdAtUtc)$")]
+    [RegularExpression("^(title|author|isbn|category|createdAtUtc)$")]
     public string SortBy { get; init; } = "title";
 
     public SortDirection SortDirection { get; init; } = SortDirection.Asc;
@@ -33,7 +33,6 @@ public sealed record CreateBookRequest(
     [Required, StringLength(200, MinimumLength = 1)] string Author,
     [Required, StringLength(32, MinimumLength = 10)] string Isbn,
     [Required, StringLength(100, MinimumLength = 1)] string Category,
-    [Range(0, 100_000)] int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
     Guid? PublisherId = null,
@@ -49,7 +48,6 @@ public sealed record UpdateBookRequest(
     [Required, StringLength(200, MinimumLength = 1)] string Author,
     [Required, StringLength(32, MinimumLength = 10)] string Isbn,
     [Required, StringLength(100, MinimumLength = 1)] string Category,
-    [Range(0, 100_000)] int Quantity,
     IReadOnlyCollection<Guid>? AuthorIds = null,
     IReadOnlyCollection<Guid>? CategoryIds = null,
     Guid? PublisherId = null,
@@ -67,7 +65,6 @@ public sealed record BookResponse(
     string Author,
     string Isbn,
     string Category,
-    int Quantity,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     IReadOnlyCollection<BookReferenceResponse>? Authors = null,
@@ -100,7 +97,12 @@ public sealed record BookImportRowRequest(
     [Required, StringLength(200)] string Author,
     [Required, StringLength(32)] string Isbn,
     [Required, StringLength(100)] string Category,
-    [Range(0, 100_000)] int Quantity);
+    [StringLength(200)] string? Publisher = null,
+    [StringLength(4000)] string? Description = null,
+    [StringLength(200)] string? EditionStatement = null,
+    [Range(0, 9999)] int? PublicationYear = null,
+    [StringLength(100)] string? Language = null,
+    [Range(1, 100000)] int? PageCount = null);
 
 public sealed record ConfirmBookImportRequest(
     [MinLength(1), MaxLength(CollectionLimits.MaximumImportRows)] IReadOnlyList<BookImportRowRequest> Rows,

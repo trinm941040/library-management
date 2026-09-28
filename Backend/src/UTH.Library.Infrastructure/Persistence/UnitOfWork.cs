@@ -14,9 +14,9 @@ internal sealed class UnitOfWork(LibraryDbContext db) : IUnitOfWork
     {
         try { return await db.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException exception)
-        { throw new OptimisticConcurrencyException("The resource was modified by another request.", exception); }
+        { throw new OptimisticConcurrencyException("Dữ liệu đã được cập nhật bởi yêu cầu khác.", exception); }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
-        { throw new ResourceConflictException("A unique value already exists."); }
+        { throw new ResourceConflictException("Giá trị duy nhất này đã tồn tại."); }
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken)

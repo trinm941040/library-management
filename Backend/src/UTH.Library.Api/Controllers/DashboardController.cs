@@ -23,7 +23,7 @@ public sealed class DashboardController(
     {
         if (!TryGetUserId(out var userId))
         {
-            return Unauthorized(new ProblemDetails { Detail = "User is not authenticated." });
+            return Unauthorized(new ProblemDetails { Detail = "Người dùng chưa đăng nhập." });
         }
 
         var profile = await profileService.GetAsync(userId, cancellationToken);

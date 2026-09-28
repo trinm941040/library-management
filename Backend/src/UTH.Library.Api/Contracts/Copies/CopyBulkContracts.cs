@@ -4,6 +4,6 @@ public sealed record CopyBulkRow(Guid CopyId, Guid ConcurrencyToken, CopyStatus?
     CopyCondition? Condition = null, Guid? ShelfId = null, string? Reason = null);
 public sealed record CopyBulkRequest(IReadOnlyList<CopyBulkRow> Rows);
 public sealed record CopyBulkResult(Guid CopyId, bool Succeeded, string? Error, CopyResponse? Copy);
-public sealed record CopyImportRow(string Barcode, Guid BookId, Guid ShelfId, CopyCondition Condition);
+public sealed record CopyImportRow(string Barcode, string Isbn, string ShelfCode, CopyCondition Condition = CopyCondition.Good);
 public sealed record CopyImportRequest(IReadOnlyList<CopyImportRow> Rows);
 public sealed record CopyImportPreviewRow(int RowNumber, string Barcode, bool Valid, string? Error);

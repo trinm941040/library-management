@@ -46,7 +46,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     public async Task<ActionResult<UserResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var user = await userManagementService.GetByIdAsync(id, cancellationToken);
-        return user is null ? NotFound(CreateProblem("User was not found.")) : Ok(ToResponse(user));
+        return user is null ? NotFound(CreateProblem("Không tìm thấy tài khoản.")) : Ok(ToResponse(user));
     }
 
     [HttpPost]
@@ -84,7 +84,7 @@ public sealed class UsersController(IUserManagementService userManagementService
         CancellationToken cancellationToken)
     {
         if (!TryGetCurrentUserId(out var currentUserId))
-            return Unauthorized(CreateProblem("The authenticated user identifier is invalid."));
+            return Unauthorized(CreateProblem("Mã tài khoản đã xác thực không hợp lệ."));
 
         var result = await userManagementService.UpdateAsync(
             id,
@@ -105,7 +105,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         if (!TryGetCurrentUserId(out var currentUserId))
-            return Unauthorized(CreateProblem("The authenticated user identifier is invalid."));
+            return Unauthorized(CreateProblem("Mã tài khoản đã xác thực không hợp lệ."));
 
         var result = await userManagementService.DeactivateAsync(id, currentUserId, cancellationToken);
         return result.Succeeded ? NoContent() : MapFailure(result);
@@ -113,12 +113,12 @@ public sealed class UsersController(IUserManagementService userManagementService
 
     private ActionResult MapFailure(UserManagementResult result) => result.Failure switch
     {
-        UserManagementFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "User was not found.")),
+        UserManagementFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy tài khoản.")),
         UserManagementFailure.Conflict or
         UserManagementFailure.SelfDeactivation or
         UserManagementFailure.ProtectedResource =>
-            Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "User validation failed."))
+            Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu tài khoản không hợp lệ."))
     };
 
     private bool TryGetCurrentUserId(out Guid id) =>

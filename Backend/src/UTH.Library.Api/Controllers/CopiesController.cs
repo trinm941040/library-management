@@ -98,15 +98,15 @@ public sealed class CopiesController(CopyService service, IAuthorizationService 
     {
         var rows = await service.GetExportAsync(new BookCopyQuery(request.Search, request.BookId, request.BranchId,
             request.ShelfId, request.Condition, request.Status, 1, 100), cancellationToken);
-        var csv = new StringBuilder("Barcode,BookId,BookTitle,ShelfId,ShelfCode,Condition,Status\r\n");
+        var csv = new StringBuilder("Barcode,BookTitle,ShelfCode,Condition,Status\r\n");
         foreach (var row in rows)
-            csv.Append(Csv(row.Barcode)).Append(',').Append(row.BookId).Append(',').Append(Csv(row.BookTitle))
-                .Append(',').Append(row.ShelfId).Append(',').Append(Csv(row.ShelfCode ?? ""))
+            csv.Append(Csv(row.Barcode)).Append(',').Append(Csv(row.BookTitle))
+                .Append(',').Append(Csv(row.ShelfCode ?? ""))
                 .Append(',').Append(row.Condition).Append(',').Append(row.Status).Append("\r\n");
         return File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", "book-copies.csv");
     }
 
-    private static ImportCopyRow MapImport(CopyImportRow row) => new(row.Barcode, row.BookId, row.ShelfId, row.Condition);
+    private static ImportCopyRow MapImport(CopyImportRow row) => new(row.Barcode, row.Isbn, row.ShelfCode, row.Condition);
     private static string Csv(string value)
     {
         if (value.Length > 0 && value[0] is '=' or '+' or '-' or '@') value = "'" + value;

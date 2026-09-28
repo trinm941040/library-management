@@ -25,9 +25,9 @@ public sealed class Renewal
         string appliedPolicySnapshot)
     {
         if (borrowingId == Guid.Empty || renewedByUserId == Guid.Empty)
-            throw new ArgumentException("Borrowing and renewing user are required.");
+            throw new ArgumentException("Khoản mượn và người thực hiện gia hạn là bắt buộc.");
         if (newDueAtUtc <= previousDueAtUtc)
-            throw new ArgumentException("New due date must be after the previous due date.");
+            throw new ArgumentException("Hạn trả mới phải sau hạn trả trước đó.");
 
         return new Renewal
         {

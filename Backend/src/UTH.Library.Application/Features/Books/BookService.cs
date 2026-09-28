@@ -66,10 +66,8 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
     {
         var errors = validator.Validate(command);
         if (errors.Count > 0) return BookResult.Fail(BookFailure.Validation, errors.ToArray());
-        if (catalogRepository is not null && command.Quantity != 0)
-            return BookResult.Fail(BookFailure.Validation, "Số lượng bản sao được quản lý tại trang Bản sao; biểu ghi mới phải có số lượng 0.");
         if (!await ReferencesAreValidAsync(command.AuthorIds, command.CategoryIds, command.PublisherId, cancellationToken))
-            return BookResult.Fail(BookFailure.Validation, "One or more catalog references are invalid or inactive.");
+            return BookResult.Fail(BookFailure.Validation, "Một hoặc nhiều danh mục tham chiếu không hợp lệ hoặc đã ngừng sử dụng.");
         try
         {
             var book = Book.Create(
@@ -77,13 +75,13 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.Author,
                 command.Isbn,
                 command.Category,
-                command.Quantity,
+                0,
                 timeProvider.GetUtcNow().UtcDateTime);
             book.SetPublicationMetadata(command.PublisherId, command.EditionStatement, command.Description,
                 command.PublicationYear, command.Language, command.PageCount);
 
             if (await repository.IsbnExistsAsync(book.Isbn, null, cancellationToken))
-                return BookResult.Fail(BookFailure.Conflict, "A book with this ISBN already exists.");
+                return BookResult.Fail(BookFailure.Conflict, "Đã tồn tại biểu ghi sách có ISBN này.");
 
             return await unitOfWork.ExecuteAsync(async ct =>
             {
@@ -114,12 +112,10 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         var errors = validator.Validate(command);
         if (errors.Count > 0) return BookResult.Fail(BookFailure.Validation, errors.ToArray());
         if (!await ReferencesAreValidAsync(command.AuthorIds, command.CategoryIds, command.PublisherId, cancellationToken))
-            return BookResult.Fail(BookFailure.Validation, "One or more catalog references are invalid or inactive.");
+            return BookResult.Fail(BookFailure.Validation, "Một hoặc nhiều danh mục tham chiếu không hợp lệ hoặc đã ngừng sử dụng.");
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
-            return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
-        if (catalogRepository is not null && command.Quantity != (await catalogRepository.GetCatalogAsync(id, cancellationToken)).AvailableCopyCount)
-            return BookResult.Fail(BookFailure.Validation, "Không thể sửa số lượng tại biểu ghi; hãy quản lý từng bản sao theo mã vạch.");
+            return BookResult.Fail(BookFailure.NotFound, "Không tìm thấy biểu ghi sách.");
         if (command.ConcurrencyToken is not null && command.ConcurrencyToken != book.ConcurrencyToken)
             return BookResult.Fail(BookFailure.Conflict, "Biểu ghi đã thay đổi. Vui lòng tải lại trước khi lưu.");
 
@@ -127,7 +123,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         {
             var isbn = command.Isbn.Trim().Replace("-", string.Empty, StringComparison.Ordinal).Replace(" ", string.Empty, StringComparison.Ordinal);
             if (await repository.IsbnExistsAsync(isbn, id, cancellationToken))
-                return BookResult.Fail(BookFailure.Conflict, "A book with this ISBN already exists.");
+                return BookResult.Fail(BookFailure.Conflict, "Đã tồn tại biểu ghi sách có ISBN này.");
 
             var before = JsonSerializer.Serialize(book);
             book.Update(
@@ -166,7 +162,7 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
     {
         var book = await repository.GetByIdAsync(id, cancellationToken);
         if (book is null)
-            return BookResult.Fail(BookFailure.NotFound, "Book was not found.");
+            return BookResult.Fail(BookFailure.NotFound, "Không tìm thấy biểu ghi sách.");
         if (catalogRepository is not null && await catalogRepository.HasActiveDependenciesAsync(id, cancellationToken))
             return BookResult.Fail(BookFailure.Conflict, "Không thể ngừng sử dụng biểu ghi khi còn bản sao, lượt mượn hoặc đặt trước đang hoạt động.");
 
@@ -201,7 +197,6 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
             book.Author,
             book.Isbn,
             book.Category,
-            catalog?.AvailableCopyCount ?? book.Quantity,
             book.CreatedAtUtc,
             book.UpdatedAtUtc,
             catalog?.Authors.Select(reference => new BookReferenceModel(reference.Id, reference.Name)).ToArray(),

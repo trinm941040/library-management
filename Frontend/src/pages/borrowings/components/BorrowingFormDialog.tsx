@@ -51,7 +51,7 @@ export function BorrowingFormDialog({ open, onOpenChange, onSave }: BorrowingFor
       getMembers({ status: 'Active', pageNumber: 1, pageSize: 100 }, controller.signal),
     ])
       .then(([bookPage, userPage]) => {
-        setBooks(bookPage.items.filter((book) => book.quantity > 0))
+        setBooks(bookPage.items.filter((book) => (book.availableCopyCount ?? 0) > 0))
         setUsers(userPage.items)
       })
       .catch((caught: unknown) => {
@@ -99,7 +99,7 @@ export function BorrowingFormDialog({ open, onOpenChange, onSave }: BorrowingFor
                 <SelectContent>
                   {books.map((book) => (
                     <SelectItem key={book.id} value={book.id}>
-                      {book.title} · còn {book.quantity}
+                      {book.title} · còn {book.availableCopyCount ?? 0}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -34,7 +34,7 @@ export type CreateCopyInput = { bookId: string; barcode: string; condition: Copy
 export type CopyBulkOperation = 'relocate' | 'status' | 'condition' | 'withdraw'
 export type CopyBulkRow = { copyId: string; concurrencyToken: string; status?: CopyStatus;
   condition?: CopyCondition; shelfId?: string; reason?: string }
-export type CopyImportRow = { barcode: string; bookId: string; shelfId: string; condition: CopyCondition }
+export type CopyImportRow = { barcode: string; isbn: string; shelfCode: string; condition: CopyCondition }
 const bulkResultSchema = z.array(z.object({ copyId: guidSchema, succeeded: z.boolean(),
   error: z.string().nullable(), copy: copySchema.nullable() }))
 const importPreviewSchema = z.array(z.object({ rowNumber: z.number().int().positive(),

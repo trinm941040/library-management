@@ -49,7 +49,7 @@ public static class CurrentProfileResponseMapper
 
 public sealed record UpdateCurrentProfileRequest(
     [Required, StringLength(150, MinimumLength = 2)] string FullName,
-    [RegularExpression(@"^\+?[0-9 .()-]{7,30}$", ErrorMessage = "Phone number format is invalid.")] string? PhoneNumber,
+    [RegularExpression(@"^\+?[0-9 .()-]{7,30}$", ErrorMessage = "Định dạng số điện thoại không hợp lệ.")] string? PhoneNumber,
     DateOnly? DateOfBirth,
     [StringLength(500)] string? Address,
     Guid RowVersion);

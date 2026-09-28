@@ -15,7 +15,7 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     {
         try { return await base.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException exception)
-        { throw new OptimisticConcurrencyException("The resource was modified by another request.", exception); }
+        { throw new OptimisticConcurrencyException("Dữ liệu đã được cập nhật bởi yêu cầu khác.", exception); }
     }
     public DbSet<TodoItem> Todos => Set<TodoItem>();
     public DbSet<Book> Books => Set<Book>();

@@ -26,7 +26,7 @@ public sealed class TodoItem
     {
         if (string.IsNullOrWhiteSpace(title))
         {
-            throw new ArgumentException("Todo title is required.", nameof(title));
+            throw new ArgumentException("Tiêu đề công việc là bắt buộc.", nameof(title));
         }
 
         return new TodoItem(Guid.NewGuid(), title.Trim(), createdAtUtc);

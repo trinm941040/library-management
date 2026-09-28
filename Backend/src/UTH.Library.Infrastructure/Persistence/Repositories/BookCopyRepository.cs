@@ -64,6 +64,18 @@ internal sealed class BookCopyRepository(LibraryDbContext db) : IBookCopyReposit
             db.Areas.Any(area => area.Id == shelf.AreaId && area.IsActive &&
                 db.Branches.Any(branch => branch.Id == area.BranchId && branch.IsActive)), cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> GetActiveBookIdsByIsbnAsync(string isbn, CancellationToken cancellationToken) =>
+        await db.Books.AsNoTracking()
+            .Where(book => book.Status == RecordStatus.Active && book.Isbn == isbn)
+            .Select(book => book.Id).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> GetActiveShelfIdsByCodeAsync(string code, CancellationToken cancellationToken) =>
+        await db.Shelves.AsNoTracking()
+            .Where(shelf => shelf.Status == ShelfStatus.Active && shelf.Code.ToUpper() == code &&
+                db.Areas.Any(area => area.Id == shelf.AreaId && area.IsActive &&
+                    db.Branches.Any(branch => branch.Id == area.BranchId && branch.IsActive)))
+            .Select(shelf => shelf.Id).ToListAsync(cancellationToken);
+
     public Task<bool> ReceiptItemMatchesBookAsync(Guid id, Guid bookId, CancellationToken cancellationToken) =>
         db.StockReceiptItems.AnyAsync(x => x.Id == id && x.BookId == bookId &&
             db.StockReceipts.Any(receipt => receipt.Id == x.StockReceiptId &&

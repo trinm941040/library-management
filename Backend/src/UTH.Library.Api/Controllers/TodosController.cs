@@ -18,7 +18,7 @@ public sealed class TodosController(TodoService todoService) : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            ModelState.AddModelError(nameof(request.Title), "Title is required.");
+            ModelState.AddModelError(nameof(request.Title), "Tiêu đề là bắt buộc.");
             return ValidationProblem(ModelState);
         }
 

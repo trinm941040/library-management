@@ -58,7 +58,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
     {
         var employee = await employeeService.GetByIdAsync(id, cancellationToken);
         return employee is null
-            ? NotFound(Problem("Employee was not found."))
+            ? NotFound(Problem("Không tìm thấy hồ sơ nhân viên."))
             : Ok(ToResponse(employee));
     }
 
@@ -128,7 +128,7 @@ public sealed class EmployeesController(EmployeeService employeeService) : Contr
 
     private ActionResult MapFailure(EmployeeManagementResult result)
     {
-        var detail = result.Errors.FirstOrDefault() ?? "Employee management operation failed.";
+        var detail = result.Errors.FirstOrDefault() ?? "Thao tác quản lý nhân viên không thành công.";
         return result.Failure switch
         {
             EmployeeManagementFailure.NotFound => NotFound(Problem(detail)),

@@ -84,11 +84,11 @@ public sealed class Book
         int? pageCount = null)
     {
         if (publisherId == Guid.Empty)
-            throw new ArgumentException("Publisher is invalid.", nameof(publisherId));
+            throw new ArgumentException("Nhà xuất bản không hợp lệ.", nameof(publisherId));
         if (publicationYear is < 0 or > 9999)
-            throw new ArgumentOutOfRangeException(nameof(publicationYear), "Publication year is invalid.");
+            throw new ArgumentOutOfRangeException(nameof(publicationYear), "Năm xuất bản không hợp lệ.");
         if (pageCount is <= 0 or > 100_000)
-            throw new ArgumentOutOfRangeException(nameof(pageCount), "Page count is invalid.");
+            throw new ArgumentOutOfRangeException(nameof(pageCount), "Số trang không hợp lệ.");
 
         PublisherId = publisherId;
         EditionStatement = string.IsNullOrWhiteSpace(editionStatement) ? null : editionStatement.Trim();
@@ -126,7 +126,7 @@ public sealed class Book
     public void Checkout(DateTime updatedAtUtc)
     {
         if (Quantity <= 0)
-            throw new InvalidOperationException("Book is out of stock.");
+            throw new InvalidOperationException("Sách đã hết bản sao khả dụng.");
 
         Quantity--;
         UpdatedAtUtc = updatedAtUtc;
@@ -143,15 +143,15 @@ public sealed class Book
     private static void Validate(string title, string author, string isbn, string category, int quantity)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Book title is required.", nameof(title));
+            throw new ArgumentException("Tên sách là bắt buộc.", nameof(title));
         if (string.IsNullOrWhiteSpace(author))
-            throw new ArgumentException("Book author is required.", nameof(author));
+            throw new ArgumentException("Tác giả là bắt buộc.", nameof(author));
         if (string.IsNullOrWhiteSpace(isbn))
-            throw new ArgumentException("Book ISBN is required.", nameof(isbn));
+            throw new ArgumentException("ISBN là bắt buộc.", nameof(isbn));
         if (string.IsNullOrWhiteSpace(category))
-            throw new ArgumentException("Book category is required.", nameof(category));
+            throw new ArgumentException("Thể loại là bắt buộc.", nameof(category));
         if (quantity < 0)
-            throw new ArgumentOutOfRangeException(nameof(quantity), "Book quantity cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Số lượng sách không được là số âm.");
     }
 
     private static string NormalizeIsbn(string isbn) => IsbnValue.Create(isbn).Value;

@@ -23,7 +23,7 @@ public sealed class Author
     public static Author Create(string fullName)
     {
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new ArgumentException("Author name is required.", nameof(fullName));
+            throw new ArgumentException("Tên tác giả là bắt buộc.", nameof(fullName));
         return new Author(Guid.NewGuid(), fullName.Trim());
     }
 }

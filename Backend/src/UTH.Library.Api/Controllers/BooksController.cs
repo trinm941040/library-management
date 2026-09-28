@@ -86,7 +86,9 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var result = await transferService.ConfirmImportAsync(new ConfirmBookImportCommand(
-            request.Rows.Select(row => new BookImportRow(row.RowNumber, row.Title, row.Author, row.Isbn, row.Category, row.Quantity)).ToArray(),
+            request.Rows.Select(row => new BookImportRow(
+                row.RowNumber, row.Title, row.Author, row.Isbn, row.Category, row.Publisher,
+                row.Description, row.EditionStatement, row.PublicationYear, row.Language, row.PageCount)).ToArray(),
             request.Checksum), cancellationToken);
         return Ok(new BookImportResultResponse(result.ImportedCount, result.Errors.Select(Map).ToArray(), result.CorrelationId));
     }
@@ -107,7 +109,7 @@ public sealed class BooksController(
     public async Task<ActionResult<BookResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var book = await bookService.GetByIdAsync(id, cancellationToken);
-        return book is null ? NotFound(CreateProblem("Book was not found.")) : Ok(ToResponse(book));
+        return book is null ? NotFound(CreateProblem("Không tìm thấy biểu ghi sách.")) : Ok(ToResponse(book));
     }
 
     [HttpPost]
@@ -119,7 +121,7 @@ public sealed class BooksController(
         CancellationToken cancellationToken)
     {
         var result = await createHandler.HandleAsync(
-            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity,
+            new CreateBookCommand(request.Title, request.Author, request.Isbn, request.Category,
                 request.AuthorIds, request.CategoryIds, request.PublisherId, request.PublisherName,
                 request.Description, request.EditionStatement, request.PublicationYear, request.Language, request.PageCount),
             cancellationToken);
@@ -143,7 +145,7 @@ public sealed class BooksController(
     {
         var result = await bookService.UpdateAsync(
             id,
-            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category, request.Quantity,
+            new UpdateBookCommand(request.Title, request.Author, request.Isbn, request.Category,
                 request.AuthorIds, request.CategoryIds, request.PublisherId, request.PublisherName,
                 request.Description, request.EditionStatement, request.PublicationYear, request.Language,
                 request.PageCount, request.ConcurrencyToken),
@@ -166,9 +168,9 @@ public sealed class BooksController(
 
     private ActionResult MapFailure(BookResult result) => result.Failure switch
     {
-        BookFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Book was not found.")),
-        BookFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "The operation conflicts with the current state.")),
-        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Book validation failed."))
+        BookFailure.NotFound => NotFound(CreateProblem(result.Errors.FirstOrDefault() ?? "Không tìm thấy biểu ghi sách.")),
+        BookFailure.Conflict => Conflict(CreateProblem(result.Errors.FirstOrDefault() ?? "Thao tác xung đột với trạng thái hiện tại.")),
+        _ => BadRequest(CreateProblem(result.Errors.FirstOrDefault() ?? "Dữ liệu biểu ghi sách không hợp lệ."))
     };
 
     private static ProblemDetails CreateProblem(string detail) => new() { Detail = detail };
@@ -180,7 +182,6 @@ public sealed class BooksController(
             book.Author,
             book.Isbn,
             book.Category,
-            book.Quantity,
             book.CreatedAtUtc,
             book.UpdatedAtUtc,
             book.Authors?.Select(reference => new BookReferenceResponse(reference.Id, reference.Name)).ToArray(),

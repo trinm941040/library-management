@@ -16,7 +16,7 @@ public sealed record EmployeeBranch(Guid Id, string Code, string Name, bool IsAc
 public sealed class EmployeeConcurrencyException : Exception
 {
     public EmployeeConcurrencyException(Exception innerException)
-        : base("The employee was modified by another request.", innerException)
+        : base("Hồ sơ nhân viên đã được cập nhật bởi yêu cầu khác.", innerException)
     {
     }
 }

@@ -88,7 +88,7 @@ public static class DependencyInjection
                     var rawUserId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
                     if (!Guid.TryParse(rawUserId, out var userId))
                     {
-                        context.Fail("Invalid subject.");
+                        context.Fail("Định danh tài khoản không hợp lệ.");
                         return;
                     }
                     var authorizationStateService = context.HttpContext.RequestServices
@@ -99,7 +99,7 @@ public static class DependencyInjection
                     if (state?.CanAuthenticate != true ||
                         !Guid.TryParse(context.Principal?.FindFirst("sid")?.Value, out var familyId) ||
                         !await authorizationStateService.IsSessionActiveAsync(userId, familyId, context.HttpContext.RequestAborted))
-                        context.Fail("Account unavailable.");
+                        context.Fail("Tài khoản không khả dụng.");
                 },
                 OnChallenge = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status401Unauthorized, "Chưa xác thực", "Vui lòng đăng nhập để truy cập tài nguyên này.", context.HandleResponse),
                 OnForbidden = context => WriteProblemDetailsAsync(context.HttpContext, StatusCodes.Status403Forbidden, "Không có quyền truy cập", "Bạn không có quyền truy cập tài nguyên này.")
