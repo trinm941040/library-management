@@ -14,7 +14,8 @@ public sealed class BorrowingService(
     ICirculationPolicyResolver policyResolver,
     TimeProvider timeProvider,
     IViolationRepository violations,
-    IReservationRepository reservations)
+    IReservationRepository reservations,
+    IEmployeeRepository employees)
 {
     public async Task<BorrowingPageModel> GetAsync(BorrowingListQuery query, CancellationToken cancellationToken)
     {
@@ -217,6 +218,12 @@ public sealed class BorrowingService(
         if (policy.BlockIfOverdue && history.Borrowings.Any(x => x.IsOverdue(now)))
             return BorrowingResult.Fail(BorrowingFailure.Conflict, "Độc giả đang có sách quá hạn chưa trả, chính sách lưu thông từ chối cho mượn tiếp.");
 
+        var processedByEmployee = await employees.GetByUserIdAsync(actorUserId, cancellationToken);
+        if (processedByEmployee is null)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Tài khoản thực hiện chưa được liên kết với hồ sơ nhân viên.");
+        if (processedByEmployee.Status != EmploymentStatus.Active)
+            return BorrowingResult.Fail(BorrowingFailure.Conflict, "Hồ sơ nhân viên thực hiện hiện không hoạt động.");
+
         try
         {
             var maximumLoanDays = Math.Min(member.LoanPeriodDays, policy.LoanPeriodDays);
@@ -232,7 +239,7 @@ public sealed class BorrowingService(
                 member.Email,
                 now,
                 loanDays,
-                actorUserId,
+                processedByEmployee.Id,
                 policy.PolicyId,
                 policy.Version,
                 JsonSerializer.Serialize(policy));

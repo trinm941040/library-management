@@ -56,6 +56,11 @@ public sealed class EmployeeRepository(LibraryDbContext db) : IEmployeeRepositor
             .Include(employee => employee.Branch)
             .SingleOrDefaultAsync(employee => employee.Id == id, cancellationToken);
 
+    public Task<Employee?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) =>
+        db.Employees
+            .AsNoTracking()
+            .SingleOrDefaultAsync(employee => employee.UserId == userId, cancellationToken);
+
     public Task<bool> EmployeeCodeExistsAsync(
         string employeeCode,
         Guid? excludingId,
