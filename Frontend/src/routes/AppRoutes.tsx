@@ -7,11 +7,9 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { routePermissions } from '@/app/navigation'
 import { NotFoundPage } from '@/pages/errors/NotFoundPage'
 import { safeIntendedDestination } from '@/shared/auth/intended-destination'
-import { LoadingBoundary, ScreenState } from '@/common/components'
+import { FullScreenSpinner, ScreenState } from '@/common/components'
 
-const routeLoading = (label = 'Đang tải trang') => (
-  <LoadingBoundary loading label={label} className="min-h-[40vh]" />
-)
+const routeLoading = (label = 'Đang tải trang') => <FullScreenSpinner label={label} />
 
 const ProfilePage = lazy(() =>
   import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })),
@@ -43,16 +41,24 @@ const SuppliersPage = lazy(() =>
   import('../pages/suppliers/SuppliersPage').then((m) => ({ default: m.SuppliersPage })),
 )
 const StockReceiptsPage = lazy(() =>
-  import('../pages/stock-receipts/StockReceiptsPage').then((m) => ({ default: m.StockReceiptsPage })),
+  import('../pages/stock-receipts/StockReceiptsPage').then((m) => ({
+    default: m.StockReceiptsPage,
+  })),
 )
 const StockReceiptDetailPage = lazy(() =>
-  import('../pages/stock-receipts/StockReceiptDetailPage').then((m) => ({ default: m.StockReceiptDetailPage })),
+  import('../pages/stock-receipts/StockReceiptDetailPage').then((m) => ({
+    default: m.StockReceiptDetailPage,
+  })),
 )
 const InventoryAuditsPage = lazy(() =>
-  import('../pages/inventory-audits/InventoryAuditsPage').then((m) => ({ default: m.InventoryAuditsPage })),
+  import('../pages/inventory-audits/InventoryAuditsPage').then((m) => ({
+    default: m.InventoryAuditsPage,
+  })),
 )
 const InventoryAuditDetailPage = lazy(() =>
-  import('../pages/inventory-audits/InventoryAuditDetailPage').then((m) => ({ default: m.InventoryAuditDetailPage })),
+  import('../pages/inventory-audits/InventoryAuditDetailPage').then((m) => ({
+    default: m.InventoryAuditDetailPage,
+  })),
 )
 const BorrowingsPage = lazy(() =>
   import('../pages/borrowings/BorrowingsPage').then((m) => ({ default: m.BorrowingsPage })),
@@ -108,10 +114,14 @@ const ReportsPage = lazy(() =>
   import('../pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 )
 const NotificationsPage = lazy(() =>
-  import('../pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+  import('../pages/notifications/NotificationsPage').then((m) => ({
+    default: m.NotificationsPage,
+  })),
 )
 const NotificationCenterPage = lazy(() =>
-  import('../pages/notifications/NotificationCenterPage').then((m) => ({ default: m.NotificationCenterPage })),
+  import('../pages/notifications/NotificationCenterPage').then((m) => ({
+    default: m.NotificationCenterPage,
+  })),
 )
 
 const page = (path: string, element: ReactNode) => (
@@ -160,10 +170,7 @@ export function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={page('/dashboard', <DashboardPage />)} />
-        <Route
-          path="/access-accounts"
-          element={page('/access-accounts', <AccessAccountsPage />)}
-        />
+        <Route path="/access-accounts" element={page('/access-accounts', <AccessAccountsPage />)} />
         <Route path="/users" element={<Navigate to="/access-accounts" replace />} />
         <Route path="/books" element={<Navigate to="/catalog" replace />} />
         <Route path="/catalog" element={page('/catalog', <BooksPage />)} />
@@ -172,21 +179,42 @@ export function AppRoutes() {
         <Route path="/copies" element={page('/copies', <CopiesPage />)} />
         <Route path="/suppliers" element={page('/suppliers', <SuppliersPage />)} />
         <Route path="/stock-receipts" element={page('/stock-receipts', <StockReceiptsPage />)} />
-        <Route path="/stock-receipts/new" element={page('/stock-receipts/new', <StockReceiptDetailPage />)} />
-        <Route path="/stock-receipts/:id" element={page('/stock-receipts', <StockReceiptDetailPage />)} />
-        <Route path="/inventory-audits" element={page('/inventory-audits', <InventoryAuditsPage />)} />
-        <Route path="/inventory-audits/:id" element={page('/inventory-audits', <InventoryAuditDetailPage />)} />
+        <Route
+          path="/stock-receipts/new"
+          element={page('/stock-receipts/new', <StockReceiptDetailPage />)}
+        />
+        <Route
+          path="/stock-receipts/:id"
+          element={page('/stock-receipts', <StockReceiptDetailPage />)}
+        />
+        <Route
+          path="/inventory-audits"
+          element={page('/inventory-audits', <InventoryAuditsPage />)}
+        />
+        <Route
+          path="/inventory-audits/:id"
+          element={page('/inventory-audits', <InventoryAuditDetailPage />)}
+        />
         <Route path="/borrowings" element={page('/borrowings', <BorrowingsPage />)} />
         <Route path="/loans/:id" element={page('/loans/:id', <LoanDetailPage />)} />
         <Route path="/borrowings/:id" element={page('/borrowings/:id', <LoanDetailPage />)} />
-        <Route path="/circulation/checkout" element={page('/circulation/checkout', <CheckoutPage />)} />
+        <Route
+          path="/circulation/checkout"
+          element={page('/circulation/checkout', <CheckoutPage />)}
+        />
         <Route path="/circulation/return" element={page('/circulation/return', <ReturnPage />)} />
         <Route path="/reservations" element={page('/reservations', <ReservationsPage />)} />
         <Route path="/violations" element={page('/violations', <ViolationsPage />)} />
         <Route path="/reports" element={page('/reports', <ReportsPage />)} />
         <Route path="/notifications" element={page('/notifications', <NotificationCenterPage />)} />
-        <Route path="/email-history" element={page('/email-history', <NotificationsPage initialTab="history" />)} />
-        <Route path="/email-templates" element={page('/email-templates', <NotificationsPage initialTab="templates" />)} />
+        <Route
+          path="/email-history"
+          element={page('/email-history', <NotificationsPage initialTab="history" />)}
+        />
+        <Route
+          path="/email-templates"
+          element={page('/email-templates', <NotificationsPage initialTab="templates" />)}
+        />
         <Route path="/smtp-settings" element={page('/smtp-settings', <SmtpSettingsPage />)} />
         <Route path="/staff" element={page('/staff', <EmployeePage />)} />
         <Route path="/employee" element={<Navigate to="/staff" replace />} />

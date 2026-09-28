@@ -4,9 +4,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
+import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import type { LocationInput, LocationNode, LocationType } from './branch-api'
 
@@ -77,28 +79,51 @@ export function LocationFormDialog({
     <Dialog open={open} onOpenChange={(next) => !submitting && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editing ? 'Cập nhật' : 'Tạo'} {labels[type]}</DialogTitle>
+          <DialogTitle>
+            {editing ? 'Cập nhật' : 'Tạo'} {labels[type]}
+          </DialogTitle>
           <DialogDescription>
             Mã được chuẩn hóa thành chữ hoa và phải duy nhất trong đúng phạm vi.
           </DialogDescription>
         </DialogHeader>
         <EntityForm
+          formId="location-form"
+          showActions={false}
           isSubmitting={submitting}
           submitLabel={editing ? 'Lưu thay đổi' : 'Tạo mới'}
           serverError={error}
-          isConflict={error.toLowerCase().includes('thay đổi') || error.toLowerCase().includes('tồn tại')}
+          isConflict={
+            error.toLowerCase().includes('thay đổi') || error.toLowerCase().includes('tồn tại')
+          }
           onSubmit={submit}
           onCancel={() => onOpenChange(false)}
         >
           <EntityFormField id="location-code" label="Mã">
-            <Input id="location-code" maxLength={30} required value={code} onChange={(event) => setCode(event.target.value)} />
+            <Input
+              id="location-code"
+              maxLength={30}
+              required
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+            />
           </EntityFormField>
           <EntityFormField id="location-name" label={type === 'Shelf' ? 'Nhãn kệ' : 'Tên'}>
-            <Input id="location-name" maxLength={150} required value={name} onChange={(event) => setName(event.target.value)} />
+            <Input
+              id="location-name"
+              maxLength={150}
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
           </EntityFormField>
           {type === 'Branch' ? (
             <EntityFormField id="location-address" label="Địa chỉ">
-              <Input id="location-address" maxLength={500} value={address} onChange={(event) => setAddress(event.target.value)} />
+              <Input
+                id="location-address"
+                maxLength={500}
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+              />
             </EntityFormField>
           ) : (
             <EntityFormField id="location-parent" label={type === 'Area' ? 'Chi nhánh' : 'Khu vực'}>
@@ -110,11 +135,33 @@ export function LocationFormDialog({
                 onChange={(event) => setParentId(event.target.value)}
               >
                 <option value="">Chọn vị trí cha</option>
-                {parentOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                {parentOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </EntityFormField>
           )}
         </EntityForm>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={() => onOpenChange(false)}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            form="location-form"
+            loading={submitting}
+            loadingLabel="Đang lưu dữ liệu"
+          >
+            {editing ? 'Lưu thay đổi' : 'Tạo mới'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

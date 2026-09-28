@@ -5,18 +5,20 @@ import type {
   UpdateNotificationTemplatePayload,
   NotificationChannel,
 } from '../notifications-api'
+import { createTemplate, updateTemplate, deleteTemplate } from '../notifications-api'
 import {
-  createTemplate,
-  updateTemplate,
-  deleteTemplate,
-} from '../notifications-api'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/common/components/ui/card'
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/common/components/ui/card'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
 import { Badge } from '@/common/components/ui/badge'
 import { Switch } from '@/common/components/ui/switch'
-import { Textarea } from '@/common/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -204,9 +206,12 @@ export const TemplateManagementTab: React.FC<Props> = ({
       <Card>
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold">Danh mục mẫu thông báo vận hành</CardTitle>
+            <CardTitle className="text-base font-semibold">
+              Danh mục mẫu thông báo vận hành
+            </CardTitle>
             <CardDescription>
-              Định nghĩa cú pháp nội dung, kênh truyền gửi và danh sách biến hợp lệ cho từng sự kiện.
+              Định nghĩa cú pháp nội dung, kênh truyền gửi và danh sách biến hợp lệ cho từng sự
+              kiện.
             </CardDescription>
           </div>
           {isManager && (
@@ -218,7 +223,9 @@ export const TemplateManagementTab: React.FC<Props> = ({
       </Card>
 
       {loading ? (
-        <div className="text-center py-12 text-sm text-muted-foreground">Đang tải danh sách mẫu...</div>
+        <div className="text-center py-12 text-sm text-muted-foreground">
+          Đang tải danh sách mẫu...
+        </div>
       ) : templates.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground rounded-xl border border-dashed p-8">
           Chưa có mẫu thông báo nào. Bấm &quot;Thêm mẫu mới&quot; để tạo.
@@ -243,7 +250,10 @@ export const TemplateManagementTab: React.FC<Props> = ({
                     </div>
                   </div>
                   {t.isActive ? (
-                    <Badge variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-xs">
+                    <Badge
+                      variant="default"
+                      className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                    >
                       <CheckCircle2 className="size-3" /> Hoạt động
                     </Badge>
                   ) : (
@@ -256,16 +266,24 @@ export const TemplateManagementTab: React.FC<Props> = ({
                 <div>
                   <CardTitle className="text-sm font-semibold">{t.name}</CardTitle>
                   {t.subjectTemplate && (
-                    <p className="text-xs font-medium text-foreground/80 mt-1 truncate" title={t.subjectTemplate}>
-                      Tiêu đề: <span className="font-normal italic">{formatTemplateDisplay(t.subjectTemplate)}</span>
+                    <p
+                      className="text-xs font-medium text-foreground/80 mt-1 truncate"
+                      title={t.subjectTemplate}
+                    >
+                      Tiêu đề:{' '}
+                      <span className="font-normal italic">
+                        {formatTemplateDisplay(t.subjectTemplate)}
+                      </span>
                     </p>
                   )}
                 </div>
               </CardHeader>
 
               <CardContent className="pb-3 space-y-2.5">
-                <div className="line-clamp-4 max-h-20 overflow-hidden text-xs leading-relaxed text-muted-foreground bg-muted/40 p-2.5 rounded-md border"
-                  title={formatTemplateExcerpt(t.bodyTemplate)}>
+                <div
+                  className="line-clamp-4 max-h-20 overflow-hidden text-xs leading-relaxed text-muted-foreground bg-muted/40 p-2.5 rounded-md border"
+                  title={formatTemplateExcerpt(t.bodyTemplate)}
+                >
                   {formatTemplateExcerpt(t.bodyTemplate)}
                 </div>
 
@@ -279,7 +297,12 @@ export const TemplateManagementTab: React.FC<Props> = ({
 
               {isManager && (
                 <CardFooter className="pt-3 border-t flex justify-end gap-1.5">
-                  <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => openEditModal(t)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-xs"
+                    onClick={() => openEditModal(t)}
+                  >
                     <Edit2 className="size-3.5" /> Sửa
                   </Button>
                   <Button
@@ -348,7 +371,10 @@ export const TemplateManagementTab: React.FC<Props> = ({
 
               <div className="space-y-1.5">
                 <Label htmlFor="templateChannel">Kênh gửi</Label>
-                <Select value={channel} onValueChange={(val) => setChannel(val as NotificationChannel)}>
+                <Select
+                  value={channel}
+                  onValueChange={(val) => setChannel(val as NotificationChannel)}
+                >
                   <SelectTrigger id="templateChannel" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -372,25 +398,31 @@ export const TemplateManagementTab: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1.5">
-                <Label htmlFor="templateSubject">Tiêu đề mẫu</Label>
-                <Input
-                  id="templateSubject"
-                  placeholder="VD: [Thư viện] Sách {{book_title}} đã sẵn sàng nhận"
-                  value={subjectTemplate}
-                  onChange={(e) => setSubjectTemplate(e.target.value)}
-                />
+              <Label htmlFor="templateSubject">Tiêu đề mẫu</Label>
+              <Input
+                id="templateSubject"
+                placeholder="VD: [Thư viện] Sách {{book_title}} đã sẵn sàng nhận"
+                value={subjectTemplate}
+                onChange={(e) => setSubjectTemplate(e.target.value)}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="templateBody">Nội dung mẫu</Label>
-              {channel === 'Email' ? <EmailTemplateEditor value={bodyTemplate} onChange={setBodyTemplate}
-                variables={allowedVariables.split(/[,;\s]+/).map(value => value.trim().replace(/^\{\{|\}\}$/g, '')).filter(Boolean)} /> :
-                <Textarea id="templateBody" rows={8}
-                  placeholder="VD: Chào {{borrower_name}}, sách {{book_title}} bạn đặt trước đã sẵn sàng nhận tại {{branch_name}}."
-                  value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)} required />}
-              <p className="text-xs text-muted-foreground">{channel === 'Email'
-                ? 'Trình soạn thảo lưu nội dung HTML an toàn và hỗ trợ chèn biến trực tiếp.'
-                : 'Thông báo nội bộ sử dụng nội dung văn bản thuần.'}</p>
+              <EmailTemplateEditor
+                id="templateBody"
+                key={`${isCreating ? 'create' : editingTemplate?.id}-${channel}`}
+                value={bodyTemplate}
+                onChange={setBodyTemplate}
+                variables={allowedVariables
+                  .split(/[,;\s]+/)
+                  .map((value) => value.trim().replace(/^\{\{|\}\}$/g, ''))
+                  .filter(Boolean)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Trình soạn thảo được dùng thống nhất khi tạo mới và chỉnh sửa mẫu; hỗ trợ chèn biến
+                trực tiếp.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -406,16 +438,16 @@ export const TemplateManagementTab: React.FC<Props> = ({
               />
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                 <Info className="size-3.5 text-primary shrink-0" />
-                <span>Sử dụng cú pháp <code className="text-primary font-mono font-medium">{'{{ten_bien}}'}</code> trong tiêu đề và nội dung.</span>
+                <span>
+                  Sử dụng cú pháp{' '}
+                  <code className="text-primary font-mono font-medium">{'{{ten_bien}}'}</code> trong
+                  tiêu đề và nội dung.
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <Switch
-                id="template-active"
-                checked={isActive}
-                onCheckedChange={setIsActive}
-              />
+              <Switch id="template-active" checked={isActive} onCheckedChange={setIsActive} />
               <Label htmlFor="template-active" className="cursor-pointer">
                 Kích hoạt mẫu này để cho phép gửi
               </Label>

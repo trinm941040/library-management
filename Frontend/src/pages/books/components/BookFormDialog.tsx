@@ -4,9 +4,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/common/components/ui/dialog'
+import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import { getCatalogReferences, type LibraryBook } from '../book-api'
 
@@ -48,7 +50,11 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof BookFormData, string>>>({})
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [lookups, setLookups] = useState({ authors: [] as string[], categories: [] as string[], publishers: [] as string[] })
+  const [lookups, setLookups] = useState({
+    authors: [] as string[],
+    categories: [] as string[],
+    publishers: [] as string[],
+  })
 
   useEffect(() => {
     setForm(
@@ -78,11 +84,15 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
       getCatalogReferences('authors', controller.signal),
       getCatalogReferences('categories', controller.signal),
       getCatalogReferences('publishers', controller.signal),
-    ]).then(([authors, categories, publishers]) => setLookups({
-      authors: authors.map((item) => item.name),
-      categories: categories.map((item) => item.name),
-      publishers: publishers.map((item) => item.name),
-    })).catch(() => undefined)
+    ])
+      .then(([authors, categories, publishers]) =>
+        setLookups({
+          authors: authors.map((item) => item.name),
+          categories: categories.map((item) => item.name),
+          publishers: publishers.map((item) => item.name),
+        }),
+      )
+      .catch(() => undefined)
     return () => controller.abort()
   }, [open])
 
@@ -93,7 +103,12 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
     if (!form.author.trim()) nextErrors.author = 'Vui lòng nhập tác giả.'
     if (form.isbn.trim().length < 10) nextErrors.isbn = 'ISBN phải có ít nhất 10 ký tự.'
     if (!form.category.trim()) nextErrors.category = 'Vui lòng nhập thể loại.'
-    if (form.publicationYear && (!Number.isInteger(Number(form.publicationYear)) || Number(form.publicationYear) < 0 || Number(form.publicationYear) > 9999))
+    if (
+      form.publicationYear &&
+      (!Number.isInteger(Number(form.publicationYear)) ||
+        Number(form.publicationYear) < 0 ||
+        Number(form.publicationYear) > 9999)
+    )
       nextErrors.publicationYear = 'Năm xuất bản không hợp lệ.'
     if (form.pageCount && (!Number.isInteger(Number(form.pageCount)) || Number(form.pageCount) < 1))
       nextErrors.pageCount = 'Số trang phải là số nguyên dương.'
@@ -130,6 +145,8 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
           </DialogDescription>
         </DialogHeader>
         <EntityForm
+          formId="book-form"
+          showActions={false}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
           submitLabel={book ? 'Lưu thay đổi' : 'Thêm sách'}
@@ -270,6 +287,24 @@ export function BookFormDialog({ open, book, onOpenChange, onSave }: BookFormDia
             </EntityFormField>
           </div>
         </EntityForm>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => onOpenChange(false)}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            form="book-form"
+            loading={isSubmitting}
+            loadingLabel="Đang lưu dữ liệu"
+          >
+            {book ? 'Lưu thay đổi' : 'Thêm sách'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

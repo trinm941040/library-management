@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { beginGlobalLoading, endGlobalLoading } from '@/shared/loading/global-loading'
 
 const environmentSchema = z.object({
   VITE_API_BASE_URL: z.string().trim().url().or(z.literal('')).default(''),
@@ -64,7 +65,20 @@ async function request(input: RequestInfo | URL, init: RequestInit = {}) {
   const abort = () => controller.abort(init.signal?.reason)
   init.signal?.addEventListener('abort', abort, { once: true })
   const headers = new Headers(init.headers)
+  const explicitBackground = headers.get('X-Background-Request') === 'true'
+  headers.delete('X-Background-Request')
   headers.set('X-Requested-With', 'XMLHttpRequest')
+  const requestUrl = typeof input === 'string' ? input : input.toString()
+  const requestPath = requestUrl.startsWith('http')
+    ? new URL(requestUrl).pathname
+    : requestUrl.split('?')[0]
+  const isBackground =
+    explicitBackground ||
+    requestPath === '/api/v1/me' ||
+    requestPath.startsWith('/api/v1/me/') ||
+    requestPath === '/api/v1/auth/refresh' ||
+    requestPath === '/api/v1/notifications/unread-count'
+  if (!isBackground) beginGlobalLoading()
   try {
     return await fetch(typeof input === 'string' && input.startsWith('/') ? apiUrl(input) : input, {
       ...init,
@@ -77,6 +91,7 @@ async function request(input: RequestInfo | URL, init: RequestInit = {}) {
       throw new ApiError('Yêu cầu đã quá thời gian chờ.', 408)
     throw error
   } finally {
+    if (!isBackground) endGlobalLoading()
     window.clearTimeout(timeout)
     init.signal?.removeEventListener('abort', abort)
   }
@@ -131,7 +146,9 @@ export async function readResponse<T>(response: Response, schema?: z.ZodType<T>)
     errors?: Record<string, string[]>
   } | null
   const firstFieldError = problem?.errors
-    ? Object.values(problem.errors).flat().find((message) => message.trim().length > 0)
+    ? Object.values(problem.errors)
+        .flat()
+        .find((message) => message.trim().length > 0)
     : undefined
   throw new ApiError(
     problem?.detail ?? firstFieldError ?? problem?.title ?? 'Không thể kết nối đến máy chủ.',

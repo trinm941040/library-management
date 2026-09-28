@@ -11,12 +11,26 @@ import {
   sendNotification,
   searchRecipients,
 } from '../notifications-api'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/common/components/ui/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/common/components/ui/card'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
 import { Label } from '@/common/components/ui/label'
 import { Badge } from '@/common/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/common/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/common/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -43,10 +57,7 @@ type Props = {
   onSentSuccess?: () => void
 }
 
-const VARIABLE_CONFIG: Record<
-  string,
-  { label: string; placeholder: string; hint?: string }
-> = {
+const VARIABLE_CONFIG: Record<string, { label: string; placeholder: string; hint?: string }> = {
   title: { label: 'Tên tài liệu / sách', placeholder: 'Ví dụ: Lập trình C# nâng cao' },
   book_title: { label: 'Tên tài liệu / sách', placeholder: 'Ví dụ: Lập trình C# nâng cao' },
   name: { label: 'Tên người nhận', placeholder: 'Ví dụ: Nguyễn Văn A' },
@@ -100,16 +111,12 @@ function getVariableMeta(varName: string) {
   if (VARIABLE_CONFIG[normalized]) {
     return VARIABLE_CONFIG[normalized]
   }
-  const formatted = varName
-    .replace(/[_-]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+  const formatted = varName.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   return {
     label: formatted,
     placeholder: `Nhập giá trị cho ${varName}...`,
   }
 }
-
-
 
 export const SendNotificationTab: React.FC<Props> = ({
   templates,
@@ -202,9 +209,7 @@ export const SendNotificationTab: React.FC<Props> = ({
       return
     }
     setSelectedRecipient(r)
-    setCustomDestination(
-      currentTemplate?.channel === 'Email' ? r.email || '' : r.id,
-    )
+    setCustomDestination(currentTemplate?.channel === 'Email' ? r.email || '' : r.id)
 
     setVariables((prev) => {
       const next = { ...prev }
@@ -261,7 +266,8 @@ export const SendNotificationTab: React.FC<Props> = ({
       if (currentTemplate.channel === 'InApp' && deliveryScope !== 'single') {
         const result = await sendBulkNotification({
           templateCode: currentTemplate.code,
-          recipientIds: deliveryScope === 'multiple' ? selectedRecipients.map((item) => item.id) : [],
+          recipientIds:
+            deliveryScope === 'multiple' ? selectedRecipients.map((item) => item.id) : [],
           allStaff: deliveryScope === 'all',
           variables,
           eventCode: currentTemplate.code,
@@ -335,12 +341,16 @@ export const SendNotificationTab: React.FC<Props> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base font-semibold">1. Chọn mẫu thông báo</CardTitle>
-                  <CardDescription>Chọn sự kiện nghiệp vụ và mẫu nội dung đã cấu hình</CardDescription>
+                  <CardDescription>
+                    Chọn sự kiện nghiệp vụ và mẫu nội dung đã cấu hình
+                  </CardDescription>
                 </div>
                 {currentTemplate && (
                   <Badge variant="outline" className="gap-1.5 font-normal">
                     {renderChannelIcon(currentTemplate.channel)}
-                    <span>Kênh: <strong>{getChannelLabel(currentTemplate.channel)}</strong></span>
+                    <span>
+                      Kênh: <strong>{getChannelLabel(currentTemplate.channel)}</strong>
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -373,12 +383,18 @@ export const SendNotificationTab: React.FC<Props> = ({
                 <div className="rounded-md border bg-muted/40 p-3.5 text-sm space-y-2">
                   {currentTemplate.subjectTemplate && (
                     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-                      <span className="font-medium text-muted-foreground shrink-0">Tiêu đề mẫu:</span>
-                      <span className="font-semibold">{formatTemplateDisplay(currentTemplate.subjectTemplate)}</span>
+                      <span className="font-medium text-muted-foreground shrink-0">
+                        Tiêu đề mẫu:
+                      </span>
+                      <span className="font-semibold">
+                        {formatTemplateDisplay(currentTemplate.subjectTemplate)}
+                      </span>
                     </div>
                   )}
                   <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-                    <span className="font-medium text-muted-foreground shrink-0">Nội dung mẫu:</span>
+                    <span className="font-medium text-muted-foreground shrink-0">
+                      Nội dung mẫu:
+                    </span>
                     <span className="italic text-muted-foreground leading-relaxed">
                       {formatTemplateDisplay(currentTemplate.bodyTemplate)}
                     </span>
@@ -396,156 +412,174 @@ export const SendNotificationTab: React.FC<Props> = ({
                   <CardTitle className="text-base font-semibold">2. Chọn đối tượng nhận</CardTitle>
                   <CardDescription>Tra cứu độc giả hoặc nhân viên để gửi thông báo</CardDescription>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {recipients.length} kết quả
-                </span>
+                <span className="text-xs text-muted-foreground">{recipients.length} kết quả</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {currentTemplate?.channel === 'InApp' && (
-                <div className="grid gap-2 sm:grid-cols-3" role="group" aria-label="Phạm vi người nhận">
-                  {([
-                    ['single', 'Một nhân viên'],
-                    ['multiple', 'Nhiều nhân viên'],
-                    ['all', 'Toàn bộ nhân viên'],
-                  ] as const).map(([value, label]) => (
-                    <Button key={value} type="button" size="sm"
+                <div
+                  className="grid gap-2 sm:grid-cols-3"
+                  role="group"
+                  aria-label="Phạm vi người nhận"
+                >
+                  {(
+                    [
+                      ['single', 'Một nhân viên'],
+                      ['multiple', 'Nhiều nhân viên'],
+                      ['all', 'Toàn bộ nhân viên'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
                       variant={deliveryScope === value ? 'default' : 'outline'}
                       onClick={() => {
                         setDeliveryScope(value)
                         setSelectedRecipient(null)
                         setSelectedRecipients([])
                         setCustomDestination('')
-                      }}>
+                      }}
+                    >
                       {label}
                     </Button>
                   ))}
                 </div>
               )}
 
-              {deliveryScope !== 'all' ? <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant={recipientType === 'Member' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setRecipientType('Member')
-                    setSelectedRecipient(null)
-                  }}
-                  disabled={currentTemplate?.channel === 'InApp'}
-                  className="gap-2"
-                >
-                  <User className="size-4" />
-                  Độc giả
-                </Button>
-                <Button
-                  type="button"
-                  variant={recipientType === 'Staff' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setRecipientType('Staff')
-                    setSelectedRecipient(null)
-                  }}
-                  className="gap-2"
-                >
-                  <UserCheck className="size-4" />
-                  Nhân viên
-                </Button>
-              </div>
-
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder={
-                    recipientType === 'Member'
-                      ? 'Tìm theo tên, mã thẻ độc giả, email...'
-                      : 'Tìm theo tên nhân viên, mã nhân viên, email...'
-                  }
-                  className="pl-9"
-                />
-              </div>
-
-              <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-md border bg-muted/20 p-2">
-                {searching ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    Đang tìm kiếm đối tượng...
+              {deliveryScope !== 'all' ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant={recipientType === 'Member' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRecipientType('Member')
+                        setSelectedRecipient(null)
+                      }}
+                      disabled={currentTemplate?.channel === 'InApp'}
+                      className="gap-2"
+                    >
+                      <User className="size-4" />
+                      Độc giả
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={recipientType === 'Staff' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRecipientType('Staff')
+                        setSelectedRecipient(null)
+                      }}
+                      className="gap-2"
+                    >
+                      <UserCheck className="size-4" />
+                      Nhân viên
+                    </Button>
                   </div>
-                ) : recipients.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    Không tìm thấy đối tượng phù hợp.
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                    <Input
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      placeholder={
+                        recipientType === 'Member'
+                          ? 'Tìm theo tên, mã thẻ độc giả, email...'
+                          : 'Tìm theo tên nhân viên, mã nhân viên, email...'
+                      }
+                      className="pl-9"
+                    />
                   </div>
-                ) : (
-                  recipients.map((r) => {
-                    const isSelected = deliveryScope === 'multiple'
-                      ? selectedRecipients.some((item) => item.id === r.id)
-                      : selectedRecipient?.id === r.id
-                    return (
-                      <button
-                        type="button"
-                        key={r.id}
-                        onClick={() => handleSelectRecipient(r)}
-                        disabled={loading}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-2.5 text-left text-sm transition-colors ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 shadow-xs'
-                            : 'border-transparent hover:bg-accent/60'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+
+                  <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-md border bg-muted/20 p-2">
+                    {searching ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        Đang tìm kiếm đối tượng...
+                      </div>
+                    ) : recipients.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        Không tìm thấy đối tượng phù hợp.
+                      </div>
+                    ) : (
+                      recipients.map((r) => {
+                        const isSelected =
+                          deliveryScope === 'multiple'
+                            ? selectedRecipients.some((item) => item.id === r.id)
+                            : selectedRecipient?.id === r.id
+                        return (
+                          <button
+                            type="button"
+                            key={r.id}
+                            onClick={() => handleSelectRecipient(r)}
+                            disabled={loading}
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-2.5 text-left text-sm transition-colors ${
                               isSelected
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
+                                ? 'border-primary bg-primary/10 shadow-xs'
+                                : 'border-transparent hover:bg-accent/60'
                             }`}
                           >
-                            {r.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{r.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Mã: <span className="font-mono font-medium">{r.code}</span>
-                              {r.email ? ` • ${r.email}` : ''}
-                              {r.phoneNumber ? ` • ${r.phoneNumber}` : ''}
-                            </p>
-                          </div>
-                        </div>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                                  isSelected
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {r.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">{r.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  Mã: <span className="font-mono font-medium">{r.code}</span>
+                                  {r.email ? ` • ${r.email}` : ''}
+                                  {r.phoneNumber ? ` • ${r.phoneNumber}` : ''}
+                                </p>
+                              </div>
+                            </div>
 
-                        {isSelected && (
-                          <CheckCircle2 className="size-4 shrink-0 text-primary ml-2" />
-                        )}
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-
-              {selectedRecipient && (
-                <div className="rounded-md border bg-muted/30 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <Label htmlFor="customDestination" className="font-medium">
-                      Địa chỉ nhận ({currentTemplate?.channel === 'Email' ? 'Thư điện tử' : 'Tài khoản nội bộ'}):
-                    </Label>
-                    <span className="text-xs text-muted-foreground">Tự động điền</span>
+                            {isSelected && (
+                              <CheckCircle2 className="size-4 shrink-0 text-primary ml-2" />
+                            )}
+                          </button>
+                        )
+                      })
+                    )}
                   </div>
-                  <Input
-                    id="customDestination"
-                    value={customDestination}
-                    onChange={(e) => setCustomDestination(e.target.value)}
-                    placeholder="Nhập địa chỉ đích..."
-                    className="font-mono text-sm"
-                  />
+
+                  {selectedRecipient && (
+                    <div className="rounded-md border bg-muted/30 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <Label htmlFor="customDestination" className="font-medium">
+                          Địa chỉ nhận (
+                          {currentTemplate?.channel === 'Email'
+                            ? 'Thư điện tử'
+                            : 'Tài khoản nội bộ'}
+                          ):
+                        </Label>
+                        <span className="text-xs text-muted-foreground">Tự động điền</span>
+                      </div>
+                      <Input
+                        id="customDestination"
+                        value={customDestination}
+                        onChange={(e) => setCustomDestination(e.target.value)}
+                        placeholder="Nhập địa chỉ đích..."
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                  )}
+                  {deliveryScope === 'multiple' && selectedRecipients.length > 0 && (
+                    <p className="text-sm font-medium text-primary">
+                      Đã chọn {selectedRecipients.length} nhân viên.
+                    </p>
+                  )}
                 </div>
-              )}
-              {deliveryScope === 'multiple' && selectedRecipients.length > 0 && (
-                <p className="text-sm font-medium text-primary">Đã chọn {selectedRecipients.length} nhân viên.</p>
-              )}
-              </div> : (
+              ) : (
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                  Thông báo sẽ được tạo riêng cho mọi tài khoản nhân viên đang hoạt động trong phạm vi bạn được phép quản lý.
+                  Thông báo sẽ được tạo riêng cho mọi tài khoản nhân viên đang hoạt động trong phạm
+                  vi bạn được phép quản lý.
                 </div>
               )}
             </CardContent>
@@ -556,8 +590,12 @@ export const SendNotificationTab: React.FC<Props> = ({
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold">3. Điền giá trị thông tin</CardTitle>
-                  <CardDescription>Cung cấp dữ liệu thực tế để cá nhân hóa nội dung</CardDescription>
+                  <CardTitle className="text-base font-semibold">
+                    3. Điền giá trị thông tin
+                  </CardTitle>
+                  <CardDescription>
+                    Cung cấp dữ liệu thực tế để cá nhân hóa nội dung
+                  </CardDescription>
                 </div>
                 <Button
                   type="button"
@@ -583,7 +621,12 @@ export const SendNotificationTab: React.FC<Props> = ({
                     const meta = getVariableMeta(v)
                     return (
                       <div key={v} className="space-y-1.5">
-                        <Label htmlFor={`notification-variable-${v}`} className="text-sm font-medium">{meta.label}</Label>
+                        <Label
+                          htmlFor={`notification-variable-${v}`}
+                          className="text-sm font-medium"
+                        >
+                          {meta.label}
+                        </Label>
                         <Input
                           id={`notification-variable-${v}`}
                           name={v}
@@ -626,15 +669,25 @@ export const SendNotificationTab: React.FC<Props> = ({
                       <p className="text-sm font-semibold">{preview.renderedSubject}</p>
                     </div>
                   )}
-                  <p className="text-sm text-muted-foreground">Bản xem trước đã được tạo theo đúng kênh gửi.</p>
-                  <Button type="button" variant="outline" className="w-full gap-2" onClick={() => setPreviewOpen(true)}>
+                  <p className="text-sm text-muted-foreground">
+                    Bản xem trước đã được tạo theo đúng kênh gửi.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => setPreviewOpen(true)}
+                  >
                     <Eye className="size-4" /> Mở bản xem trước lớn
                   </Button>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground space-y-2">
                   <Eye className="mx-auto size-8 opacity-40" />
-                  <p>Bấm nút <strong>&quot;Xem trước&quot;</strong> sau khi điền thông tin để xem kết quả render của thông báo.</p>
+                  <p>
+                    Bấm nút <strong>&quot;Xem trước&quot;</strong> sau khi điền thông tin để xem kết
+                    quả render của thông báo.
+                  </p>
                 </div>
               )}
 
@@ -650,10 +703,14 @@ export const SendNotificationTab: React.FC<Props> = ({
                           : `${selectedRecipient!.name} (${selectedRecipient!.code})`}
                     </span>
                   </div>
-                  {deliveryScope === 'single' && <div>
-                    <strong className="text-foreground">Gửi tới:</strong>{' '}
-                    <span className="font-mono text-primary font-medium">{customDestination || 'Mặc định'}</span>
-                  </div>}
+                  {deliveryScope === 'single' && (
+                    <div>
+                      <strong className="text-foreground">Gửi tới:</strong>{' '}
+                      <span className="font-mono text-primary font-medium">
+                        {customDestination || 'Mặc định'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -662,7 +719,11 @@ export const SendNotificationTab: React.FC<Props> = ({
                 className="w-full gap-2"
                 size="lg"
                 onClick={handleSend}
-                disabled={sending || (deliveryScope === 'single' && !selectedRecipient) || (deliveryScope === 'multiple' && selectedRecipients.length === 0)}
+                disabled={
+                  sending ||
+                  (deliveryScope === 'single' && !selectedRecipient) ||
+                  (deliveryScope === 'multiple' && selectedRecipients.length === 0)
+                }
               >
                 <Send className="size-4" />
                 {sending ? 'Đang gửi thông báo...' : 'Xác nhận gửi thông báo'}
@@ -677,20 +738,46 @@ export const SendNotificationTab: React.FC<Props> = ({
       <Dialog open={previewOpen && Boolean(preview)} onOpenChange={setPreviewOpen}>
         <DialogContent className="flex h-[90dvh] max-h-[90dvh] flex-col overflow-hidden sm:max-w-6xl">
           <DialogHeader>
-            <DialogTitle>Xem trước {currentTemplate?.channel === 'Email' ? 'email' : 'thông báo nội bộ'}</DialogTitle>
-            <DialogDescription>Nội dung sau khi binding biến, hiển thị gần giống kết quả người nhận sẽ thấy.</DialogDescription>
+            <DialogTitle>
+              Xem trước {currentTemplate?.channel === 'Email' ? 'email' : 'thông báo nội bộ'}
+            </DialogTitle>
+            <DialogDescription>
+              Nội dung sau khi binding biến, hiển thị gần giống kết quả người nhận sẽ thấy.
+            </DialogDescription>
           </DialogHeader>
-          {preview ? <div className="flex min-h-0 flex-1 flex-col gap-3">
-            <div className="grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm">
-              <span><strong>Người nhận:</strong> {deliveryScope === 'all' ? 'Toàn bộ nhân viên' : deliveryScope === 'multiple' ? `${selectedRecipients.length} nhân viên` : selectedRecipient?.name ?? 'Chưa chọn'}</span>
-              <span><strong>Địa chỉ:</strong> {customDestination || 'Mặc định'}</span>
-              <span><strong>Tiêu đề:</strong> {preview.renderedSubject || '(Không có tiêu đề)'}</span>
+          {preview ? (
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
+              <div className="grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm">
+                <span>
+                  <strong>Người nhận:</strong>{' '}
+                  {deliveryScope === 'all'
+                    ? 'Toàn bộ nhân viên'
+                    : deliveryScope === 'multiple'
+                      ? `${selectedRecipients.length} nhân viên`
+                      : (selectedRecipient?.name ?? 'Chưa chọn')}
+                </span>
+                <span>
+                  <strong>Địa chỉ:</strong> {customDestination || 'Mặc định'}
+                </span>
+                <span>
+                  <strong>Tiêu đề:</strong> {preview.renderedSubject || '(Không có tiêu đề)'}
+                </span>
+              </div>
+              {currentTemplate?.channel === 'Email' ? (
+                <iframe
+                  title="Nội dung email xem trước"
+                  sandbox=""
+                  className="min-h-0 flex-1 rounded-lg border bg-white"
+                  srcDoc={`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>html,body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}main{box-sizing:border-box;max-width:760px;min-height:100%;margin:0 auto;background:#fff;padding:32px;line-height:1.6;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#1d4ed8}</style></head><body><main>${preview.renderedBody}</main></body></html>`}
+                />
+              ) : (
+                <div className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-card p-6 text-sm leading-7">
+                  {preview.renderedBody}
+                </div>
+              )}
             </div>
-            {currentTemplate?.channel === 'Email' ? <iframe title="Nội dung email xem trước" sandbox=""
-              className="min-h-0 flex-1 rounded-lg border bg-white"
-              srcDoc={`<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>html,body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}main{box-sizing:border-box;max-width:760px;min-height:100%;margin:0 auto;background:#fff;padding:32px;line-height:1.6;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#1d4ed8}</style></head><body><main>${preview.renderedBody}</main></body></html>`} /> :
-              <div className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-card p-6 text-sm leading-7">{preview.renderedBody}</div>}
-          </div> : null}
+          ) : null}
+          <DialogFooter showCloseButton />
         </DialogContent>
       </Dialog>
     </div>

@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { SettingsProvider } from '@/settings/SettingsProvider'
 import { AppErrorBoundary } from './AppErrorBoundary'
-import { ToastProvider } from '@/common/components'
+import { GlobalLoadingProvider, ToastProvider } from '@/common/components'
 import { NotificationRealtimeProvider } from '@/pages/notifications/NotificationRealtimeProvider'
 export function AppProviders({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -19,15 +19,17 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={client}>
-        <BrowserRouter>
-          <SettingsProvider>
-            <ToastProvider position="top-right">
-              <AuthProvider>
-                <NotificationRealtimeProvider>{children}</NotificationRealtimeProvider>
-              </AuthProvider>
-            </ToastProvider>
-          </SettingsProvider>
-        </BrowserRouter>
+        <GlobalLoadingProvider>
+          <BrowserRouter>
+            <SettingsProvider>
+              <ToastProvider position="top-right">
+                <AuthProvider>
+                  <NotificationRealtimeProvider>{children}</NotificationRealtimeProvider>
+                </AuthProvider>
+              </ToastProvider>
+            </SettingsProvider>
+          </BrowserRouter>
+        </GlobalLoadingProvider>
       </QueryClientProvider>
     </AppErrorBoundary>
   )

@@ -493,7 +493,8 @@ function MemberForm({
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <Field id="member-code" label="Mã độc giả">
             <Input
-              id="member-code" name="memberCode"
+              id="member-code"
+              name="memberCode"
               required
               value={data.memberCode}
               onChange={(e) => set('memberCode', e.target.value)}
@@ -501,7 +502,8 @@ function MemberForm({
           </Field>
           <Field id="member-full-name" label="Họ tên">
             <Input
-              id="member-full-name" name="fullName"
+              id="member-full-name"
+              name="fullName"
               required
               value={data.fullName}
               onChange={(e) => set('fullName', e.target.value)}
@@ -509,7 +511,8 @@ function MemberForm({
           </Field>
           <Field id="member-email" label="Email">
             <Input
-              id="member-email" name="email"
+              id="member-email"
+              name="email"
               required
               type="email"
               value={data.email}
@@ -518,14 +521,16 @@ function MemberForm({
           </Field>
           <Field id="member-phone" label="Số điện thoại">
             <Input
-              id="member-phone" name="phoneNumber"
+              id="member-phone"
+              name="phoneNumber"
               value={data.phoneNumber ?? ''}
               onChange={(e) => set('phoneNumber', e.target.value || null)}
             />
           </Field>
           <Field id="member-date-of-birth" label="Ngày sinh">
             <Input
-              id="member-date-of-birth" name="dateOfBirth"
+              id="member-date-of-birth"
+              name="dateOfBirth"
               type="date"
               value={data.dateOfBirth ?? ''}
               onChange={(e) => set('dateOfBirth', e.target.value || null)}
@@ -533,7 +538,8 @@ function MemberForm({
           </Field>
           <Field id="member-group" label="Nhóm độc giả">
             <Input
-              id="member-group" name="memberGroup"
+              id="member-group"
+              name="memberGroup"
               required
               value={data.memberGroup}
               onChange={(e) => set('memberGroup', e.target.value)}
@@ -541,7 +547,8 @@ function MemberForm({
           </Field>
           <Field id="member-borrowing-limit" label="Giới hạn số sách">
             <Input
-              id="member-borrowing-limit" name="borrowingLimit"
+              id="member-borrowing-limit"
+              name="borrowingLimit"
               type="number"
               min={1}
               max={100}
@@ -551,7 +558,8 @@ function MemberForm({
           </Field>
           <Field id="member-loan-period" label="Số ngày mượn">
             <Input
-              id="member-loan-period" name="loanPeriodDays"
+              id="member-loan-period"
+              name="loanPeriodDays"
               type="number"
               min={1}
               max={365}
@@ -575,7 +583,8 @@ function MemberForm({
           </Field>
           <Field id="member-address" label="Địa chỉ">
             <Input
-              id="member-address" name="address"
+              id="member-address"
+              name="address"
               value={data.address ?? ''}
               onChange={(e) => set('address', e.target.value || null)}
             />
@@ -780,6 +789,7 @@ function MemberDetails({
             />
           </PermissionBoundary>
         ) : null}
+        <DialogFooter showCloseButton />
       </DialogContent>
     </Dialog>
   )
@@ -937,14 +947,15 @@ function ActionDialog({
     try {
       let result: Member
       if (action === 'card') {
-        result = member.card && member.card.status !== 'Revoked'
-          ? await renewCard(member.id, a, member.concurrencyToken)
-          : await issueCard(member.id, {
-              cardNumber: a,
-              issuedOn: b || today(),
-              expiresOn: c,
-              concurrencyToken: member.concurrencyToken,
-            })
+        result =
+          member.card && member.card.status !== 'Revoked'
+            ? await renewCard(member.id, a, member.concurrencyToken)
+            : await issueCard(member.id, {
+                cardNumber: a,
+                issuedOn: b || today(),
+                expiresOn: c,
+                concurrencyToken: member.concurrencyToken,
+              })
       } else if (action === 'restriction') {
         result = await addRestriction(member.id, {
           type: a as RestrictionType,
@@ -991,51 +1002,52 @@ function ActionDialog({
             member.card && member.card.status !== 'Revoked' ? (
               <>
                 <Field id="card-new-expiry" label="Ngày hết hạn mới">
-                      <Input
-                        required
-                        type="date"
-                        min={member.card.expiresOn}
-                        value={a}
-                        onChange={(e) => setA(e.target.value)}
-                      />
-                    </Field>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={async () =>
-                          changed(
-                            await changeCardStatus(
-                              member.id,
-                              member.card!.status === 'Suspended'
-                                ? 'Active'
-                                : ('Suspended' as CardStatus),
-                              member.concurrencyToken,
-                            ),
-                          )
-                        }
-                      >
-                        {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={async () => {
-                          if (window.confirm('Thu hồi thẻ này? Thao tác không thể hoàn tác.'))
-                            changed(
-                              await changeCardStatus(member.id, 'Revoked', member.concurrencyToken),
-                            )
-                        }}
-                      >
-                        Thu hồi thẻ
-                      </Button>
+                  <Input
+                    required
+                    type="date"
+                    min={member.card.expiresOn}
+                    value={a}
+                    onChange={(e) => setA(e.target.value)}
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () =>
+                      changed(
+                        await changeCardStatus(
+                          member.id,
+                          member.card!.status === 'Suspended'
+                            ? 'Active'
+                            : ('Suspended' as CardStatus),
+                          member.concurrencyToken,
+                        ),
+                      )
+                    }
+                  >
+                    {member.card.status === 'Suspended' ? 'Kích hoạt lại' : 'Tạm khóa thẻ'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={async () => {
+                      if (window.confirm('Thu hồi thẻ này? Thao tác không thể hoàn tác.'))
+                        changed(
+                          await changeCardStatus(member.id, 'Revoked', member.concurrencyToken),
+                        )
+                    }}
+                  >
+                    Thu hồi thẻ
+                  </Button>
                 </div>
-                </>
+              </>
             ) : (
               <>
                 {member.card?.status === 'Revoked' ? (
                   <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-muted-foreground">
-                    Thẻ {member.card.cardNumber} đã bị thu hồi vĩnh viễn. Thẻ mới sẽ được cấp và lịch sử thẻ cũ vẫn được giữ lại.
+                    Thẻ {member.card.cardNumber} đã bị thu hồi vĩnh viễn. Thẻ mới sẽ được cấp và
+                    lịch sử thẻ cũ vẫn được giữ lại.
                   </p>
                 ) : null}
                 <Field id="card-number" label="Số thẻ">
@@ -1124,9 +1136,7 @@ function ActionDialog({
             <Button type="button" variant="outline" onClick={close}>
               Hủy
             </Button>
-            <Button type="submit">
-              Xác nhận
-            </Button>
+            <Button type="submit">Xác nhận</Button>
           </DialogFooter>
         </form>
       </DialogContent>
