@@ -11,7 +11,8 @@ public sealed class ReservationService(
     IBookRepository books,
     IMemberRepository members,
     ICirculationPolicyResolver policyResolver,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IEmployeeRepository employees)
 {
     public async Task<ReservationPageModel> GetAsync(ReservationListQuery query, CancellationToken cancellationToken)
     {
@@ -286,6 +287,18 @@ public sealed class ReservationService(
         if (copy is null)
             return ReservationResult.Fail(ReservationFailure.Conflict, "Không còn bản sao khả dụng nào trong kho để hoàn tất nhận sách.");
 
+        Guid? processedByEmployeeId = null;
+        if (command.ActorUserId != Guid.Empty)
+        {
+            var processedByEmployee = await employees.GetByUserIdAsync(command.ActorUserId, cancellationToken);
+            if (processedByEmployee is null)
+                return ReservationResult.Fail(ReservationFailure.Conflict, "Tài khoản thực hiện chưa được liên kết với hồ sơ nhân viên.");
+            if (processedByEmployee.Status != EmploymentStatus.Active)
+                return ReservationResult.Fail(ReservationFailure.Conflict, "Hồ sơ nhân viên thực hiện hiện không hoạt động.");
+
+            processedByEmployeeId = processedByEmployee.Id;
+        }
+
         try
         {
             var beforeJson = JsonSerializer.Serialize(new
@@ -311,7 +324,7 @@ public sealed class ReservationService(
                 reservation.ReserverEmail,
                 now,
                 loanDays,
-                actorId,
+                processedByEmployeeId,
                 policy.PolicyId,
                 policy.Version,
                 JsonSerializer.Serialize(policy));

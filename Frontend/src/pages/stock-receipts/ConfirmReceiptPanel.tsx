@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Barcode, CheckCircle2 } from 'lucide-react'
+import { Barcode, CheckCircle2, Download, Upload } from 'lucide-react'
 import { Button } from '@/common/components/ui/button'
 import { Input } from '@/common/components/ui/input'
-import { ConfirmDialog, useToast } from '@/common/components'
+import { ConfirmDialog, ImportPreviewDialog, useToast } from '@/common/components'
 import { useAuth } from '@/auth/AuthProvider'
 import { canAll } from '@/shared/auth/permissions'
 import { getLocations, type LocationNode } from '@/pages/branches/branch-api'
 import { confirmReceipt, getReceiptConfirmation, type StockReceipt, type ReceiptConfirmation } from './receipt-api'
+import {
+  downloadReceiptConfirmationTemplate,
+  normalizeImportValue,
+  parseReceiptConfirmationCsv,
+} from './receipt-confirmation-import'
 
 type DraftCopy = { barcode: string; shelfId: string; condition: 'New' | 'Good' | 'Worn' | 'Damaged' }
 const conditionNames = { New: 'Mới', Good: 'Tốt', Worn: 'Cũ', Damaged: 'Hỏng' }
@@ -33,6 +38,11 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importErrors, setImportErrors] = useState<Array<{ rowNumber: number; field: string; message: string }>>([])
+  const [importPreview, setImportPreview] = useState<Record<string, DraftCopy[]> | null>(null)
+  const [importPending, setImportPending] = useState<'preview' | null>(null)
   const mayConfirm = canAll(user?.permissions ?? [], ['stock-receipts.confirm'])
   useEffect(() => { const controller = new AbortController()
     void getReceiptConfirmation(receipt.id, controller.signal).then(setConfirmation).catch(() => {})
@@ -69,6 +79,79 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
     let counter = 0
     setCopies(current => Object.fromEntries(Object.entries(current).map(([key, rows]) =>
       [key, rows.map(row => ({ ...row, barcode: `${prefix}-${String(++counter).padStart(4, '0')}` }))]))) }
+  const previewImport = async () => {
+    if (!importFile) return
+    setImportPending('preview'); setImportErrors([]); setImportPreview(null)
+    try {
+      if (importFile.size > 2 * 1024 * 1024) throw new Error('Tệp CSV không được vượt quá 2 MB.')
+      const rows = parseReceiptConfirmationCsv(await importFile.text())
+      const expectedCount = receipt.items.reduce((sum, item) => sum + item.receivedQuantity, 0)
+      if (rows.length !== expectedCount)
+        throw new Error(`Phiếu cần đúng ${expectedCount} bản sao nhưng tệp có ${rows.length} dòng.`)
+
+      const slots = new Map<string, Array<{ itemId: string; index: number; condition: DraftCopy['condition'] }>>()
+      receipt.items.forEach(item => {
+        const isbn = normalizeImportValue(item.isbn)
+        const isbnSlots = slots.get(isbn) ?? []
+        for (let index = 0; index < item.receivedQuantity; index++)
+          isbnSlots.push({ itemId: item.id, index, condition: index < item.damagedQuantity ? 'Damaged' : 'Good' })
+        slots.set(isbn, isbnSlots)
+      })
+
+      const candidate = seed(receipt)
+      const errors: Array<{ rowNumber: number; field: string; message: string }> = []
+      const barcodes = new Set<string>()
+      rows.forEach(row => {
+        const isbnSlots = slots.get(normalizeImportValue(row.isbn))
+        const slot = isbnSlots?.shift()
+        if (!slot) {
+          errors.push({ rowNumber: row.rowNumber, field: 'ISBN', message: 'ISBN không thuộc phiếu hoặc vượt số lượng thực nhận.' })
+          return
+        }
+
+        const matchingShelves = shelves.filter(shelf => normalizeImportValue(shelf.code) === normalizeImportValue(row.shelfCode))
+        if (matchingShelves.length === 0) {
+          errors.push({ rowNumber: row.rowNumber, field: 'ShelfCode', message: 'Không tìm thấy kệ hoạt động trong chi nhánh của phiếu.' })
+          return
+        }
+        if (matchingShelves.length > 1) {
+          errors.push({ rowNumber: row.rowNumber, field: 'ShelfCode', message: 'Mã kệ không duy nhất trong chi nhánh.' })
+          return
+        }
+
+        const normalizedBarcode = row.barcode.trim().toUpperCase()
+        if (barcodes.has(normalizedBarcode)) {
+          errors.push({ rowNumber: row.rowNumber, field: 'Barcode', message: 'Mã vạch bị trùng trong tệp.' })
+          return
+        }
+        barcodes.add(normalizedBarcode)
+        candidate[slot.itemId][slot.index] = {
+          barcode: normalizedBarcode,
+          shelfId: matchingShelves[0].id,
+          condition: row.condition ?? slot.condition,
+        }
+      })
+
+      receipt.items.forEach(item => {
+        const remaining = slots.get(normalizeImportValue(item.isbn))?.length ?? 0
+        if (remaining > 0)
+          errors.push({ rowNumber: 1, field: 'ISBN', message: `${item.isbn} còn thiếu ${remaining} bản sao.` })
+        const damaged = candidate[item.id].filter(copy => copy.condition === 'Damaged').length
+        if (damaged !== item.damagedQuantity)
+          errors.push({ rowNumber: 1, field: 'Condition', message: `${item.isbn} phải có đúng ${item.damagedQuantity} bản sao hỏng.` })
+      })
+
+      setImportErrors(errors)
+      if (errors.length === 0) setImportPreview(candidate)
+    } catch (reason) {
+      setImportErrors([{ rowNumber: 1, field: 'CSV', message: reason instanceof Error ? reason.message : 'Không thể đọc tệp CSV.' }])
+    } finally { setImportPending(null) }
+  }
+  const applyImport = () => {
+    if (!importPreview) return
+    setCopies(importPreview); setImportOpen(false); setImportFile(null); setImportPreview(null); setImportErrors([])
+    showToast('Đã áp dụng dữ liệu CSV vào phiếu. Kiểm tra lại trước khi xác nhận nhập kho.')
+  }
   const submit = async () => {
     if (!valid) return
     setBusy(true); setError('')
@@ -95,7 +178,9 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
   return <section className="grid gap-4 rounded-xl border bg-card p-4" aria-label="Xác nhận nhập kho">
     <h2 className="text-lg font-semibold">Gán mã vạch và vị trí</h2>
     <div className="flex flex-wrap gap-2"><select aria-label="Kệ áp dụng hàng loạt" className="h-10 rounded-md border bg-background px-3" value={bulkShelf} onChange={e => setBulkShelf(e.target.value)}><option value="">Chọn kệ cho tất cả</option>{shelves.map(shelf => <option key={shelf.id} value={shelf.id}>{shelf.code} · {shelf.name}</option>)}</select><Button variant="outline" onClick={assignBulkShelf} disabled={!bulkShelf}>Gán kệ</Button>
-      <Input className="max-w-xs" aria-label="Tiền tố mã vạch" placeholder="Tiền tố mã vạch" value={barcodePrefix} onChange={e => setBarcodePrefix(e.target.value)} /><Button variant="outline" onClick={assignBarcodes} disabled={!barcodePrefix.trim()}><Barcode /> Tạo mã hàng loạt</Button></div>
+      <Input className="max-w-xs" aria-label="Tiền tố mã vạch" placeholder="Tiền tố mã vạch" value={barcodePrefix} onChange={e => setBarcodePrefix(e.target.value)} /><Button variant="outline" onClick={assignBarcodes} disabled={!barcodePrefix.trim()}><Barcode /> Tạo mã hàng loạt</Button>
+      <Button variant="outline" onClick={() => downloadReceiptConfirmationTemplate(receipt)}><Download /> Tải mẫu CSV</Button>
+      <Button variant="outline" onClick={() => setImportOpen(true)}><Upload /> Nhập CSV</Button></div>
     {receipt.items.map(item => <div className="grid gap-2 rounded-md border p-3" key={item.id}>
       <h3 className="font-medium">{item.bookTitle} · {item.isbn} · {item.receivedQuantity} bản sao</h3>
       {(copies[item.id] ?? []).map((copy, index) => <div className="grid gap-2 sm:grid-cols-3" key={index}>
@@ -111,5 +196,16 @@ export function ConfirmReceiptPanel({ receipt, onConfirmed }: {
       description={`Xác nhận phiếu và tạo ${allCopies.length} bản sao? Thao tác này không thể sửa lại.`}
       confirmLabel="Xác nhận nhập kho" isPending={busy} error={error}
       onOpenChange={setConfirmOpen} onConfirm={() => void submit()} />
+    <ImportPreviewDialog open={importOpen} title="Nhập mã vạch và vị trí từ CSV"
+      description="Bắt buộc: ISBN, Barcode, ShelfCode. Condition là tùy chọn; hỗ trợ New, Good, Worn, Damaged. Dữ liệu chỉ được điền vào biểu mẫu và chưa xác nhận nhập kho."
+      file={importFile} errors={importErrors} canConfirm={Boolean(importPreview) && importErrors.length === 0}
+      pendingAction={importPending} onOpenChange={setImportOpen}
+      onFileChange={file => { setImportFile(file); setImportPreview(null); setImportErrors([]) }}
+      onPreview={() => void previewImport()} onConfirm={applyImport}>
+      <div className="grid gap-2">
+        <Button size="sm" variant="outline" className="w-fit" onClick={() => downloadReceiptConfirmationTemplate(receipt)}><Download /> Tải mẫu CSV theo phiếu</Button>
+        {importPreview ? <p className="text-sm text-success">Đã kiểm tra {allCopies.length} dòng hợp lệ. Chọn Xác nhận nhập để áp dụng vào biểu mẫu.</p> : null}
+      </div>
+    </ImportPreviewDialog>
   </section>
 }

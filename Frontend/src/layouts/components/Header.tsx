@@ -1,7 +1,7 @@
 import { Menu } from 'lucide-react'
 import type { User } from '@/auth/auth-api'
 import { Button } from '@/common/components/ui/button'
-import { GlobalSearch } from '@/search/GlobalSearch'
+// import { GlobalSearch } from '@/search/GlobalSearch'
 import { UserMenu } from './UserMenu'
 import { NotificationBellDropdown } from './NotificationBellDropdown'
 import { ThemeToggle } from '@/common/components/ThemeToggle'
@@ -47,9 +47,9 @@ export function Header({
         <Menu />
       </Button>
 
-      <div className="header-global-search">
+      {/* <div className="header-global-search">
         <GlobalSearch />
-      </div>
+      </div> */}
 
       <div className="top-actions">
         <ThemeToggle className="header-theme-toggle" />

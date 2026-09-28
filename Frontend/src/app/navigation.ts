@@ -110,12 +110,12 @@ export const navigationGroups: readonly NavigationGroup[] = [
         icon: BarChart3,
         requiredPermissions: [],
       },
-      {
-        path: '/notifications',
-        label: 'Thông báo',
-        icon: Bell,
-        requiredPermissions: [],
-      },
+      // {
+      //   path: '/notifications',
+      //   label: 'Thông báo',
+      //   icon: Bell,
+      //   requiredPermissions: [],
+      // },
       { path: '/email-history', label: 'Lịch sử email', icon: Mail, requiredPermissions: ['notifications.read'] },
     ],
   },
