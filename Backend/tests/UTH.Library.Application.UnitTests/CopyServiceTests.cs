@@ -56,6 +56,10 @@ public sealed class CopyServiceTests
         public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<bool> ActiveBookExistsAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(true);
         public Task<bool> ActiveShelfExistsAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(true);
+        public Task<IReadOnlyList<Guid>> GetActiveBookIdsByIsbnAsync(string isbn, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Guid>>([]);
+        public Task<IReadOnlyList<Guid>> GetActiveShelfIdsByCodeAsync(string code, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Guid>>([]);
         public Task<bool> ReceiptItemMatchesBookAsync(Guid id, Guid bookId, CancellationToken cancellationToken) =>
             Task.FromResult(ReceiptItemIsConfirmed);
         public Task<bool> HasActiveAuditAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);

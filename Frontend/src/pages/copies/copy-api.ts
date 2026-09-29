@@ -133,6 +133,23 @@ export async function getCopies(filters: CopyFilters, signal?: AbortSignal) {
   return readResponse(await authenticatedFetch(`${URL}?${query}`, { signal }), pageSchema)
 }
 
+export async function getAllCopiesByBook(bookId: string, signal?: AbortSignal) {
+  const firstPage = await getCopies({ bookId, pageNumber: 1, pageSize: 100 }, signal)
+  if (firstPage.totalPages <= 1) return firstPage.items
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      getCopies({ bookId, pageNumber: index + 2, pageSize: 100 }, signal),
+    ),
+  )
+  return [firstPage, ...remainingPages].flatMap((page) => page.items)
+}
+
+export function copyLocationLabel(copy: BookCopy, shelves: readonly ActiveShelf[]) {
+  const shelf = shelves.find((item) => item.id === copy.shelfId)
+  if (!shelf) return copy.shelfCode ? `Kệ ${copy.shelfCode}` : 'Chưa xếp vị trí'
+  return `${shelf.branchName} · ${shelf.areaName} · Kệ ${shelf.code}`
+}
+
 export async function getCopyByBarcode(barcode: string, signal?: AbortSignal) {
   return readResponse(
     await authenticatedFetch(`${URL}/barcode/${encodeURIComponent(barcode)}`, { signal }),

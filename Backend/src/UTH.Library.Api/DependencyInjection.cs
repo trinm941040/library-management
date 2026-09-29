@@ -82,7 +82,13 @@ public static class DependencyInjection
                     Extensions = { ["code"] = "authentication.rate_limited", ["correlationId"] = context.HttpContext.TraceIdentifier }
                 }, cancellationToken);
             };
-            foreach (var (name, limit) in new[] { ("auth-login", 10), ("auth-refresh", 60) })
+            foreach (var (name, limit) in new[]
+                     {
+                         ("auth-login", 10),
+                         ("auth-refresh", 60),
+                         ("kiosk-search", 120),
+                         ("kiosk-semantic", 20)
+                     })
                 options.AddPolicy(name, context => RateLimitPartition.GetFixedWindowLimiter(
                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

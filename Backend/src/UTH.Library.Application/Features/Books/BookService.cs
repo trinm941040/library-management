@@ -3,14 +3,18 @@ using UTH.Library.Domain.Entities;
 using UTH.Library.Application.Abstractions;
 using System.Text.Json;
 using UTH.Library.Application.Common;
+using UTH.Library.Application.Abstractions.AI;
 
 namespace UTH.Library.Application.Features.Books;
 
-public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWork, IRequestContext requestContext, BookCommandValidator validator, TimeProvider timeProvider)
+public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWork, IRequestContext requestContext,
+    BookCommandValidator validator, TimeProvider timeProvider, IEmbeddingService embeddingService,
+    IBookSemanticSearchRepository semanticRepository)
     : IQueryHandler<BookListQuery, BookPageModel>, ICommandHandler<CreateBookCommand, BookResult>
 {
     public BookService(IBookRepository repository, TimeProvider timeProvider)
-        : this(repository, new RepositoryUnitOfWork(repository), EmptyRequestContext.Instance, new BookCommandValidator(), timeProvider) { }
+        : this(repository, new RepositoryUnitOfWork(repository), EmptyRequestContext.Instance,
+            new BookCommandValidator(), timeProvider, NullEmbeddingService.Instance, NullSemanticRepository.Instance) { }
 
     public async Task<BookPageModel> GetAsync(BookListQuery query, CancellationToken cancellationToken)
     {
@@ -82,9 +86,14 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
             if (await repository.IsbnExistsAsync(book.Isbn, null, cancellationToken))
                 return BookResult.Fail(BookFailure.Conflict, "Đã tồn tại biểu ghi sách có ISBN này.");
 
+            var searchableText = BookSearchableTextBuilder.Build(book);
+            var embedding = await GenerateEmbeddingAsync(searchableText, cancellationToken);
+
             return await unitOfWork.ExecuteAsync(async ct =>
             {
                 await repository.AddAsync(book, ct);
+                await semanticRepository.UpsertEmbeddingAsync(book.Id, embedding,
+                    BookSearchableTextBuilder.Hash(searchableText), timeProvider.GetUtcNow().UtcDateTime, ct);
                 if (catalogRepository is not null && HasNormalizedReferences(command))
                     await catalogRepository.ReplaceRelationshipsAsync(
                         book.Id,
@@ -125,6 +134,12 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 return BookResult.Fail(BookFailure.Conflict, "Đã tồn tại biểu ghi sách có ISBN này.");
 
             var before = JsonSerializer.Serialize(book);
+            var previousSearchableText = BookSearchableTextBuilder.Build(book);
+            var nextSearchableText = BookSearchableTextBuilder.Build(command.Title, command.Author,
+                command.Category, command.Description);
+            var embedding = BookSearchableTextBuilder.HasChanged(previousSearchableText, nextSearchableText)
+                ? await GenerateEmbeddingAsync(nextSearchableText, cancellationToken)
+                : (ReadOnlyMemory<float>?)null;
             book.Update(
                 command.Title,
                 command.Author,
@@ -135,6 +150,9 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
                 command.PublicationYear, command.Language, command.PageCount);
             return await unitOfWork.ExecuteAsync(async ct =>
             {
+                if (embedding is not null)
+                    await semanticRepository.UpsertEmbeddingAsync(book.Id, embedding.Value,
+                        BookSearchableTextBuilder.Hash(nextSearchableText), timeProvider.GetUtcNow().UtcDateTime, ct);
                 if (catalogRepository is not null && HasNormalizedReferences(command))
                     await catalogRepository.ReplaceRelationshipsAsync(
                         book.Id,
@@ -211,6 +229,14 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
 
     private IBookCatalogRepository? catalogRepository => repository as IBookCatalogRepository;
 
+    private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken)
+    {
+        var vector = await embeddingService.GenerateEmbeddingAsync(text, cancellationToken);
+        if (vector.Length != embeddingService.Dimensions)
+            throw new InvalidOperationException($"Embedding provider trả về {vector.Length} chiều, không khớp cấu hình {embeddingService.Dimensions} chiều.");
+        return vector;
+    }
+
     private sealed class RepositoryUnitOfWork(IBookRepository repository) : IUnitOfWork
     {
         public void AddAuditLog(AuditLog auditLog) { }
@@ -225,5 +251,20 @@ public sealed class BookService(IBookRepository repository, IUnitOfWork unitOfWo
         public Guid? UserId => null;
         public string CorrelationId => string.Empty;
         public string? IpAddress => null;
+    }
+    private sealed class NullEmbeddingService : IEmbeddingService
+    {
+        public static readonly NullEmbeddingService Instance = new();
+        public int Dimensions => 1536;
+        public Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default) =>
+            Task.FromResult<ReadOnlyMemory<float>>(new float[Dimensions]);
+    }
+    private sealed class NullSemanticRepository : IBookSemanticSearchRepository
+    {
+        public static readonly NullSemanticRepository Instance = new();
+        public Task UpsertEmbeddingAsync(Guid bookId, ReadOnlyMemory<float> embedding, string sourceHash, DateTime updatedAtUtc, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<IReadOnlyList<SemanticBookSearchRow>> SearchAsync(ReadOnlyMemory<float> queryEmbedding, Guid? categoryId, bool availableOnly, int topK, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<SemanticBookSearchRow>>([]);
+        public Task<IReadOnlyList<Book>> GetBooksWithoutEmbeddingsAsync(int batchSize, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Book>>([]);
+        public Task<int> CountBooksWithoutEmbeddingsAsync(CancellationToken cancellationToken) => Task.FromResult(0);
     }
 }

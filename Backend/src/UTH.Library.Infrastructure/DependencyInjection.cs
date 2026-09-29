@@ -13,6 +13,9 @@ using UTH.Library.Infrastructure.Settings;
 using UTH.Library.Application.Features.Notifications.Adapters;
 using UTH.Library.Application.Features.Notifications;
 using UTH.Library.Infrastructure.Notifications;
+using Pgvector.EntityFrameworkCore;
+using UTH.Library.Application.Abstractions.AI;
+using UTH.Library.Infrastructure.AI;
 
 namespace UTH.Library.Infrastructure;
 
@@ -30,7 +33,7 @@ public static class DependencyInjection
         {
             var connectionString = configuration.GetConnectionString("LibraryDatabase")
                 ?? throw new InvalidOperationException("Cấu hình ConnectionStrings:LibraryDatabase là bắt buộc.");
-            options.UseNpgsql(connectionString);
+            options.UseNpgsql(connectionString, npgsql => npgsql.UseVector());
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             options.AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>());
         });
@@ -69,6 +72,19 @@ public static class DependencyInjection
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IBookRepository, BookRepository>();
+        services.AddScoped<IBookSemanticSearchRepository, BookSemanticSearchRepository>();
+        services.AddOptions<AiEmbeddingOptions>()
+            .Bind(configuration.GetSection(AiEmbeddingOptions.SectionName))
+            .Validate(AiEmbeddingOptions.IsValid,
+                "AI provider, model, base URL hoặc số chiều embedding không hợp lệ. Database yêu cầu 1536 chiều.")
+            .ValidateOnStart();
+        services.AddHttpClient<OpenAiEmbeddingService>((provider, client) =>
+        {
+            var options = provider.GetRequiredService<IOptions<AiEmbeddingOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddScoped<IEmbeddingService>(provider => provider.GetRequiredService<OpenAiEmbeddingService>());
         services.AddScoped<IBorrowingRepository, BorrowingRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IViolationRepository, ViolationRepository>();

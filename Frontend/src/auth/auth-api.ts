@@ -215,6 +215,10 @@ export async function authenticatedFetch(input: RequestInfo | URL, init?: Reques
   return response
 }
 
+export function publicFetch(input: RequestInfo | URL, init?: RequestInit) {
+  return request(input, { ...init, credentials: 'include' })
+}
+
 export function getProfile() {
   if (!profilePromise) {
     const generation = sessionGeneration

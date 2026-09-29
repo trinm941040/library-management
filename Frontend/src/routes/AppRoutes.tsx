@@ -25,6 +25,9 @@ const ChangePasswordPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('../pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
+const KioskSearchPage = lazy(() =>
+  import('../pages/kiosk/KioskSearchPage').then((module) => ({ default: module.KioskSearchPage })),
+)
 const BooksPage = lazy(() =>
   import('../pages/books/BooksPage').then((m) => ({ default: m.BooksPage })),
 )
@@ -162,6 +165,15 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route
+        path="/kiosk"
+        element={
+          <Suspense fallback={routeLoading('Đang tải tra cứu thư viện')}>
+            <KioskSearchPage />
+          </Suspense>
+        }
+      />
+      <Route path="/kios" element={<Navigate to="/kiosk" replace />} />
       <Route
         element={
           <ProtectedRoute>

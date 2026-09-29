@@ -5,6 +5,7 @@ using UTH.Library.Domain.Entities;
 using UTH.Library.Infrastructure.Identity;
 using UTH.Library.Infrastructure.Persistence.Configurations;
 using UTH.Library.Application.Common;
+using UTH.Library.Infrastructure.Persistence.Models;
 
 namespace UTH.Library.Infrastructure.Persistence;
 
@@ -57,10 +58,12 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<ConfigurationPackage> ConfigurationPackages => Set<ConfigurationPackage>();
+    internal DbSet<BookEmbeddingRecord> BookEmbeddings => Set<BookEmbeddingRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity<IdentityUserPasskey<Guid>>(entity =>
         {

@@ -35,11 +35,15 @@ import {
   type DashboardSummaryResponse,
 } from './dashboard-api'
 import { MetricCard } from './components/MetricCard'
+import { AiBookSearch } from '@/pages/books/components/AiBookSearch'
+import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
+import { useSettings } from '@/settings/SettingsProvider'
 
 type AlertTab = 'overdue' | 'expiring' | 'damaged' | 'discrepancy'
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const { aiEnabled } = useSettings()
   const navigate = useNavigate()
 
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
@@ -316,6 +320,14 @@ export function DashboardPage() {
           </div>
         </Card>
       )}
+
+      {aiEnabled ? (
+        <PermissionBoundary requiredPermissions={['books.read']}>
+          <section aria-label="Tìm kiếm sách bằng AI">
+            <AiBookSearch />
+          </section>
+        </PermissionBoundary>
+      ) : null}
 
       {/* 2. Primary KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Chỉ số KPI chính">

@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Download,
-  Layers,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Search,
-  ArchiveX,
-  Upload,
-} from 'lucide-react'
+import { Download, Layers, Pencil, Plus, RefreshCw, Search, ArchiveX, Upload } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   BulkResultSummary,
@@ -26,8 +17,18 @@ import { Button } from '@/common/components/ui/button'
 import { PermissionBoundary } from '@/shared/auth/PermissionBoundary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
 import { Input } from '@/common/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/common/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/common/components/ui/tabs'
 import { BookFormDialog, type BookFormData } from './components/BookFormDialog'
+import { AiBookSearch } from './components/AiBookSearch'
+import { AiSparklesIcon } from './components/AiSparklesIcon'
+import { useSettings } from '@/settings/SettingsProvider'
 import { EntityActivityLink } from '@/pages/activity-logs/EntityActivityLink'
 import {
   bulkDeleteBooks,
@@ -54,7 +55,13 @@ import {
 const bookSortFields = ['title', 'author', 'isbn', 'category', 'createdAtUtc'] as const
 
 export function BooksPage() {
+  const { aiEnabled } = useSettings()
+  const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('keyword')
   const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (!aiEnabled) setSearchMode('keyword')
+  }, [aiEnabled])
   const tableState = useMemo(
     () => parseTableUrlState(searchParams, bookSortFields, 'title'),
     [searchParams],
@@ -274,7 +281,9 @@ export function BooksPage() {
         sortable: true,
         cell: (book) => (
           <span className="grid gap-0.5">
-            <Link className="font-semibold text-primary hover:underline" to={`/catalog/${book.id}`}>{book.title}</Link>
+            <Link className="font-semibold text-primary hover:underline" to={`/catalog/${book.id}`}>
+              {book.title}
+            </Link>
             <small className="text-muted-foreground">{book.author}</small>
           </span>
         ),
@@ -315,7 +324,9 @@ export function BooksPage() {
                       setFormOpen(true)
                     })
                     .catch((reason: unknown) =>
-                      setPageError(reason instanceof Error ? reason.message : 'Không thể tải thông tin sách.'),
+                      setPageError(
+                        reason instanceof Error ? reason.message : 'Không thể tải thông tin sách.',
+                      ),
                     )
                 }}
               >
@@ -391,110 +402,140 @@ export function BooksPage() {
           </>
         }
       >
-        <div className="mb-6 grid gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Tổng đầu sách
-              </CardTitle>
-              <Layers className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{page?.totalCount ?? '—'}</p>
-            </CardContent>
-          </Card>
-        </div>
+        {aiEnabled ? (
+          <Tabs
+            value={searchMode}
+            onValueChange={(value) => setSearchMode(value as 'keyword' | 'ai')}
+            className="mb-6"
+          >
+            <TabsList aria-label="Chế độ tìm kiếm sách">
+              <TabsTrigger value="keyword">
+                <Search className="mr-2 size-4" /> Tìm theo từ khóa
+              </TabsTrigger>
+              <TabsTrigger value="ai">
+                <AiSparklesIcon className="mr-2 size-4" /> Tìm kiếm AI
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh sách sách</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {page ? `${page.totalCount} đầu sách phù hợp với bộ lọc.` : 'Đang tải dữ liệu.'}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <FilterPanel className="mb-4">
-              <div className="grid gap-1 text-sm font-medium">
-                <label htmlFor="catalog-status">Trạng thái</label>
-                <Select value={status} onValueChange={(value) => updateUrl({ status: value, pageNumber: 1 })}>
-                  <SelectTrigger id="catalog-status" className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Đang sử dụng</SelectItem>
-                    <SelectItem value="Inactive">Ngừng sử dụng</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </FilterPanel>
-            <DataTable
-              caption="Danh sách sách trong kho"
-              rows={page?.items ?? []}
-              columns={columns}
-              getRowId={(book) => book.id}
-              isLoading={isLoading}
-              error={pageError || undefined}
-              onRetry={() => refresh()}
-              emptyTitle="Chưa có sách trong kho"
-              emptyDescription="Thay đổi bộ lọc hoặc thêm đầu sách mới."
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-              bulkActions={
-                <>
-                  <PermissionBoundary requiredPermissions={['books.delete']}>
-                    <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-                      Ngừng sử dụng mục đã chọn
-                    </Button>
-                  </PermissionBoundary>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
-                    Bỏ chọn tất cả
-                  </Button>
-                </>
-              }
-              filters={
-                <FilterPanel
-                  hasFilters={Boolean(searchInput) || status !== 'Active'}
-                  onReset={() => {
-                    setSearchInput('')
-                    updateUrl({ search: undefined, status: undefined, pageNumber: 1 })
-                  }}
-                  resultCount={page?.totalCount}
-                >
-                  <div className="relative w-full lg:w-80">
-                    <Search
-                      className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      className="pl-9"
-                      placeholder="Tìm theo tên, tác giả hoặc ISBN..."
-                      value={searchInput}
-                      onChange={(event) => setSearchInput(event.target.value)}
-                      aria-label="Tìm kiếm sách"
-                    />
+        {searchMode === 'keyword' ? (
+          <>
+            <div className="mb-6 grid gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Tổng đầu sách
+                  </CardTitle>
+                  <Layers className="size-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{page?.totalCount ?? '—'}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Danh sách sách</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {page ? `${page.totalCount} đầu sách phù hợp với bộ lọc.` : 'Đang tải dữ liệu.'}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <FilterPanel className="mb-4">
+                  <div className="grid gap-1 text-sm font-medium">
+                    <label htmlFor="catalog-status">Trạng thái</label>
+                    <Select
+                      value={status}
+                      onValueChange={(value) => updateUrl({ status: value, pageNumber: 1 })}
+                    >
+                      <SelectTrigger id="catalog-status" className="h-10 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Đang sử dụng</SelectItem>
+                        <SelectItem value="Inactive">Ngừng sử dụng</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </FilterPanel>
-              }
-              sort={{ columnId: sortBy, direction: sortDirection as SortDirection }}
-              onSortChange={(columnId, direction) =>
-                updateUrl({ sortBy: columnId, sortDirection: direction, pageNumber: 1 })
-              }
-              page={page?.pageNumber}
-              totalPages={page?.totalPages}
-              totalCount={page?.totalCount}
-              onPageChange={(value) => updateUrl({ pageNumber: value })}
-              pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                updateUrl({ pageNumber: 1, pageSize: size })
-              }}
-            />
-            {bulkResult ? (
-              <div className="mt-3">
-                <BulkResultSummary result={bulkResult} />
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+                <DataTable
+                  caption="Danh sách sách trong kho"
+                  rows={page?.items ?? []}
+                  columns={columns}
+                  getRowId={(book) => book.id}
+                  isLoading={isLoading}
+                  error={pageError || undefined}
+                  onRetry={() => refresh()}
+                  emptyTitle="Chưa có sách trong kho"
+                  emptyDescription="Thay đổi bộ lọc hoặc thêm đầu sách mới."
+                  selectedIds={selectedIds}
+                  onSelectionChange={setSelectedIds}
+                  bulkActions={
+                    <>
+                      <PermissionBoundary requiredPermissions={['books.delete']}>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setBulkDeleteOpen(true)}
+                        >
+                          Ngừng sử dụng mục đã chọn
+                        </Button>
+                      </PermissionBoundary>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                        Bỏ chọn tất cả
+                      </Button>
+                    </>
+                  }
+                  filters={
+                    <FilterPanel
+                      hasFilters={Boolean(searchInput) || status !== 'Active'}
+                      onReset={() => {
+                        setSearchInput('')
+                        updateUrl({ search: undefined, status: undefined, pageNumber: 1 })
+                      }}
+                      resultCount={page?.totalCount}
+                    >
+                      <div className="relative w-full lg:w-80">
+                        <Search
+                          className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        <Input
+                          className="pl-9"
+                          placeholder="Tìm theo tên, tác giả hoặc ISBN..."
+                          value={searchInput}
+                          onChange={(event) => setSearchInput(event.target.value)}
+                          aria-label="Tìm kiếm sách"
+                        />
+                      </div>
+                    </FilterPanel>
+                  }
+                  sort={{ columnId: sortBy, direction: sortDirection as SortDirection }}
+                  onSortChange={(columnId, direction) =>
+                    updateUrl({ sortBy: columnId, sortDirection: direction, pageNumber: 1 })
+                  }
+                  page={page?.pageNumber}
+                  totalPages={page?.totalPages}
+                  totalCount={page?.totalCount}
+                  onPageChange={(value) => updateUrl({ pageNumber: value })}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    updateUrl({ pageNumber: 1, pageSize: size })
+                  }}
+                />
+                {bulkResult ? (
+                  <div className="mt-3">
+                    <BulkResultSummary result={bulkResult} />
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <AiBookSearch />
+        )}
       </PageShell>
 
       <PermissionBoundary requiredPermissions={[editingBook ? 'books.update' : 'books.create']}>

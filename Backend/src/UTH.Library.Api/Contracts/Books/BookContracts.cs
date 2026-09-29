@@ -124,3 +124,15 @@ public sealed record BulkResponse(
     int SucceededCount,
     int FailedCount,
     string CorrelationId);
+
+public sealed record SemanticBookSearchRequest(
+    [Required, StringLength(SemanticBookSearchService.MaximumQueryLength, MinimumLength = 1)] string Query,
+    Guid? CategoryId = null,
+    bool AvailableOnly = false,
+    [Range(1, SemanticBookSearchService.MaximumTopK)] int TopK = 10);
+public sealed record SemanticBookSearchItemResponse(Guid Id, string Title, string Author, string Isbn,
+    string Category, string? Description, double Similarity, int TotalCopies, int AvailableCopies);
+public sealed record SemanticBookSearchResponse(IReadOnlyList<SemanticBookSearchItemResponse> Items, string ScoreMeaning);
+public sealed record EmbeddingBackfillRequest(
+    [Range(1, SemanticBookSearchService.MaximumBackfillBatchSize)] int BatchSize = 50);
+public sealed record EmbeddingBackfillResponse(int ProcessedCount, int RemainingCount, bool HasMore);

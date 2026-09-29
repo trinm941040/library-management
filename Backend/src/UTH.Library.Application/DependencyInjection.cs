@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<EmployeeService>();
         services.AddScoped<BookService>();
         services.AddScoped<BookTransferService>();
+        services.AddScoped<SemanticBookSearchService>();
         services.AddScoped<BookCommandValidator>();
         services.AddScoped<IQueryHandler<BookListQuery, BookPageModel>>(provider => provider.GetRequiredService<BookService>());
         services.AddScoped<ICommandHandler<CreateBookCommand, BookResult>>(provider => provider.GetRequiredService<BookService>());

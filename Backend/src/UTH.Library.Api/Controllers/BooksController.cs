@@ -13,9 +13,37 @@ namespace UTH.Library.Api.Controllers;
 public sealed class BooksController(
     BookService bookService,
     BookTransferService transferService,
+    SemanticBookSearchService semanticSearchService,
     IQueryHandler<BookListQuery, BookPageModel> listHandler,
     ICommandHandler<CreateBookCommand, BookResult> createHandler) : ControllerBase
 {
+    [HttpPost("semantic-search")]
+    [Authorize(Policy = Permissions.BooksRead)]
+    [ProducesResponseType(typeof(SemanticBookSearchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<SemanticBookSearchResponse>> SemanticSearch(
+        [FromBody] SemanticBookSearchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await semanticSearchService.SearchAsync(
+            new SemanticBookSearchQuery(request.Query, request.CategoryId, request.AvailableOnly, request.TopK),
+            cancellationToken);
+        return Ok(new SemanticBookSearchResponse(result.Items.Select(item => new SemanticBookSearchItemResponse(
+            item.Id, item.Title, item.Author, item.Isbn, item.Category, item.Description, item.Similarity,
+            item.TotalCopies, item.AvailableCopies)).ToArray(), result.ScoreMeaning));
+    }
+
+    [HttpPost("semantic-embeddings/backfill")]
+    [Authorize(Policy = Permissions.BooksUpdate)]
+    [ProducesResponseType(typeof(EmbeddingBackfillResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<EmbeddingBackfillResponse>> BackfillEmbeddings(
+        [FromBody] EmbeddingBackfillRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await semanticSearchService.BackfillAsync(request.BatchSize, cancellationToken);
+        return Ok(new EmbeddingBackfillResponse(result.ProcessedCount, result.RemainingCount, result.HasMore));
+    }
+
     [HttpGet("catalog-references")]
     [Authorize(Policy = Permissions.BooksRead)]
     public async Task<ActionResult<IReadOnlyList<BookReferenceResponse>>> GetCatalogReferences(

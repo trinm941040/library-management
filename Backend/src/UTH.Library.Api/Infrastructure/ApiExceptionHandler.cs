@@ -15,6 +15,7 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problemDetails,
             ResourceConflictException => (409, "Xung đột dữ liệu", "resource.conflict"),
             OptimisticConcurrencyException => (409, "Xung đột cập nhật", "concurrency.conflict"),
             UnauthorizedAccessException => (403, "Không có quyền truy cập", "authorization.forbidden"),
+            ExternalServiceUnavailableException => (503, "Dịch vụ tạm thời không khả dụng", "external_service.unavailable"),
             _ => (500, "Lỗi máy chủ", "server.error")
         };
         if (status == 500) logger.LogError(exception, "Unhandled exception. CorrelationId: {CorrelationId}", context.TraceIdentifier);

@@ -11,6 +11,11 @@ public sealed class RequestValidationException(IReadOnlyDictionary<string, strin
 }
 public sealed class ResourceNotFoundException(string message) : ApplicationExceptionBase(message, "resource.not_found");
 public sealed class ResourceConflictException(string message) : ApplicationExceptionBase(message, "resource.conflict");
+public sealed class ExternalServiceUnavailableException(string message, Exception? innerException = null)
+    : ApplicationExceptionBase(message, "external_service.unavailable")
+{
+    public Exception? Cause { get; } = innerException;
+}
 public sealed class OptimisticConcurrencyException(string message, Exception? innerException = null)
     : ApplicationExceptionBase(message, "concurrency.conflict")
 {

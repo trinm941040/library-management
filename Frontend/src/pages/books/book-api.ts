@@ -34,12 +34,35 @@ const importResultSchema = z.object({
   importedCount: z.number().int().nonnegative(), errors: z.array(importFieldErrorSchema),
   correlationId: z.string(),
 })
+const semanticBookSearchItemSchema = z.object({
+  id: guidSchema,
+  title: z.string(),
+  author: z.string(),
+  isbn: z.string(),
+  category: z.string(),
+  description: z.string().nullable(),
+  similarity: z.number().min(0).max(1),
+  totalCopies: z.number().int().nonnegative(),
+  availableCopies: z.number().int().nonnegative(),
+})
+const semanticBookSearchResponseSchema = z.object({
+  items: z.array(semanticBookSearchItemSchema),
+  scoreMeaning: z.string(),
+})
 
 export type LibraryBook = z.infer<typeof bookSchema>
 export type BookPageResponse = z.infer<typeof bookPageSchema>
 export type BookImportPreview = z.infer<typeof importPreviewSchema>
 export type BookImportResult = z.infer<typeof importResultSchema>
 export type BookReference = z.infer<typeof referenceSchema>
+export type SemanticBookSearchItem = z.infer<typeof semanticBookSearchItemSchema>
+export type SemanticBookSearchResponse = z.infer<typeof semanticBookSearchResponseSchema>
+export type SemanticBookSearchRequest = {
+  query: string
+  categoryId: string | null
+  availableOnly: boolean
+  topK: number
+}
 export type BookFilters = {
   search?: string
   category?: string
@@ -76,6 +99,17 @@ export async function getCatalogReferences(type: 'authors' | 'publishers' | 'cat
   return readResponse(
     await authenticatedFetch(`${BOOKS_URL}/catalog-references?type=${type}`, { signal }),
     z.array(referenceSchema),
+  )
+}
+export async function semanticSearchBooks(input: SemanticBookSearchRequest, signal?: AbortSignal) {
+  return readResponse(
+    await authenticatedFetch(`${BOOKS_URL}/semantic-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Background-Request': 'true' },
+      body: JSON.stringify(input),
+      signal,
+    }),
+    semanticBookSearchResponseSchema,
   )
 }
 export async function createBook(input: BookInput) {

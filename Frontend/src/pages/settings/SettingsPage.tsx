@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, EyeOff, RefreshCw, Save } from 'lucide-react'
+import { Eye, EyeOff, RefreshCw, Save, Sparkles } from 'lucide-react'
 import { PageShell, ScreenState, useToast } from '@/common/components'
 import { Button } from '@/common/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card'
@@ -9,6 +9,7 @@ import { Switch } from '@/common/components/ui/switch'
 import { useAuth } from '@/auth/AuthProvider'
 import { can } from '@/shared/auth/permissions'
 import { getSettings, updateSetting, type SystemSetting } from './settings-api'
+import { useSettings } from '@/settings/SettingsProvider'
 
 const scopeLabels = {
   System: 'Hệ thống',
@@ -143,6 +144,7 @@ function SettingEditor({
 
 export function SettingsPage() {
   const { user } = useAuth()
+  const { aiEnabled, setAiEnabled } = useSettings()
   const canUpdate = can(user?.permissions ?? [], 'settings.update')
   const [settings, setSettings] = useState<SystemSetting[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,12 +178,41 @@ export function SettingsPage() {
       description="Quản lý tham số hệ thống theo schema và kiểu dữ liệu được backend kiểm soát."
       actions={<Button variant="outline" disabled={loading} loading={loading && settings.length > 0} loadingLabel="Đang tải lại thiết lập" onClick={() => setReloadKey((value) => value + 1)}><RefreshCw />Làm mới</Button>}
     >
-      {error && settings.length === 0 ? (
-        <ScreenState kind="error" title="Không thể tải thiết lập" description={error} actionLabel="Thử lại" onAction={() => setReloadKey((value) => value + 1)} />
-      ) : loading && settings.length === 0 ? (
-        <ScreenState kind="loading" title="Đang tải thiết lập" />
-      ) : (
-        <div className="grid gap-5">
+      <div className="grid gap-5">
+        <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" /> AI &amp; Tìm kiếm
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="grid gap-1">
+                  <Label htmlFor="ai-features-enabled">Tính năng AI</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Hiển thị tìm kiếm ngữ nghĩa AI trên bảng điều khiển, danh mục và kiosk.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tùy chọn chỉ được lưu trên trình duyệt này và không thay đổi cấu hình backend.
+                  </p>
+                </div>
+                <div className="flex min-h-11 shrink-0 items-center gap-3 rounded-md border px-4">
+                  <Switch
+                    id="ai-features-enabled"
+                    checked={aiEnabled}
+                    onCheckedChange={setAiEnabled}
+                  />
+                  <span className="text-sm font-medium">{aiEnabled ? 'Đang bật' : 'Đang tắt'}</span>
+                </div>
+              </div>
+            </CardContent>
+        </Card>
+        {error && settings.length === 0 ? (
+          <ScreenState kind="error" title="Không thể tải thiết lập" description={error} actionLabel="Thử lại" onAction={() => setReloadKey((value) => value + 1)} />
+        ) : loading && settings.length === 0 ? (
+          <ScreenState kind="loading" title="Đang tải thiết lập" />
+        ) : (
+          <>
           {grouped.filter((group) => group.settings.length > 0).map((group) => (
             <Card key={group.scope}>
               <CardHeader><CardTitle>{group.label}</CardTitle></CardHeader>
@@ -197,8 +228,9 @@ export function SettingsPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </PageShell>
   )
 }
